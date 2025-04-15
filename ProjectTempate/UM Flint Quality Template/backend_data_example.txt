@@ -1,0 +1,68 @@
+MiHubWeb_Quality_Tickets (Table Scheme)
+- ID  (ex: 1002)
+- DIVISION (ex: FlexAir or PFAB)
+- INITIATOR (ex: Trevor Keller)
+- WO (ex: 24113)
+- UNIT (ex: 01, A1)
+- SEQUENCE (ex: REW-00300)
+- DATE
+- DESCRIPTIPON 
+- FILES (file insert/storage)
+- DRAWING_NUM (ex: 24113-0100A30)
+- PART_NUM (ex: [any input] )
+- MANUFACTURING_NONCONFORMANCE
+- STATUS
+
+
+Raw Data Example:
+
+
+[
+  {
+    "TICKETID": "1002",
+    "DIVISION": "FLEXAIR",
+    "INITIATOR": "TREVOR KELLER",
+    "WO": "24113",
+    "UNIT": "",
+    "SEQUENCE": "REW-00300",
+    "DATE": "3/12/2025",
+    "DESCRIPTIPON": "Engineering designed to A572-50 grade material. Drawings were detailed to A36 material. Based on material called out on the BOM of the drawings Plate material grade ran was A36. The material grade needs to be A572-50. All details ran from A36 will need to be scrapped.",
+    "FILES": "24113-0100A30_REVB.pdf",
+    "DRAWING_NUM": "24113-0100A30",
+    "PART_NUM": "Several",
+    "MANUFACTURING_NONCONFORMANCE": "Detailing",
+    "STATUS": "NEW",
+  },
+  {
+    "TICKETID": "1004",
+    "DIVISION": "FLEXAIR",
+    "INITIATOR": "TREVOR KELLER",
+    "WO": "24113",
+    "UNIT": "",
+    "SEQUENCE": "000400",
+    "DATE": "3/18/2025",
+    "DESCRIPTIPON": "Cut out the existing 0.5” plate from the fabrication and weld in new [due to material mix up",
+    "FILES": "",
+    "DRAWING_NUM": "24113-FS29A",
+    "PART_NUM": "FS29A",
+    "MANUFACTURING_NONCONFORMANCE": "",
+    "STATUS": "NEW",
+  },
+  {
+    "TICKETID": "989",
+    "DIVISION": "FLEXAIR",
+    "INITIATOR": "TREVOR KELLER",
+    "WO": "023186",
+    "UNIT": "",
+    "SEQUENCE": "MEC",
+    "DATE": "10/24/2024",
+    "DESCRIPTIPON": "Coil damaged beyond repair while handling at shop 2",
+    "FILES": "20241023_092154.jpg",
+    "DRAWING_NUM": "",
+    "PART_NUM": "08FSV051104-026-48.75X120.00",
+    "MANUFACTURING_NONCONFORMANCE": "Assembly",
+    "STATUS": "NEW",
+  },
+]
+
+
