@@ -9,6 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, } from
 // import ChecklistComponent from "./checklist";
 import { Button } from "../../components/ui/button";
 
+import FileForm from '../../components/FileForm';
+
+
 //Mught add to quality
 
 const CreateTicket: React.FC = () => {
@@ -74,7 +77,10 @@ const CreateTicket: React.FC = () => {
                     </CardTitle>
                 </CardHeader>
                     <CardContent>
-                       <div>Ticket Options Listed</div>
+                      <div className="h-[600px] overflow-y-auto p-4 bg-white shadow-md rounded-md"> {/* Allows for scrolling*/}
+                        <FileForm /> {/* The File Form */}
+                      </div>
+                        
                     </CardContent>
                 </Card>
                 </TabsContent>
@@ -85,6 +91,7 @@ const CreateTicket: React.FC = () => {
         )}
     </div>
   );
+
 }
 
 export default CreateTicket;
