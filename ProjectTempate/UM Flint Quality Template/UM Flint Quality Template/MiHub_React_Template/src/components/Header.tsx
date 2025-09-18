@@ -37,7 +37,11 @@ const Header: React.FC = () => {
   const isMobile = useIsMobile();
 
   const navItems = [
+    { label: "CreateTicket", href: "/createTicket" },
     { label: "Quality", href: "/quality" },
+    { label: "Documents", href: "/documents" },
+    { label: "Purchasing", href: "/purchasing" },
+    { label: "Schedule", href: "/schedule" },
   ];
 
   useEffect(() => {

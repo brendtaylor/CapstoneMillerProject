@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Divide } from "lucide-react";
 import ScaleLoader from "react-spinners/ScaleLoader"
 import { useIsMobile } from "../../hooks/use-mobile";
 import { useAuth } from "../../components/AuthContext";
@@ -9,9 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, } from
 // import ChecklistComponent from "./checklist";
 import { Button } from "../../components/ui/button";
 
-//Quality top view ticket progress and ticket creation to make them easily
+//Ignore
 
-const Quality: React.FC = () => {
+const Schedule: React.FC = () => {
     //temp values
     const isMobile = useIsMobile();
     const construction = false;
@@ -21,10 +21,10 @@ const Quality: React.FC = () => {
     const { userRole } = useAuth();
 
     if (construction) {
-      return <div className="text-center text-lg font-bold p-4">Quality Under Development!</div>;
+      return <div className="text-center text-lg font-bold p-4">Schedule Under Development!</div>;
     }
     else if (isMobile) {
-      return <div className="text-center text-lg font-bold p-4">📵 Quality on Mobile!</div>;
+      return <div className="text-center text-lg font-bold p-4">📵 Schedule on Mobile!</div>;
     }
     
   return (
@@ -38,7 +38,7 @@ const Quality: React.FC = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center flex-1 text-sm font-semibold overflow-y-hidden">
             <ScaleLoader color="#3b82f6" />
-            <p className="mt-2">Loading Quality...</p>
+            <p className="mt-2">Loading Schedule...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center flex-1 text-sm font-semibold text-red-600">
@@ -49,48 +49,48 @@ const Quality: React.FC = () => {
 <div className="flex flex-col flex-1 bg-sidebar min-h-full overflow-y-hidden border-r shadow-md">
 
         {/* Side Bar Tabs */}
-        <Tabs defaultValue="tickets" className="flex flex-row flex-1 min-h-full min-w-full gap-6 max-w-3xl pr-5">
+        <Tabs defaultValue="currentschedule" className="flex flex-row flex-1 min-h-full min-w-full gap-6 max-w-3xl pr-5">
             <TabsList className="flex min-h-[1000px] flex-col justify-start max-w-64 bg-muted/50 border-r-2 rounded-none">
                 <div className="flex flex-row w-full items-center gap-2 text-black p-4">
                     <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
                     <ClipboardList className="w-6 h-6 text-white" />
                     </div>
-                    <h2 className="text-lg font-semibold">Quality</h2> {/* Side Bar Header */}
+                    <h2 className="text-lg font-semibold">Scheduling</h2> {/* Side Bar Header */}
                 </div>
                 <div className="border w-56 mb-5"></div>
-                <TabsTrigger value="tickets" className="w-full justify-start data-[state=active]:bg-background">
-                Tickets
+                <TabsTrigger value="currentschedule" className="w-full justify-start data-[state=active]:bg-background">
+                Current Schedule
                 </TabsTrigger>
-                <TabsTrigger value="checklist" className="w-full justify-start data-[state=active]:bg-background">
-                Checklist
+                <TabsTrigger value="hoursworked" className="w-full justify-start data-[state=active]:bg-background">
+                Hours Worked
                 </TabsTrigger>
             </TabsList>
 
             {/* Center of Page */}
             <div className="flex-1">
-                <TabsContent value="tickets" className="my-2">
+                <TabsContent value="currentschedule" className="my-2">
                 <Card>
                 <CardHeader className="flex flex-row">
                     <CardTitle>
-                        Tickets
-                        <p className="text-sm font-normal mt-1">Quality Digital Checklist - Alpha.</p>
+                        Current Schedule
+                        <p className="text-sm font-normal mt-1">Weekly/Monlthy Schedule</p>
                     </CardTitle>
                 </CardHeader>
                     <CardContent>
-                        {/* <ChecklistComponent /> */}
+                        <div> Current Schdule, maybe in table? Or import calender service? </div>
                     </CardContent>
                 </Card>
                 </TabsContent>
-                <TabsContent value="checklist" className="my-2">
+                <TabsContent value="hoursworked" className="my-2">
                 <Card>
                 <CardHeader className="flex flex-row">
                     <CardTitle>
-                        Checklist
-                        <p className="text-sm font-normal mt-1">Quality Digital Checklist - Alpha.</p>
+                        Hours Worked
+                        <p className="text-sm font-normal mt-1">How many hours worked through pay cycle</p>
                     </CardTitle>
                 </CardHeader>
                     <CardContent>
-                        <div>You can ignore this but using as placeholder.</div>
+                        <div>Date for when pay cycle starts and ends</div>
                     </CardContent>
                 </Card>
                 </TabsContent>
@@ -103,4 +103,4 @@ const Quality: React.FC = () => {
   );
 }
 
-export default Quality;
+export default Schedule;

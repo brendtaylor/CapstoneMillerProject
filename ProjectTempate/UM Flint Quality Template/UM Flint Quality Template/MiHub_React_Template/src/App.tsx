@@ -1,3 +1,7 @@
+// Import Page Headers Here
+//
+//
+
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import Header from './components/Header';
@@ -9,6 +13,10 @@ import { AnimatePresence, motion } from "framer-motion";
 
 //Page Imports
 import Quality from './pages/quality/quality';
+import Schedule from './pages/quality/schedule';
+import CreateTicket from './pages/quality/createTicket';
+import Documents from './pages/quality/documents';
+import Purchasing from './pages/quality/purchasing';
 
 // const PrivateRoute: React.FC<{ element: JSX.Element }> = ({ element }) => {
 //   const { isAuthenticated, loading } = useAuth();
@@ -39,7 +47,11 @@ const AppContent: React.FC = () => {
               variants={pageVariants}
             >
             <Routes>
+              <Route path="/createticket" element={<CreateTicket />} />
               <Route path="/quality" element={<Quality />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/purchasing" element={<Purchasing />} />
+              <Route path="/schedule" element={<Schedule />} />
             </Routes>
           </motion.div>
       </div>

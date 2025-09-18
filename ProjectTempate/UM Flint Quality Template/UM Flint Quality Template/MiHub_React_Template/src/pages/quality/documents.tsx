@@ -9,9 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, } from
 // import ChecklistComponent from "./checklist";
 import { Button } from "../../components/ui/button";
 
-//Quality top view ticket progress and ticket creation to make them easily
+//Ignore
 
-const Quality: React.FC = () => {
+const Documents: React.FC = () => {
     //temp values
     const isMobile = useIsMobile();
     const construction = false;
@@ -21,10 +21,10 @@ const Quality: React.FC = () => {
     const { userRole } = useAuth();
 
     if (construction) {
-      return <div className="text-center text-lg font-bold p-4">Quality Under Development!</div>;
+      return <div className="text-center text-lg font-bold p-4">Documents Under Development!</div>;
     }
     else if (isMobile) {
-      return <div className="text-center text-lg font-bold p-4">📵 Quality on Mobile!</div>;
+      return <div className="text-center text-lg font-bold p-4">📵 Documents on Mobile!</div>;
     }
     
   return (
@@ -38,7 +38,7 @@ const Quality: React.FC = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center flex-1 text-sm font-semibold overflow-y-hidden">
             <ScaleLoader color="#3b82f6" />
-            <p className="mt-2">Loading Quality...</p>
+            <p className="mt-2">Loading Documents...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center flex-1 text-sm font-semibold text-red-600">
@@ -55,14 +55,14 @@ const Quality: React.FC = () => {
                     <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
                     <ClipboardList className="w-6 h-6 text-white" />
                     </div>
-                    <h2 className="text-lg font-semibold">Quality</h2> {/* Side Bar Header */}
+                    <h2 className="text-lg font-semibold">Documents</h2> {/* Side Bar Header */}
                 </div>
                 <div className="border w-56 mb-5"></div>
                 <TabsTrigger value="tickets" className="w-full justify-start data-[state=active]:bg-background">
-                Tickets
+                Loaction 1
                 </TabsTrigger>
                 <TabsTrigger value="checklist" className="w-full justify-start data-[state=active]:bg-background">
-                Checklist
+                Location 2
                 </TabsTrigger>
             </TabsList>
 
@@ -72,12 +72,12 @@ const Quality: React.FC = () => {
                 <Card>
                 <CardHeader className="flex flex-row">
                     <CardTitle>
-                        Tickets
-                        <p className="text-sm font-normal mt-1">Quality Digital Checklist - Alpha.</p>
+                        Documents
+                        <p className="text-sm font-normal mt-1">Placeholder: Location 1</p>
                     </CardTitle>
                 </CardHeader>
                     <CardContent>
-                        {/* <ChecklistComponent /> */}
+                        <div>Stuff from Location 1</div>
                     </CardContent>
                 </Card>
                 </TabsContent>
@@ -85,12 +85,12 @@ const Quality: React.FC = () => {
                 <Card>
                 <CardHeader className="flex flex-row">
                     <CardTitle>
-                        Checklist
-                        <p className="text-sm font-normal mt-1">Quality Digital Checklist - Alpha.</p>
+                        Documents
+                        <p className="text-sm font-normal mt-1">Placeholder: Location 2</p>
                     </CardTitle>
                 </CardHeader>
                     <CardContent>
-                        <div>You can ignore this but using as placeholder.</div>
+                        <div>Stuff from Location 2</div>
                     </CardContent>
                 </Card>
                 </TabsContent>
@@ -103,4 +103,4 @@ const Quality: React.FC = () => {
   );
 }
 
-export default Quality;
+export default Documents;
