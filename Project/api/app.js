@@ -11,6 +11,23 @@ app.get('/tickets', function (req, res) {
   app.status(200).json({ message: 'Succesfully retrived all tickets' });
 });
 
+//Health check endpoint
+app.get('/health', function (req, res) {
+  const healthcheck = {
+    uptime: process.uptime(), // Application uptime in seconds
+    message: 'OK',
+    timestamp: Date.now(),
+    // connection to database
+    // memory usage
+  };
+  try {
+    res.status(200).json(healthcheck);
+  } catch (error) {
+    healthcheck.message = error.message;
+    res.status(503).json(healthcheck); // Service Unavailable
+  }
+});
+
 //Retrive single ticket by ticket ID
 app.get('/tickets/:id', function (req, res) {
   res.send('Hello World');
