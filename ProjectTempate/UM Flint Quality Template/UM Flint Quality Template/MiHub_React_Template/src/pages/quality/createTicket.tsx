@@ -31,46 +31,50 @@ const CreateTicket: React.FC = () => {
     }
     
   return (
-    <Tabs
-  defaultValue="tickets"
-  className="flex flex-col lg:flex-row flex-1 min-h-full min-w-full gap-6 max-w-3xl pr-5"
->
-  <TabsList className="flex flex-row lg:flex-col min-h-auto lg:min-h-[1000px] w-full lg:max-w-64 bg-muted/50 border-r-0 lg:border-r-2 rounded-none">
-    <div className="flex flex-row w-full items-center gap-2 text-black p-4">
-      <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
-        <ClipboardList className="w-6 h-6 text-white" />
-      </div>
-      <h2 className="text-lg font-semibold hidden sm:block">
-        Create Ticket
-      </h2>
-    </div>
-    <div className="border w-full lg:w-56 mb-5"></div>
-    <TabsTrigger
-      value="tickets"
-      className="w-full justify-start data-[state=active]:bg-background"
-    >
-      Tickets
-    </TabsTrigger>
-  </TabsList>
-
-  <div className="flex-1">
-    <TabsContent value="tickets" className="my-2">
-      <Card>
-        <CardHeader className="flex flex-row">
-          <CardTitle>
-            Create a Ticket
-            <p className="text-sm font-normal mt-1">Ticket Options</p>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[400px] md:h-[600px] overflow-y-auto p-4 bg-white shadow-md rounded-md">
-            <FileForm />
+    <Tabs defaultValue="tickets" className="min-h-screen bg-gray-100">
+      <div className="max-w-[1300px] mx-auto bg-gray-100 shadow-md rounded-sm min-h-screen flex">
+        
+        {/* Sidebar */}
+        <div className="w-64 bg-muted/50 border-r-2 p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
+              <ClipboardList className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-lg font-semibold">Ticket Options</h2>
           </div>
-        </CardContent>
-      </Card>
-    </TabsContent>
-  </div>
-</Tabs>
+
+          <div className="border w-full mb-4"></div>
+
+          {/* Sidebar Tabs */}
+          <TabsList className="flex flex-col gap-2">
+            <TabsTrigger value="tickets" className="w-full justify-start data-[state=active]:bg-background">
+              Tickets
+            </TabsTrigger>
+            
+          </TabsList>
+        </div>
+
+        {/* Main */}
+        <div className="flex-1 p-6 overflow-y-auto">
+          <TabsContent value="tickets" className="my-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Ticket Form
+                  {/* If you want a subheader "<p className="text-sm font-normal mt-1">Ticket Options</p>"*/}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 bg-white shadow-md rounded-md">
+                  <FileForm />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </div>
+      </div>
+    </Tabs>
+
 
   );
 

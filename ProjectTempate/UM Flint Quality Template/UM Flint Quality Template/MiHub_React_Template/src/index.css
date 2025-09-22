@@ -94,3 +94,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+html, body {
+  height: auto;
+  overflow: visible;
+}

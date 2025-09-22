@@ -36,7 +36,7 @@ const FileForm: React.FC = () => {
 
     return (
         <div className="max-w-2xl mx-auto p-6 bg-white shadow-md rounded-md space-y-6">
-        <h2 className="text-xl font-semibold">Upload File Draft</h2>
+        
 
         {/* Name of File */}
         <div>

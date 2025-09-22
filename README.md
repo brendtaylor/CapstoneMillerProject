@@ -17,4 +17,4 @@ Running:
 -----------------------------------------------------------------
 To start the server do the 'npm start' command.
 
-To stop the serter do the CTRL + C
+To stop the server do the CTRL + C
