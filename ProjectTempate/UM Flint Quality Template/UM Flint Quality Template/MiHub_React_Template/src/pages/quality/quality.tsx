@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, } from "../../components/ui/dialog"
 // import ChecklistComponent from "./checklist";
 import { Button } from "../../components/ui/button";
+import FileForm from "../../components/FileForm";
 
 //Quality top view ticket progress and ticket creation to make them easily
 
@@ -20,87 +21,92 @@ const Quality: React.FC = () => {
     const [error, setError] = useState<string | null>(null); 
     const { userRole } = useAuth();
 
-    if (construction) {
-      return <div className="text-center text-lg font-bold p-4">Quality Under Development!</div>;
-    }
-    else if (isMobile) {
-      return <div className="text-center text-lg font-bold p-4">📵 Quality on Mobile!</div>;
-    }
+    //if (construction) {
+    //  return <div className="text-center text-lg font-bold p-4">Quality Under Development!</div>;
+    //}
+    //else if (isMobile) {
+    //  return <div className="text-center text-lg font-bold p-4">📵 Quality on Mobile!</div>;
+    //}
     
   return (
-    <div
-      className="flex flex-col flex-1 p-2 mt-3 max-w-[1300px] mx-auto bg-gray-100 rounded-sm shadow-md overflow-x-auto"
-      style={{
-        minHeight: "calc(100vh - 150px)",
-        maxHeight: "calc(100vh - 150px)",
-      }}
-    >
-        {loading ? (
-          <div className="flex flex-col items-center justify-center flex-1 text-sm font-semibold overflow-y-hidden">
-            <ScaleLoader color="#3b82f6" />
-            <p className="mt-2">Loading Quality...</p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center flex-1 text-sm font-semibold text-red-600">
-            <p>Error: {error}</p>
-          </div>
-        ) : (
-        <>
-<div className="flex flex-col flex-1 bg-sidebar min-h-full overflow-y-hidden border-r shadow-md">
+    <Tabs defaultValue="tickets" className="min-h-screen bg-gray-100">
+      <div className="max-w-[1300px] mx-auto bg-gray-100 shadow-md rounded-sm min-h-screen flex flex-col md:flex-row">
 
-        {/* Side Bar Tabs */}
-        <Tabs defaultValue="tickets" className="flex flex-row flex-1 min-h-full min-w-full gap-6 max-w-3xl pr-5">
-            <TabsList className="flex min-h-[1000px] flex-col justify-start max-w-64 bg-muted/50 border-r-2 rounded-none">
-                <div className="flex flex-row w-full items-center gap-2 text-black p-4">
-                    <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
-                    <ClipboardList className="w-6 h-6 text-white" />
-                    </div>
-                    <h2 className="text-lg font-semibold">Quality</h2> {/* Side Bar Header */}
-                </div>
-                <div className="border w-56 mb-5"></div>
-                <TabsTrigger value="tickets" className="w-full justify-start data-[state=active]:bg-background">
-                Tickets
-                </TabsTrigger>
-                <TabsTrigger value="checklist" className="w-full justify-start data-[state=active]:bg-background">
-                Checklist
-                </TabsTrigger>
-            </TabsList>
-
-            {/* Center of Page */}
-            <div className="flex-1">
-                <TabsContent value="tickets" className="my-2">
-                <Card>
-                <CardHeader className="flex flex-row">
-                    <CardTitle>
-                        Tickets
-                        <p className="text-sm font-normal mt-1">Quality Digital Checklist - Alpha.</p>
-                    </CardTitle>
-                </CardHeader>
-                    <CardContent>
-                        {/* <ChecklistComponent /> */}
-                    </CardContent>
-                </Card>
-                </TabsContent>
-                <TabsContent value="checklist" className="my-2">
-                <Card>
-                <CardHeader className="flex flex-row">
-                    <CardTitle>
-                        Checklist
-                        <p className="text-sm font-normal mt-1">Quality Digital Checklist - Alpha.</p>
-                    </CardTitle>
-                </CardHeader>
-                    <CardContent>
-                        <div>You can ignore this but using as placeholder.</div>
-                    </CardContent>
-                </Card>
-                </TabsContent>
+        {/* Sidebar */}
+        <div className="w-full md:w-64 bg-muted/50 border-r-2 p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
+              <ClipboardList className="w-6 h-6 text-white" />
             </div>
-        </Tabs>
+            <h2 className="text-lg font-semibold">Quality</h2>
+          </div>
+
+          <div className="border w-full mb-4"></div>
+
+          <TabsList className="fflex flex-col gap-2">
+            <TabsTrigger value="tickets" className="w-full justify-start data-[state=active]:bg-background">
+              Tickets
+            </TabsTrigger>
+            <TabsTrigger value="checklist" className="w-full justify-start data-[state=active]:bg-background">
+              Checklist
+            </TabsTrigger>
+            <TabsTrigger value="ticketForm" className="w-full justify-start data-[state=active]:bg-background">
+              Ticket Form
+            </TabsTrigger>
+          </TabsList>
         </div>
-        </>
-        )}
-    </div>
+
+        {/* Main */}
+        <div className="flex-1 p-4 md:p-6 overflow-y-auto">
+          {/* Tickets Page */}
+          <TabsContent value="tickets" className="my-2">
+            <Card>
+              <CardHeader>
+                <CardTitle> 
+                  Tickets
+                  <p className="text-sm font-normal mt-1">List of Tickets</p>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <div>You can ignore this but using as placeholder.</div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Checklist Page */}
+          <TabsContent value="checklist" className="my-2">
+            <Card>
+              <CardHeader className="flex flex-row">
+                <CardTitle>
+                  Checklist
+                  <p className="text-sm font-normal mt-1">Quality Digital Checklist - Alpha.</p>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <div>You can ignore this but using as placeholder.</div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* File Form Page */}
+          <TabsContent value="ticketForm" className="my-2">
+            <Card>
+              <CardHeader className="flex flex-row">
+                <CardTitle>
+                  File Form
+                  <p className="text-sm font-normal mt-1">Create A Ticket</p>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FileForm/>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </div>
+      </div>
+    </Tabs>
   );
+
 }
 
 export default Quality;

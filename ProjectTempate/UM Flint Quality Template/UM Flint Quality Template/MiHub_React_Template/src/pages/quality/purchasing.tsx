@@ -28,78 +28,62 @@ const Purchasing: React.FC = () => {
     }
     
   return (
-    <div
-      className="flex flex-col flex-1 p-2 mt-3 max-w-[1300px] mx-auto bg-gray-100 rounded-sm shadow-md overflow-x-auto"
-      style={{
-        minHeight: "calc(100vh - 150px)",
-        maxHeight: "calc(100vh - 150px)",
-      }}
-    >
-        {loading ? (
-          <div className="flex flex-col items-center justify-center flex-1 text-sm font-semibold overflow-y-hidden">
-            <ScaleLoader color="#3b82f6" />
-            <p className="mt-2">Loading Purchasing...</p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center flex-1 text-sm font-semibold text-red-600">
-            <p>Error: {error}</p>
-          </div>
-        ) : (
-        <>
-<div className="flex flex-col flex-1 bg-sidebar min-h-full overflow-y-hidden border-r shadow-md">
-
-        {/* Side Bar Tabs */}
-        <Tabs defaultValue="tobuy" className="flex flex-row flex-1 min-h-full min-w-full gap-6 max-w-3xl pr-5">
-            <TabsList className="flex min-h-[1000px] flex-col justify-start max-w-64 bg-muted/50 border-r-2 rounded-none">
-                <div className="flex flex-row w-full items-center gap-2 text-black p-4">
-                    <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
-                    <ClipboardList className="w-6 h-6 text-white" />
-                    </div>
-                    <h2 className="text-lg font-semibold">Purchasing</h2> {/* Side Bar Header */}
-                </div>
-                <div className="border w-56 mb-5"></div>
-                <TabsTrigger value="tobuy" className="w-full justify-start data-[state=active]:bg-background">
-                To Buy List
-                </TabsTrigger>
-                <TabsTrigger value="bought" className="w-full justify-start data-[state=active]:bg-background">
-                Bought
-                </TabsTrigger>
-            </TabsList>
-
-            {/* Center of Page */}
-            <div className="flex-1">
-                <TabsContent value="tobuy" className="my-2">
-                <Card>
-                <CardHeader className="flex flex-row">
-                    <CardTitle>
-                        To Buy List
-                        <p className="text-sm font-normal mt-1">Need to Buy Things</p>
-                    </CardTitle>
-                </CardHeader>
-                    <CardContent>
-                        <div>Things you may need?</div>
-                    </CardContent>
-                </Card>
-                </TabsContent>
-                <TabsContent value="bought" className="my-2">
-                <Card>
-                <CardHeader className="flex flex-row">
-                    <CardTitle>
-                        Bought
-                        <p className="text-sm font-normal mt-1">List of things bought and when</p>
-                    </CardTitle>
-                </CardHeader>
-                    <CardContent>
-                        <div>Pencils bought on 01/24/2021</div> {/* Add A column system possibly*/}
-                    </CardContent>
-                </Card>
-                </TabsContent>
+      <Tabs defaultValue="bought" className="min-h-screen bg-gray-100">
+        <div className="max-w-[1300px] mx-auto bg-gray-100 shadow-md rounded-sm min-h-screen flex flex-col md:flex-row">
+      
+        {/* Sidebar */}
+        <div className="w-full md:w-64 bg-muted/50 border-r-2 p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
+              <ClipboardList className="w-6 h-6 text-white" />
             </div>
-        </Tabs>
+            <h2 className="text-lg font-semibold">Purchasing</h2>
+          </div>
+
+          <div className="border w-full mb-4"></div>
+
+          <TabsList className="fflex flex-col gap-2">
+            <TabsTrigger value="bought" className="w-full justify-start data-[state=active]:bg-background">
+              Bought
+            </TabsTrigger>
+            <TabsTrigger value="toBuy" className="w-full justify-start data-[state=active]:bg-background">
+              To Buy
+            </TabsTrigger>
+          </TabsList>
         </div>
-        </>
-        )}
-    </div>
+
+        {/* Main */}
+        <div className="flex-1 p-4 md:p-6 overflow-y-auto">
+          {/* Location 1 */}
+          <TabsContent value="bought" className="my-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Bought</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 bg-white shadow-md rounded-md">
+                  <div>Temp Placeholder</div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Location 2 */}
+          <TabsContent value="toBuy" className="my-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>To Buy</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 bg-white shadow-md rounded-md">
+                  <div>Temp Placeholder</div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </div>
+      </div>
+    </Tabs>
   );
 }
 

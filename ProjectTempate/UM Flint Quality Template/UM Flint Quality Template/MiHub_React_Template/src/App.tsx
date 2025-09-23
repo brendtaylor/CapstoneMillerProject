@@ -1,7 +1,3 @@
-// Import Page Headers Here
-//
-//
-
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import Header from './components/Header';
@@ -17,6 +13,7 @@ import Schedule from './pages/quality/schedule';
 import CreateTicket from './pages/quality/createTicket';
 import Documents from './pages/quality/documents';
 import Purchasing from './pages/quality/purchasing';
+import Home from './pages/quality/home';
 
 // const PrivateRoute: React.FC<{ element: JSX.Element }> = ({ element }) => {
 //   const { isAuthenticated, loading } = useAuth();
@@ -47,6 +44,8 @@ const AppContent: React.FC = () => {
               variants={pageVariants}
             >
             <Routes>
+              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/home" element={<Home />} />
               <Route path="/createticket" element={<CreateTicket />} />
               <Route path="/quality" element={<Quality />} />
               <Route path="/documents" element={<Documents />} />
