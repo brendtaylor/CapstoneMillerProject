@@ -15,7 +15,7 @@ const AppDataSource = new DataSource({
     options: {
         encrypt: false,
     },
-    synchronize: true, // useful for development
+    synchronize: false, //used to auto-update DB schema with ORM code
     logging: process.env.NODE_ENV === 'development',
     entities: ["src/entities/**/*.js"],
 });
