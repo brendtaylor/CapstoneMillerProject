@@ -4,7 +4,7 @@ module.exports = new EntitySchema({
     name: "DrawingNums",
     tableName: "drawing_nums", 
     columns: {
-        id: {
+        drawing_id: {
             primary: true,
             type: "int",
         },
