@@ -10,10 +10,9 @@ import { AnimatePresence, motion } from "framer-motion";
 //Page Imports
 import Quality from './pages/quality/quality';
 import Schedule from './pages/quality/schedule';
-import CreateTicket from './pages/quality/createTicket';
 import Documents from './pages/quality/documents';
 import Purchasing from './pages/quality/purchasing';
-import Home from './pages/quality/home';
+
 
 // const PrivateRoute: React.FC<{ element: JSX.Element }> = ({ element }) => {
 //   const { isAuthenticated, loading } = useAuth();
@@ -44,9 +43,7 @@ const AppContent: React.FC = () => {
               variants={pageVariants}
             >
             <Routes>
-              <Route path="/" element={<Navigate to="/home" replace />} />
-              <Route path="/home" element={<Home />} />
-              <Route path="/createticket" element={<CreateTicket />} />
+              <Route path="/" element={<Navigate to="/quality" replace />} />
               <Route path="/quality" element={<Quality />} />
               <Route path="/documents" element={<Documents />} />
               <Route path="/purchasing" element={<Purchasing />} />
