@@ -4,11 +4,11 @@ module.exports = new EntitySchema({
     name: "Sequence",
     tableName: "sequence_names",
     columns: {
-        id: {
+        sequence_id: {
             primary: true,
             type: "int",
         },
-        name: {
+        sequence_name: {
             type: "varchar",
         },
     },
