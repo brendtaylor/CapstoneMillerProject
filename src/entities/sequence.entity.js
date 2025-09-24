@@ -4,7 +4,7 @@ module.exports = new EntitySchema({
     name: "Sequence",
     tableName: "sequence_names",
     columns: {
-        sequence_id: {
+        id: {
             primary: true,
             type: "int",
         },
