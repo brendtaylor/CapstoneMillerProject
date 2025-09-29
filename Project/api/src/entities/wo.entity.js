@@ -1,15 +1,27 @@
 const { EntitySchema } = require("typeorm");
 
 module.exports = new EntitySchema({
-    name: "WorkOrders",
-    tableName: "work_orders", 
+    name: "WorkOrder",
+    tableName: "MiHub_WO", 
     columns: {
-        wo_id: {
+        woId: {
+            name: "WO_ID",
             primary: true,
             type: "int",
+            generated: false
         },
-        wo_name: {
+        wo: {
             type: "varchar",
+            length: 100,
+            name: "WO",
+            nullable: true,
+        },
+    },
+    relations: {
+        tickets: {
+            target: "Ticket",
+            type: "one-to-many",
+            inverseSide: "workOrder",
         },
     },
 });

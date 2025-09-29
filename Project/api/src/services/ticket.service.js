@@ -12,29 +12,55 @@ const archivedTicketRepository = AppDataSource.getRepository(ArchivedTicketEntit
 
 // Function to get all tickets
 async function getAllTickets() {
-    return ticketRepository.find();
+    return ticketRepository.find({
+        relations: [
+            "status",
+            "division",
+            // add in the other relations to show in the main ticket table
+        ]
+    });
+}
+
+//Find a specific ticket by its ID
+async function getTicketById(id) {
+    return ticketRepository.findOne({
+        where: { ticketId: id },
+        relations: [
+            "status",
+            "initiator",
+            "division",
+            "workOrder",
+            "unit",
+            "sequence",
+            "manufacturingNonconformance",
+            "drawingNum",
+            "partNum"
+        ]
+    });
 }
 
 // Function to create a new ticket
 async function createTicket(ticketData) {
     //Validation Logic
-    //Check if title field is empty
+    //Check if title field is empty NEED A TITLE COLUMN ADDED TO TICKETS TABLE
     if(!ticketData.title || ticketData.title.trim() === ""){
         throw new Error("Ticket title cannot be empty.");
+    }
+
+    // Set server-side defaults
+    const ticketToSave = {
+        ...ticketData,
+        status: 0,
+        openDate: new Date()
     }
     // The save method creates a new record if it doesn't exist
     return ticketRepository.save(ticketData);
 }
 
-//Find a specific ticket by its ID
-async function getTicketByID(id) {
-    return ticketRepository.findOneBy({ id: id});
-}
-
 //Update a specific ticket 
 async function updateTicket(id, ticketData) {
     //find the ticket to be updated
-    const ticketToUpdate = await ticketRepository.findOneBy({ id: id});
+    const ticketToUpdate = await ticketRepository.findOneBy({ ticketId: id});
 
     //If the Ticket ID  does not exist
     if (!ticketToUpdate) {

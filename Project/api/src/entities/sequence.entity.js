@@ -2,14 +2,26 @@ const { EntitySchema } = require("typeorm");
 
 module.exports = new EntitySchema({
     name: "Sequence",
-    tableName: "sequence_names",
+    tableName: "MiHub_Sequence",
     columns: {
-        sequence_id: {
+        seqID: {
             primary: true,
-            type: "int",
+            type: "smallint",
+            name: "SEQUENCE_ID",
+            generated: false,
         },
-        sequence_name: {
-            type: "varchar",
+        seqName: {
+            type: "nvarchar",
+            name: "SEQUENCE_NAME",
+            length: 55,
+            nullable: true,
         },
     },
+    relations: {
+        tickets: {
+            target: "Ticket",
+            type: "one-to-many",
+            inverseSide: "sequence",
+        }
+    }
 });

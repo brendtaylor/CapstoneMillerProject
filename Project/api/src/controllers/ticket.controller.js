@@ -60,6 +60,10 @@ async function updateTicket(req, res) {
             res.status(404).json({ error: "Ticket not found" });
         }
     } catch (error) {
+        //send '400 Bad Request' for validation errors
+        if (error.message.includes("cannot be empty")) {
+            return res.status(400).json({error: error.message});
+        }
         res.status(500).json({ error: "Internal Server Error" });
     }
 }

@@ -1,15 +1,27 @@
 const { EntitySchema } = require("typeorm");
 
 module.exports = new EntitySchema({
-    name: "ManufacturingNonconformance",
-    tableName: "manufact_noncon", 
+    name: "ManNonCon",
+    tableName: "MiHub_Manufact_Noncon", 
     columns: {
-        noncon_id: {
+        nonConId: {
             primary: true,
-            type: "int",
+            type: "tinyint",
+            name: "NONCON_ID",
+            generated: false,
         },
-        noncon_title: {
+        nonCon: {
             type: "varchar",
+            name: "NONCON",
+            length: 100,
+            nullable: true,
+        },
+    },
+    relations: {
+        tickets: {
+            target: "Ticket",
+            type: "one-to-many",
+            inverseSide: "manNonCon",
         },
     },
 });

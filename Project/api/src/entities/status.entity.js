@@ -2,14 +2,26 @@ const { EntitySchema } = require("typeorm");
 
 module.exports = new EntitySchema({
     name: "Status",
-    tableName: "status", 
+    tableName: "MiHub_Quality_Ticket_Status", 
     columns: {
-        status_id: {
+        statusId: {
             primary: true,
-            type: "int",
+            type: "tinyint",
+            name: "STATUS_ID",
+            generated: false,
         },
-        description: {
+        statusDescription: {
             type: "varchar",
+            length: "max",
+            name: "STATUS_DESCRIPTION",
+            nullable: true,
         },
     },
+    relations: {
+        tickets: {
+            target: "Ticket",
+            type: "one-to-many",
+            inverseSide: "status"
+        }
+    }
 });
