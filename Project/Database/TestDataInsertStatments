@@ -1,4 +1,113 @@
 use [TICKET_SYSTEM]
+-- MiHub_Quality_Users table dependent items and table --
+Create Table MiHub_Quality_Email_Buffer( -- are we scratching this?
+	ID			smallint NOT NULL PRIMARY KEY,
+	RECEIVER	nvarchar(55),
+	TIME_SENT	datetime,
+); 
+
+Create Table MiHub_Quality_Users(
+	ID		smallint NOT NULL PRIMARY KEY,
+	ROLE	tinyint NOT NULL,
+	NAME	nvarchar(55) NOT NULL,
+	EMAIL	nvarchar(55) NOT NULL
+);
+---------------------------------------------------------
+
+Create Table MiHub_WO_Unit(
+	UNIT_ID		smallint NOT NULL PRIMARY KEY,
+	UNIT_NAME	nvarchar(55) NOT NULL
+);
+
+Create Table MiHub_Sequence(
+	SEQUENCE_ID		smallint NOT NULL PRIMARY KEY,
+	SEQUENCE_NAME	nvarchar(55) NOT NULL
+);
+
+Create Table MiHub_Divisions(
+	DIVISION_ID	smallint NOT NULL PRIMARY KEY,
+	DIVISION_NAME varchar(255) NOT NULL
+);
+
+Create Table MiHub_Drawing_Num(
+	DRAWING_NUM_ID	int NOT NULL PRIMARY KEY,
+	DRAWING_NUM		nvarchar(55) NOT NULL
+);
+
+Create Table MiHub_Part_Num(
+	PART_NUM_ID	INT NOT NULL PRIMARY KEY,
+	PART_NUM	nvarchar(55) NOT NULL
+);
+
+Create Table MiHub_Quality_Ticket_Status(
+	STATUS_ID			tinyint NOT NULL PRIMARY KEY,
+	STATUS_DESCRIPTION	varchar(max) NOT NULL
+);
+
+Create Table MiHub_WO(
+	WO_ID	int NOT NULL PRIMARY KEY,
+	WO		int NOT NULL
+);
+
+Create Table MiHub_Manufact_Noncon(
+	NONCON_ID	tinyint NOT NULL PRIMARY KEY,
+	NONCON		varchar(100) NOT NULL
+);
+
+Create Table MiHubWeb_Quality_Tickets(
+	TICKETID					 int identity(1000,1) NOT NULL PRIMARY KEY,
+	STATUS						 tinyint  FOREIGN KEY REFERENCES MiHub_Quality_Ticket_Status(STATUS_ID) NOT NULL,
+	INITIATOR					 smallint FOREIGN KEY REFERENCES MiHub_Quality_Users(ID) NOT NULL,
+	WO							 int	  FOREIGN KEY REFERENCES MiHub_WO(WO_ID) NOT NULL,
+	UNIT						 smallint FOREIGN KEY REFERENCES MiHub_WO_Unit(UNIT_ID),
+	SEQUENCE					 smallint FOREIGN KEY REFERENCES MiHub_Sequence(SEQUENCE_ID) NOT NULL,
+	DIVISION					 smallint FOREIGN KEY REFERENCES MiHub_Divisions(DIVISION_ID) NOT NULL,
+	OPEN_DATE					 DateTime NOT NULL DEFAULT GETDATE(),
+	CLOSE_DATE					 DateTime,
+	MANUFACTURING_NONCONFORMANCE tinyint  FOREIGN KEY REFERENCES MiHub_Manufact_Noncon(NONCON_ID) NOT NULL,
+	DRAWING_NUM					 int	  FOREIGN KEY REFERENCES MiHub_Drawing_Num(DRAWING_NUM_ID) NOT NULL,
+	PART_NUM					 int	  FOREIGN KEY REFERENCES MiHub_Part_Num(PART_NUM_ID) NOT NULL,
+	DESCRIPTION					 nvarchar(max)
+);
+
+Create Table MiHub_Quality_Images(
+	IMAGE_ID	int NOT NULL PRIMARY KEY,
+	TICKETID	int FOREIGN KEY (TICKETID) REFERENCES MiHubWeb_Quality_Tickets(TICKETID)
+);
+
+Create Table MiHubWeb_Quality_Tickets_Archive (
+	TICKETID					 int NOT NULL,
+	STATUS						 tinyint NOT NULL,
+	INITIATOR					 smallint NOT NULL,
+	WO							 int NOT NULL,
+	UNIT						 smallint NOT NULL,
+	SEQUENCE					 smallint NOT NULL,
+	DIVISION					 smallint NOT NULL,
+	OPEN_DATE					 DateTime NOT NULL,
+	CLOSE_DATE					 DateTime,
+	MANUFACTURING_NONCONFORMANCE tinyint NOT NULL,
+	DRAWING_NUM					 int NOT NULL,
+	PART_NUM					 int NOT NULL,
+	DESCRIPTION					 int NOT NULL	  
+);
+
+/*if 1=0
+begin
+drop table MiHubWeb_Quality_Tickets_Archive
+drop table MiHub_Quality_Images
+drop table MiHubWeb_Quality_Tickets
+drop table MiHub_Manufact_Noncon
+drop table MiHub_WO
+drop table MiHub_Quality_Ticket_Status
+drop table MiHub_Part_Num
+drop table MiHub_Drawing_Num
+drop table MiHub_Divisions
+drop table MiHub_Sequence
+drop table MiHub_WO_Unit
+drop table MiHub_Quality_Users
+drop table MiHub_Quality_Email_Buffer
+end */
+use [TICKET_SYSTEM]
 GO
 
 INSERT INTO dbo.MiHub_Quality_Users (ID,ROLE,NAME,EMAIL)
