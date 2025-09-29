@@ -1,6 +1,6 @@
 USE [master]
 GO
-/****** Object:  Database [TICKET_SYSTEM]    Script Date: 9/24/2025 4:00:53 PM ******/
+/****** Object:  Database [TICKET_SYSTEM]    Script Date: 9/29/2025 4:27:56 PM ******/
 CREATE DATABASE [TICKET_SYSTEM]
  CONTAINMENT = NONE
  ON  PRIMARY 
@@ -44,7 +44,7 @@ ALTER DATABASE [TICKET_SYSTEM] SET QUOTED_IDENTIFIER OFF
 GO
 ALTER DATABASE [TICKET_SYSTEM] SET RECURSIVE_TRIGGERS OFF 
 GO
-ALTER DATABASE [TICKET_SYSTEM] SET  ENABLE_BROKER 
+ALTER DATABASE [TICKET_SYSTEM] SET  DISABLE_BROKER 
 GO
 ALTER DATABASE [TICKET_SYSTEM] SET AUTO_UPDATE_STATISTICS_ASYNC OFF 
 GO
@@ -84,68 +84,63 @@ ALTER DATABASE [TICKET_SYSTEM] SET QUERY_STORE (OPERATION_MODE = READ_WRITE, CLE
 GO
 USE [TICKET_SYSTEM]
 GO
-/****** Object:  User [MILLERsa]    Script Date: 9/24/2025 4:00:53 PM ******/
-CREATE USER [MILLERsa] FOR LOGIN [MILLERsa] WITH DEFAULT_SCHEMA=[dbo]
-GO
-ALTER ROLE [db_owner] ADD MEMBER [MILLERsa]
-GO
-/****** Object:  Table [dbo].[MiHub_Divisions]    Script Date: 9/24/2025 4:00:53 PM ******/
+/****** Object:  Table [dbo].[MiHub_Divisions]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHub_Divisions](
 	[DIVISION_ID] [smallint] NOT NULL,
-	[DIVISION_NAME] [varchar](255) NULL,
+	[DIVISION_NAME] [varchar](255) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[DIVISION_ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHub_Drawing_Num]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHub_Drawing_Num]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHub_Drawing_Num](
 	[DRAWING_NUM_ID] [int] NOT NULL,
-	[DRAWING_NUM] [nvarchar](55) NULL,
+	[DRAWING_NUM] [nvarchar](55) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[DRAWING_NUM_ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHub_Manufact_Noncon]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHub_Manufact_Noncon]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHub_Manufact_Noncon](
 	[NONCON_ID] [tinyint] NOT NULL,
-	[NONCON] [varchar](100) NULL,
+	[NONCON] [varchar](100) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[NONCON_ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHub_Part_Num]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHub_Part_Num]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHub_Part_Num](
 	[PART_NUM_ID] [int] NOT NULL,
-	[PART_NUM] [nvarchar](55) NULL,
+	[PART_NUM] [nvarchar](55) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[PART_NUM_ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHub_Quality_Email_Buffer]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHub_Quality_Email_Buffer]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -160,7 +155,7 @@ PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHub_Quality_Images]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHub_Quality_Images]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -174,21 +169,21 @@ PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHub_Quality_Ticket_Status]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHub_Quality_Ticket_Status]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHub_Quality_Ticket_Status](
 	[STATUS_ID] [tinyint] NOT NULL,
-	[STATUS_DESCRIPTION] [varchar](max) NULL,
+	[STATUS_DESCRIPTION] [varchar](max) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[STATUS_ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHub_Quality_Users]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHub_Quality_Users]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -196,74 +191,74 @@ GO
 CREATE TABLE [dbo].[MiHub_Quality_Users](
 	[ID] [smallint] NOT NULL,
 	[ROLE] [tinyint] NOT NULL,
-	[NAME] [nvarchar](55) NULL,
-	[EMAIL] [nvarchar](55) NULL,
+	[NAME] [nvarchar](55) NOT NULL,
+	[EMAIL] [nvarchar](55) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHub_Sequence]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHub_Sequence]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHub_Sequence](
 	[SEQUENCE_ID] [smallint] NOT NULL,
-	[SEQUENCE_NAME] [nvarchar](55) NULL,
+	[SEQUENCE_NAME] [nvarchar](55) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[SEQUENCE_ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHub_WO]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHub_WO]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHub_WO](
 	[WO_ID] [int] NOT NULL,
-	[WO] [varchar](100) NULL,
+	[WO] [int] NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[WO_ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHub_WO_Unit]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHub_WO_Unit]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHub_WO_Unit](
 	[UNIT_ID] [smallint] NOT NULL,
-	[UNIT_NAME] [nvarchar](55) NULL,
+	[UNIT_NAME] [nvarchar](55) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[UNIT_ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHubWeb_Quality_Tickets]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHubWeb_Quality_Tickets]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets](
-	[TICKETID] [int] NOT NULL,
-	[STATUS] [tinyint] NULL,
-	[INITIATOR] [smallint] NULL,
-	[WO] [int] NULL,
+	[TICKETID] [int] IDENTITY(1000,1) NOT NULL,
+	[STATUS] [tinyint] NOT NULL,
+	[INITIATOR] [smallint] NOT NULL,
+	[WO] [int] NOT NULL,
 	[UNIT] [smallint] NULL,
-	[SEQUENCE] [smallint] NULL,
-	[DIVISION] [smallint] NULL,
-	[OPEN_DATE] [datetime] NULL,
+	[SEQUENCE] [smallint] NOT NULL,
+	[DIVISION] [smallint] NOT NULL,
+	[OPEN_DATE] [datetime] NOT NULL,
 	[CLOSE_DATE] [datetime] NULL,
-	[MANUFACTURING_NONCONFORMANCE] [tinyint] NULL,
-	[DRAWING_NUM] [int] NULL,
-	[PART_NUM] [int] NULL,
+	[MANUFACTURING_NONCONFORMANCE] [tinyint] NOT NULL,
+	[DRAWING_NUM] [int] NOT NULL,
+	[PART_NUM] [int] NOT NULL,
 	[DESCRIPTION] [nvarchar](max) NULL,
 PRIMARY KEY CLUSTERED 
 (
@@ -271,25 +266,28 @@ PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHubWeb_Quality_Tickets_Archive]    Script Date: 9/24/2025 4:00:54 PM ******/
+/****** Object:  Table [dbo].[MiHubWeb_Quality_Tickets_Archive]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets_Archive](
-	[TICKETID] [int] NULL,
-	[STATUS] [tinyint] NULL,
-	[INITIATOR] [smallint] NULL,
-	[WO] [int] NULL,
-	[UNIT] [smallint] NULL,
-	[SEQUENCE] [smallint] NULL,
-	[DIVISION] [smallint] NULL,
-	[DATE] [int] NULL,
-	[MANUFACTURING_NONCONFORMANCE] [tinyint] NULL,
-	[DRAWING_NUM] [int] NULL,
-	[PART_NUM] [int] NULL,
-	[DESCRIPTION] [int] NULL
+	[TICKETID] [int] NOT NULL,
+	[STATUS] [tinyint] NOT NULL,
+	[INITIATOR] [smallint] NOT NULL,
+	[WO] [int] NOT NULL,
+	[UNIT] [smallint] NOT NULL,
+	[SEQUENCE] [smallint] NOT NULL,
+	[DIVISION] [smallint] NOT NULL,
+	[OPEN_DATE] [datetime] NOT NULL,
+	[CLOSE_DATE] [datetime] NULL,
+	[MANUFACTURING_NONCONFORMANCE] [tinyint] NOT NULL,
+	[DRAWING_NUM] [int] NOT NULL,
+	[PART_NUM] [int] NOT NULL,
+	[DESCRIPTION] [int] NOT NULL
 ) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets] ADD  DEFAULT (getdate()) FOR [OPEN_DATE]
 GO
 ALTER TABLE [dbo].[MiHub_Quality_Images]  WITH CHECK ADD FOREIGN KEY([TICKETID])
 REFERENCES [dbo].[MiHubWeb_Quality_Tickets] ([TICKETID])
