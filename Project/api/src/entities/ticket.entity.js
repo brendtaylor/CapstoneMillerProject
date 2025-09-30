@@ -17,12 +17,12 @@ module.exports = new EntitySchema({
         openDate: {
             type: "datetime",
             name: "OPEN_DATE",
-            nullable: true,         // idkkkkk
+            nullable: false,         // idkkkkk
         },
         closeDate: {
             type: "datetime",
             name: "CLOSE_DATE",
-            nullable: true,         /// idkkkkkkk
+            nullable: true,         // idkkkkkkk
         },
         description: {
             type: "nvarchar",
