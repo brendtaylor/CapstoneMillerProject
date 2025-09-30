@@ -8,6 +8,8 @@ import { useAuth } from "../../components/AuthContext";
 
 
 
+
+
 const Documents: React.FC = () => {
   const isMobile = useIsMobile();
   const construction = false;
@@ -54,6 +56,7 @@ const Documents: React.FC = () => {
               <CardContent>
                 <div className="p-4 bg-white shadow-md rounded-md">
                   <div>Temp Placeholder</div>
+                  
                 </div>
               </CardContent>
             </Card>
