@@ -14,7 +14,7 @@ module.exports = new EntitySchema({
             name: "UNIT_NAME",
             type: "nvarchar",
             length: 55,
-            nullable: true,
+            nullable: false,
         },
     },
     relations: {

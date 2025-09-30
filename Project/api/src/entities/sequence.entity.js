@@ -14,7 +14,7 @@ module.exports = new EntitySchema({
             type: "nvarchar",
             name: "SEQUENCE_NAME",
             length: 55,
-            nullable: true,
+            nullable: false,
         },
     },
     relations: {

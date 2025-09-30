@@ -11,8 +11,9 @@ module.exports = new EntitySchema({
         },
         divisionName: {
             type: "varchar",
+            length: 255,
             name: "DIVISION_NAME",
-            nullable: true,
+            nullable: false,
         },
     },
     relations: {

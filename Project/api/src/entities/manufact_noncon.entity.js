@@ -14,7 +14,7 @@ module.exports = new EntitySchema({
             type: "varchar",
             name: "NONCON",
             length: 100,
-            nullable: true,
+            nullable: false,
         },
     },
     relations: {

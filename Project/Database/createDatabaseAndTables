@@ -272,11 +272,11 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets_Archive](
-	[TICKETID] [int] NOT NULL,
+	[TICKETID] [int] IDENTITY(1000,1) NOT NULL,
 	[STATUS] [tinyint] NOT NULL,
 	[INITIATOR] [smallint] NOT NULL,
 	[WO] [int] NOT NULL,
-	[UNIT] [smallint] NOT NULL,
+	[UNIT] [smallint] NULL,
 	[SEQUENCE] [smallint] NOT NULL,
 	[DIVISION] [smallint] NOT NULL,
 	[OPEN_DATE] [datetime] NOT NULL,
@@ -284,7 +284,7 @@ CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets_Archive](
 	[MANUFACTURING_NONCONFORMANCE] [tinyint] NOT NULL,
 	[DRAWING_NUM] [int] NOT NULL,
 	[PART_NUM] [int] NOT NULL,
-	[DESCRIPTION] [int] NOT NULL
+	[DESCRIPTION] [nvarchar](max) NULL,
 ) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets] ADD  DEFAULT (getdate()) FOR [OPEN_DATE]

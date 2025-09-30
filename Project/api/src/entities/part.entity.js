@@ -14,7 +14,7 @@ module.exports = new EntitySchema({
             type: "nvarchar",
             name: "PART_NUM",
             length: 55,
-            nullable: true,
+            nullable: false,
         },
     },
 

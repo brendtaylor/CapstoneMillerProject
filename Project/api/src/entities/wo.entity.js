@@ -11,10 +11,10 @@ module.exports = new EntitySchema({
             generated: false
         },
         wo: {
-            type: "nvarchar",
+            type: "int",
             length: 100,
             name: "WO",
-            nullable: true,
+            nullable: false,
         },
     },
     relations: {

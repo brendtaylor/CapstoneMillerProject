@@ -11,8 +11,9 @@ module.exports = new EntitySchema({
         },
         drawing_num: {
             type: "nvarchar",
+            length: 55,
             name: 'DRAWING_NUM',
-            nullable: true,
+            nullable: false,
         },
     },
      relations: {

@@ -14,7 +14,7 @@ module.exports = new EntitySchema({
             type: "varchar",
             length: "max",
             name: "STATUS_DESCRIPTION",
-            nullable: true,
+            nullable: false,
         },
     },
     relations: {
