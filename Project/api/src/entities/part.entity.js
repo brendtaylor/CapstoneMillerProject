@@ -1,15 +1,28 @@
 const { EntitySchema } = require("typeorm");
 
 module.exports = new EntitySchema({
-    name: "PartNumbers",
-    tableName: "part_nums", 
+    name: "PartNum",
+    tableName: "MiHub_Part_Num", 
     columns: {
-        part_id: {
+        partNumId: {
             primary: true,
             type: "int",
+            name: "PART_NUM_ID",
+            generated: false,
         },
-        part_num: {
-            type: "varchar",
+        partNum: {
+            type: "nvarchar",
+            name: "PART_NUM",
+            length: 55,
+            nullable: true,
+        },
+    },
+
+    relations: {
+        tickets: {
+        target: "Ticket",
+        type: "one-to-many",
+        inverseSide: "partNum",
         },
     },
 });

@@ -6,32 +6,95 @@ const { EntitySchema } = require("typeorm");
 
 module.exports = new EntitySchema({
     name: "Ticket", 
-    tableName: "tickets", 
+    tableName: "MiHubWeb_Quality_Tickets", 
     columns: {
-        id: {
+        ticketId: {
             primary: true,      //primary key
-            type: "int",        
-            generated: true,    //auto generate a value for new tickets
+            type: "int",
+            generated: true,      //auto-generate ticketId number
+            name: "TICKETID",          
         },
-        title: {
-            type: "varchar",
+        openDate: {
+            type: "datetime",
+            name: "OPEN_DATE",
+            nullable: false,         // idkkkkk
         },
-        status: {
-            type: "varchar",
-            default: "Open",
+        closeDate: {
+            type: "datetime",
+            name: "CLOSE_DATE",
+            nullable: true,         // idkkkkkkk
         },
         description: {
-            type: "text"
+            type: "nvarchar",
+            name: "DESCRIPTION",
+            length: "max",
+            nullable: true,
         }
     },
-     //relations: {
-       // description: {
-         //  target: "Description",      // The name of the entity to link to
-           // type: "one-to-one",         // The type of relationship
-            //joinColumn: {
-            //    name: "description_id" // The name for the new foreign key column in the 'tickets' table
-            //},
-            //cascade: true, // This automatically saves/updates the description
-        //},
-    //},
+
+    relations: {
+        status: {
+            target: "Status", // This will be the 'name' in ticket-status.entity.js
+            type: "many-to-one",
+            joinColumn: {
+                name: "STATUS", // The foreign key column in this table
+            },
+        },
+        initiator: {                      
+            target: "User", // The 'name' in user.entity.js
+            type: "many-to-one",
+            joinColumn: {
+                name: "INITIATOR",
+            },
+        }, 
+        division: {
+            target: "Division",
+            type: "many-to-one",
+            joinColumn: {
+                name: "DIVISION",
+            },
+        },
+        drawingNum: {
+            target: "DrawingNum",
+            type: "many-to-one",
+            joinColumn: {
+                name: "DRAWING_NUM",
+            }
+        },
+        manNonCon: {
+            target: "ManNonCon",
+            type: "many-to-one",
+            joinColumn: {
+                name: "MANUFACTURING_NONCONFORMANCE",
+            }
+        },
+        partNum: {
+            target: "PartNum",
+            type: "many-to-one",
+            joinColumn: {
+                name: "PART_NUM",
+            }
+        },
+        sequence: {
+            target: "Sequence",
+            type: "many-to-one",
+            joinColumn: {
+                name: "SEQUENCE",
+            }
+        },
+        unit: {
+            target: "Unit",
+            type: "many-to-one",
+            joinColumn: {
+                name: "UNIT",
+            }
+        },
+        wo: {
+            target: "WorkOrder",
+            type: "many-to-one",
+            joinColumn: {
+                name: "WO",
+            }
+        }
+    },
 });
