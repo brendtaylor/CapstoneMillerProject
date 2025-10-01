@@ -19,9 +19,9 @@ async function getAllTickets() {
 async function createTicket(ticketData) {
     //Validation Logic
     //Check if title field is empty
-    if(!ticketData.title || ticketData.title.trim() === ""){
-        throw new Error("Ticket title cannot be empty.");
-    }
+   // if(!ticketData.title || ticketData.title.trim() === ""){
+    //    throw new Error("Ticket title cannot be empty.");
+    //}
     // The save method creates a new record if it doesn't exist
     return ticketRepository.save(ticketData);
 }
@@ -42,9 +42,9 @@ async function updateTicket(id, ticketData) {
     }
 
     //Validate Ticket Title field
-    if (!ticketData.title !== undefined && ticketData.title.trim() === "") {
-        throw new Error("Ticket title cannot be empty.");
-    }
+    //if (!ticketData.title !== undefined && ticketData.title.trim() === "") {
+      //  throw new Error("Ticket title cannot be empty.");
+   // }
     //Merge the new data into the existing ticket
     Object.assign(ticketToUpdate, ticketData);
 
