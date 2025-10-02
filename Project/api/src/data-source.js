@@ -38,7 +38,8 @@ const AppDataSource = new DataSource({
     ],
     
     synchronize: false, 
-    logging: true, 
+    logging: true,
+    logger: "file" ,
     options: {
         encrypt: false, 
         trustServerCertificate: true, // Necessary for local SQL Server dev
