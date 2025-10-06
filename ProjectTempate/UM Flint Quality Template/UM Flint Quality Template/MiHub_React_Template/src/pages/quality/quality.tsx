@@ -21,106 +21,90 @@ const Quality: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null); 
     const { userRole } = useAuth();
-
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
 
     //Set sidebar/drop down for mobile and desktop
     let sidebar;
     if (isMobile) {
-        sidebar = (
-          <>
-        <button
-          className="flex items-center justify-between p-4 bg-muted border-b"
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        >
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
-            <ClipboardList className="w-6 h-6 text-white" />
+      sidebar = (
+        <>
+          <div className="md:hidden w-full bg-muted/50 border-b-2 p-4 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
+                <ClipboardList className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-lg font-semibold">Quality</h2>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setDropdownOpen(true)}
+              className="text-sm text-white flex items-center gap-1 border border-black rounded-md px-3 py-1 bg-blue-500 hover:bg-blue-600 transition"
+            >
+              Menu <span className="text-lg">▾</span>
+            </button>
           </div>
-          <h2 className="text-lg font-semibold">Quality</h2>
-        </div>
 
-        {/* Mobile Drop Down Arrow */}
-        <svg
-          className={`w-5 h-5 transform transition-transform ${isSidebarOpen ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+          {/* Tabs Overlay */}
+          {dropdownOpen && (
+            
+            <div className="fixed inset-0 z-50 bg-gray-800 flex flex-col p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
+                    <ClipboardList className="w-6 h-6 text-white" />
+                  </div>
+                  <h2 className="text-lg text-white font-semibold">Quality</h2>
+                </div>
+                <button
+                  onClick={() => setDropdownOpen(false)}
+                  className="text-sm text-white flex items-center gap-1 border border-black rounded-md px-3 py-1 bg-red-500 hover:bg-red-600 transition"
+                >
+                  Close <span className="text-lg">▴</span>
+                </button>
+              </div>
 
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-gray-900/50 flex justify-center items-start pt-32 px-4"
-          onClick={() => setIsSidebarOpen(false)}
-        >
-        <div
-          className="bg-white rounded-md shadow-lg border border-gray-300 w-full max-w-sm flex flex-col items-start p-6 mt-6 pb-20"
-          onClick={(e) => e.stopPropagation()}
-        >
+              {/* Formating Bar */}
+              <div className="border-b border-gray-300 mb-6"></div>
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8 z-10">
-          <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center shrink-0">
-            <ClipboardList className="w-6 h-6 text-white" />
-          </div>
-          <h2 className="text-lg font-semibold">Quality</h2>
-        </div>
+              {/* Tabs List */}
+              
+              <TabsList className="flex flex-col gap-4 mt-16 bg-gray-800">
+                <TabsTrigger
+                  value="tickets"
+                  className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2
+                            hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform
+                            data-[state=inactive]:bg-white data-[state=active]:bg-gray-500"
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  Tickets
+                </TabsTrigger>
+                <TabsTrigger
+                  value="checklist"
+                  className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2
+                            hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform
+                            data-[state=inactive]:bg-white data-[state=active]:bg-gray-500"
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  Checklist
+                </TabsTrigger>
+                <TabsTrigger
+                  value="ticketForm"
+                  className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2
+                            hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform
+                            data-[state=inactive]:bg-white data-[state=active]:bg-gray-500"
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  File Form
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          )}
+        </>
+      );
+    }
 
-        {/* Tabs */}
-        <TabsList className="flex flex-col gap-2 bg-white p-2 rounded-md shadow-sm">
-            <TabsTrigger value="tickets" 
-              className="
-                w-full text-left px-4 py-2 rounded-md border border-gray-300
-                bg-white text-gray-600
-                hover:bg-gray-100 hover:text-gray-800
-                data-[state=active]:bg-gray-200
-                data-[state=active]:border-gray-400
-                data-[state=active]:text-gray-700
-                transition-all
-                mt-12
-              "
-              onClick={() => setIsSidebarOpen(false)}
-              >
-                Tickets
-            </TabsTrigger>
-            <TabsTrigger value="checklist" 
-              className="
-                w-full text-left px-4 py-2 rounded-md border border-gray-300
-                bg-white text-gray-600
-                hover:bg-gray-100 hover:text-gray-800
-                data-[state=active]:bg-gray-200
-                data-[state=active]:border-gray-400
-                data-[state=active]:text-gray-700
-                transition-all
-              "
-              onClick={() => setIsSidebarOpen(false)}
-              >
-                Checklist
-            </TabsTrigger>
-            <TabsTrigger value="ticketForm" 
-              className="
-                w-full text-left px-4 py-2 rounded-md border border-gray-300
-                bg-white text-gray-600
-                hover:bg-gray-100 hover:text-gray-800
-                data-[state=active]:bg-gray-200
-                data-[state=active]:border-gray-400
-                data-[state=active]:text-gray-700
-                transition-all
-              "
-              onClick={() => setIsSidebarOpen(false)}
-              >
-                File Form
-            </TabsTrigger>
-          </TabsList>
-        </div>
-      </div>
-      )}
-    </>
-    )
-    } 
+        
     else {
       {/* Website Sidebar */}
       sidebar = (
@@ -135,7 +119,7 @@ const Quality: React.FC = () => {
 
           <div className="border w-full mb-4"></div>
 
-          <TabsList className="flex flex-col gap-2">
+          <TabsList className="flex flex-col gap-2 bg-transparent">
             <TabsTrigger value="tickets" className="w-full justify-start data-[state=active]:bg-background mt-14">
               Tickets
             </TabsTrigger>
