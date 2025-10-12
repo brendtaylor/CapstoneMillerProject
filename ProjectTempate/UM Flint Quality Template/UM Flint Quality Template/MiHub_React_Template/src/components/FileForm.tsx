@@ -24,20 +24,12 @@ const FileForm: React.FC = () => {
             setDivision(parsed.division || 'selectOption');
             setPartNumber(parsed.partNumber || '');
             setDescription(parsed.description || '');
-            // DO NOT restore image files (brower can't reconstruct them)
         }
     },[]);
 
     //Auto-save draft to localStorage whenever fields change 
     useEffect(() => {
-        const data = {
-            name,
-            status,
-            division,
-            partNumber,
-            description,
-            imageNames: images.map((img) => img.name), // metadata only
-        };
+        const data = { name, status, division, partNumber, description, imageNames: image.map(img.name) };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }, [name, status, division, partNumber, description, images]);
     
@@ -51,10 +43,9 @@ const FileForm: React.FC = () => {
     const handleSave = () => {
         // Implement how to save here
         console.log({ name, status, division, partNumber, description, images });
-    };
-    alert("Ticket saved successfully!");
-    localStorage.removeItem(STORAGE_KEY);// clear draft after save
-    handleDelete();// rest form
+        alert("Ticket saved successfully!");
+        localStorage.removeItem(STORAGE_KEY);
+        handleDelete();// rest form
 };
 
     const handleDelete = () => {
@@ -65,6 +56,7 @@ const FileForm: React.FC = () => {
         setPartNumber('');
         setDescription('');
         setImages([]);
+        localStorage.removeItem(STORAGE_KEY);
     };
 
     return (
