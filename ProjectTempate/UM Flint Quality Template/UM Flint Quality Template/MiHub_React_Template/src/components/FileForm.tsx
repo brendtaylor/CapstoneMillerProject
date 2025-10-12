@@ -18,7 +18,7 @@ const FileForm: React.FC = () => {
     const [division, setDivision] = useState<DivisionOption>('selectOption');
     const [partNumber, setPartNumber] = useState('');
     const [description, setDescription] = useState('');
-    const [images, setImages] = useState<File[]>([]);
+    const [images, setImages] = useState<SavedImage[]>([]);
 
     //Load draft from localStorage when component mounts
     useEffect(() => {
@@ -37,13 +37,14 @@ const FileForm: React.FC = () => {
     //Auto-save draft to localStorage whenever fields change 
     useEffect(() => {
         const data = { name, status, division, partNumber, description, images };
+        console.log("Auto-saving draft:", data);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }, [name, status, division, partNumber, description, images]);
     
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         // Stores images in an array 
         if (e.target.files) {
-            const fileArray = Array.from(e/target.files);
+            const fileArray = Array.from(e.target.files);
             filesArrary.forEach((file) => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
