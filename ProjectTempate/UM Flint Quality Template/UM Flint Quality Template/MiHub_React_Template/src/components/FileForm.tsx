@@ -4,13 +4,13 @@ import React, { useState, useEffect } from 'react';
 type StatusOption = 'selectOption' | 'pending' | 'inProgress' | 'completed';
 type DivisionOption = 'selectOption' | 'flex' | 'flexAir' | 'other';
 
-//For image storage in state/localStorage
+
 interface SavedImage {
     name: string;
     data: string; //Base64 string
 }
 
-const STORAGE_KEY = "tickectDraft";
+const STORAGE_KEY = "ticketDraft";
 
 const FileForm: React.FC = () => {
     const [name, setName] = useState('');
