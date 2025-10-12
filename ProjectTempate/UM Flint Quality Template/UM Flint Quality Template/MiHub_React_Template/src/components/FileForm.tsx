@@ -4,6 +4,12 @@ import React, { useState, useEffect } from 'react';
 type StatusOption = 'selectOption' | 'pending' | 'inProgress' | 'completed';
 type DivisionOption = 'selectOption' | 'flex' | 'flexAir' | 'other';
 
+//For image storage in state/localStorage
+interface SavedImage {
+    name: string;
+    data: string; //Base64 string
+}
+
 const STORAGE_KEY = "tickectDraft";
 
 const FileForm: React.FC = () => {
@@ -24,32 +30,39 @@ const FileForm: React.FC = () => {
             setDivision(parsed.division || 'selectOption');
             setPartNumber(parsed.partNumber || '');
             setDescription(parsed.description || '');
+            setImages(parsed.images || []);
         }
     },[]);
 
     //Auto-save draft to localStorage whenever fields change 
     useEffect(() => {
-        const data = { name, status, division, partNumber, description, imageNames: image.map(img.name) };
+        const data = { name, status, division, partNumber, description, images };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }, [name, status, division, partNumber, description, images]);
     
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         // Stores images in an array 
         if (e.target.files) {
-            setImages(Array.from(e.target.files));
-        }
-    };
+            const fileArray = Array.from(e/target.files);
+            filesArrary.forEach((file) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+            setImages(prev => [...prev, {name: file.name, data: reader.result as string }]);
+        };
+        reader.readAsDataURL(file);
+    });
+ }
+};
 
     const handleSave = () => {
         // Implement how to save here
         console.log({ name, status, division, partNumber, description, images });
         alert("Ticket saved successfully!");
         localStorage.removeItem(STORAGE_KEY);
-        handleDelete();// rest form
+        handleDelete();
 };
 
     const handleDelete = () => {
-        // Reset the form
         setName('');
         setStatus('selectOption');
         setDivision('selectOption');
@@ -63,7 +76,7 @@ const FileForm: React.FC = () => {
         <div className="max-w-2xl mx-auto p-6 bg-white shadow-md rounded-md space-y-6">
         
 
-        {/* Name of File */}
+        {/* Report Name */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Report Name</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder='Type Here' className="mt-1 block w-full border border-gray-300 rounded-md p-2"/>
