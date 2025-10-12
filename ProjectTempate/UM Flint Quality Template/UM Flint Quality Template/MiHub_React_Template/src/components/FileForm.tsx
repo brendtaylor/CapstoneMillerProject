@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 //Status options of drop downs
 type StatusOption = 'selectOption' | 'pending' | 'inProgress' | 'completed';
 type DivisionOption = 'selectOption' | 'flex' | 'flexAir' | 'other';
+
+const STORAGE_KEY = "tickectDraft";
 
 const FileForm: React.FC = () => {
     const [name, setName] = useState('');
@@ -12,6 +14,33 @@ const FileForm: React.FC = () => {
     const [description, setDescription] = useState('');
     const [images, setImages] = useState<File[]>([]);
 
+    //Load draft from localStorage when component mounts
+    useEffect(() => {
+        const saveDraft = localStorage.getItem(STORAGE_KEY);
+        if (saveDraft) {
+            const parsed = JSON.parse(saveDraft);
+            setName(parsed.name || '');
+            setStatus(parsed.status || 'selectOption');
+            setDivision(parsed.division || 'selectOption');
+            setPartNumber(parsed.partNumber || '');
+            setDescription(parsed.description || '');
+            // DO NOT restore image files (brower can't reconstruct them)
+        }
+    },[]);
+
+    //Auto-save draft to localStorage whenever fields change 
+    useEffect(() => {
+        const data = {
+            name,
+            status,
+            division,
+            partNumber,
+            description,
+            imageNames: images.map((img) => img.name), // metadata only
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }, [name, status, division, partNumber, description, images]);
+    
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         // Stores images in an array 
         if (e.target.files) {
@@ -23,6 +52,10 @@ const FileForm: React.FC = () => {
         // Implement how to save here
         console.log({ name, status, division, partNumber, description, images });
     };
+    alert("Ticket saved successfully!");
+    localStorage.removeItem(STORAGE_KEY);// clear draft after save
+    handleDelete();// rest form
+};
 
     const handleDelete = () => {
         // Reset the form
