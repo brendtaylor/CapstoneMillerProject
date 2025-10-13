@@ -11,7 +11,9 @@ const TicketList: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isSearching, setIsSearching] = useState<boolean>(false);
     const { userRole } = useAuth();
+    const [searchResult, setSearchResult] = useState<any[] | null>(null);
     const { toast } = useToast();
 
     const fetchTickets = async () => {
@@ -84,19 +86,57 @@ const TicketList: React.FC = () => {
         }
     };
 
-    const filteredTickets = tickets.filter(ticket => {
-        const term = searchTerm.toLowerCase();
-        const description = ticket.description?.toLowerCase() || '';
-        const ticketId = ticket.ticketId.toString();
-        return description.includes(term) || ticketId.includes(term);
-    });
+    // Effect to handle debouncing the search term
+    useEffect(() => {
+        const timerId = setTimeout(() => {
+            // This is where the actual search will be triggered, but we'll do it in another effect
+            handleSearch(searchTerm);
+        }, 500); // Wait for 500ms after the user stops typing
+
+        return () => {
+            clearTimeout(timerId);
+        };
+    }, [searchTerm, tickets]); // Rerun when searchTerm or the base ticket list changes
+
+    const handleSearch = async (currentSearchTerm: string) => {
+        if (!currentSearchTerm) {
+            setSearchResult(null); // Clear search results when input is empty
+            return;
+        }
+
+        // If search term is a number, try to fetch by ID
+        if (/^\d+$/.test(currentSearchTerm)) {
+            setIsSearching(true);
+            try {
+                const response = await fetch(`http://localhost:3000/api/tickets/${currentSearchTerm}`);
+                if (response.ok) {
+                    const ticket = await response.json();
+                    setSearchResult([ticket]); // Display only the found ticket
+                } else if (response.status === 404) {
+                    setSearchResult([]); // No ticket found
+                } else {
+                    throw new Error('Search failed');
+                }
+            } catch (e) {
+                setSearchResult([]); // Handle error case
+            } finally {
+                setIsSearching(false);
+            }
+        } else {
+            // If not a number, perform client-side filtering
+            const filtered = tickets.filter(ticket =>
+                ticket.description?.toLowerCase().includes(currentSearchTerm.toLowerCase())
+            );
+            setSearchResult(filtered);
+        }
+    };
 
     if (loading) return <div className="flex justify-center items-center p-4"><ScaleLoader color="#3b82f6" /> <span className="ml-2">Loading tickets...</span></div>;
     if (error) return <div className="text-red-500 text-center p-4">{error}</div>;
 
     return (
         <div>
-            <div className="mb-4">
+            <div className="flex items-center gap-4 mb-4">
                 <Input
                     type="text"
                     placeholder="Search by Ticket ID or Description..."
@@ -104,10 +144,13 @@ const TicketList: React.FC = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="max-w-sm"
                 />
+                {isSearching && <ScaleLoader color="#3b82f6" height={20} />}
             </div>
             <div className="space-y-4">
-                {filteredTickets.length > 0 ? (
-                    filteredTickets.map((ticket) => (
+                {isSearching ? (
+                    <div className="text-center p-4 text-gray-500">Searching...</div>
+                ) : (searchResult ?? tickets).length > 0 ? (
+                    (searchResult ?? tickets).map((ticket) => (
                         <Dialog key={ticket.ticketId}>
                             <DialogTrigger asChild>
                                 <div className="p-4 border rounded-md shadow-sm bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors">
@@ -158,7 +201,7 @@ const TicketList: React.FC = () => {
                         </Dialog>
                     ))
                 ) : (
-                    <p>No tickets found matching your search.</p>
+                    <p>{searchTerm ? 'No tickets found matching your search.' : 'No tickets available.'}</p>
                 )
             }
             </div>
