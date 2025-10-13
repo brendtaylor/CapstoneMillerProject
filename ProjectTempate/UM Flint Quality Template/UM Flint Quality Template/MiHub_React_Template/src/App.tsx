@@ -48,7 +48,6 @@ const AppContent: React.FC = () => {
               <Route path="/documents" element={<Documents />} />
               <Route path="/purchasing" element={<Purchasing />} />
               <Route path="/schedule" element={<Schedule />} />
-              <Route path="/fileform" element={<FileForm />} /> 
             </Routes>
           </motion.div>
       </div>
