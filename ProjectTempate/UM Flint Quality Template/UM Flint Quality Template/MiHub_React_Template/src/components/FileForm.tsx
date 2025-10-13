@@ -57,7 +57,7 @@ const FileForm: React.FC = () => {
 
     const handleSave = () => {
         // Implement how to save here
-        console.log({ name, status, division, partNumber, description, images });
+        console.log("Saving fianl ticket:", { name, status, division, partNumber, description, images });
         alert("Ticket saved successfully!");
         handleDelete();
 };
@@ -70,6 +70,9 @@ const FileForm: React.FC = () => {
         setDescription('');
         setImages([]);
         localStorage.removeItem(STORAGE_KEY);
+
+        const imageInput = document.getElementById('imageUpload') as HTMLInputElement;
+        if (imageInput) imageInput.vaule = '';
     };
 
     return (
@@ -118,48 +121,31 @@ const FileForm: React.FC = () => {
             <input type="text" value={partNumber} onChange={(e) => setPartNumber(e.target.value)} placeholder='Type Here' className="mt-1 block w-full border border-gray-300 rounded-md p-2"/>
         </div>
 
-        {/* Upload Image Section */}
+        {/* Image Upload */}
 <div className="flex flex-col items-center justify-center space-y-2 mt-6">
   {/* Upload Icon */}
   <label htmlFor="imageUpload" className="cursor-pointer flex flex-col items-center">
     <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-26 h-26 mb-2"/>
     <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload Image</span>
   </label>
-
-  {/* Hidden File Input */}
   <input
     id="imageUpload"
     type="file"
     accept="image/*"
     multiple
-    onChange={(e) => {
-      if (e.target.files) {
-        const filesArray = Array.from(e.target.files);
-        filesArray.forEach((file) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setImages(prev => [...prev, { name: file.name, data: reader.result as string }]);
-          };
-          reader.readAsDataURL(file);
-        });
-      }
-    }}
+    onChange={handleImageUpload}
     className="hidden"
-  />
+    />
 
-  {/* Uploaded Images List */}
+  {/* Uploaded Images */}
   {images.length > 0 && (
     <ul className="mt-2 space-y-2 text-sm text-gray-700 w-full">
-      {images.map((img, index) => (
-        <li key={index} className="flex items-center bg-gray-100 p-2 rounded">
-          <img
-            src={img.data}
-            alt={img.name}
-            className="w-16 h-16 object-cover rounded mr-2"
-          />
+      {images.map((img, i) => (
+        <li key={i} className="flex items-center bg-gray-100 p-2 rounded">
+          <img src={img.data} alt={img.name} className="w-16 h-16 object-cover rounded mr-2"/>
           <span className="flex-1">{img.name}</span>
           <button
-            onClick={() => setImages(prev => prev.filter((_, i) => i !== index))}
+            onClick={() => setImages(prev => prev.filter((_, index) => index !== i))}
             className="text-red-500 hover:text-red-700"
           >
             Remove
