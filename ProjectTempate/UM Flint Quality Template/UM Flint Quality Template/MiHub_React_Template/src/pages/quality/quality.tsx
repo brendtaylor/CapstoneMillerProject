@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, } from
 // import ChecklistComponent from "./checklist";
 import { Button } from "../../components/ui/button";
 import FileForm from "../../components/FileForm";
+import TicketList from "../../components/TicketList";
 
 
 //Quality top view ticket progress and ticket creation to make them easily
@@ -18,8 +19,6 @@ const Quality: React.FC = () => {
     const isMobile = useIsMobile();
     const construction = false;
 
-    const [loading, setLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null); 
     const { userRole } = useAuth();
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -153,7 +152,7 @@ const Quality: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                  <div>You can ignore this but using as placeholder.</div>
+                  <TicketList />
               </CardContent>
             </Card>
           </TabsContent>
