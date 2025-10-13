@@ -32,8 +32,8 @@ const FileForm: React.FC = () => {
             setPartNumber(parsed.partNumber || '');
             setDescription(parsed.description || '');
             setImages(parsed.images || []);
-        } catch {
-                console.warn("Failed to parse draft from localStorage");
+        } catch (e) {
+                console.warn("Failed to parse draft", e);
             }
         }
     },[]);
@@ -41,8 +41,8 @@ const FileForm: React.FC = () => {
     //Auto-save draft to localStorage whenever fields change 
     useEffect(() => {
         const data = { name, status, division, partNumber, description, images };
-        console.log("Auto-saving draft:", data);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        console.log("Draft auto-saving:", data);
     }, [name, status, division, partNumber, description, images]);
     
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
