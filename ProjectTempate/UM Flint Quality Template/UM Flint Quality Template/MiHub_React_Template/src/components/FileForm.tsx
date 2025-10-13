@@ -24,13 +24,13 @@ const FileForm: React.FC = () => {
     useEffect(() => {
         const saveDraft = localStorage.getItem(STORAGE_KEY);
         if (saveDraft) {
-            const parsed = JSON.parse(saveDraft);
-            setName(parsed.name || '');
-            setStatus(parsed.status || 'selectOption');
-            setDivision(parsed.division || 'selectOption');
-            setPartNumber(parsed.partNumber || '');
-            setDescription(parsed.description || '');
-            setImages(parsed.images || []);
+            const draft = JSON.parse(saveDraft);
+            setName(draft.name || '');
+            setStatus(draft.status || 'selectOption');
+            setDivision(draft.division || 'selectOption');
+            setPartNumber(draft.partNumber || '');
+            setDescription(draft.description || '');
+            setImages(draft.images || []);
         }
     },[]);
 
@@ -42,24 +42,23 @@ const FileForm: React.FC = () => {
     }, [name, status, division, partNumber, description, images]);
     
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // Stores images in an array 
-        if (e.target.files) {
-            const fileArray = Array.from(e.target.files);
-            filesArray.forEach((file) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-            setImages(prev => [...prev, {name: file.name, data: reader.result as string }]);
-        };
-        reader.readAsDataURL(file);
-    });
- }
+    if (e.target.files) {
+        const fileArray = Array.from(e.target.files);
+        fileArray.forEach((file) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImages(prev => [...prev, { name: file.name, data: reader.result as string }]);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 };
+
 
     const handleSave = () => {
         // Implement how to save here
         console.log({ name, status, division, partNumber, description, images });
         alert("Ticket saved successfully!");
-        localStorage.removeItem(STORAGE_KEY);
         handleDelete();
 };
 
@@ -91,7 +90,7 @@ const FileForm: React.FC = () => {
             onChange={(e) => setStatus(e.target.value as StatusOption)}
             className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             >
-            <option value="selectOption" disabled>Select Option</option>
+            <option value="selectOption">Select Option</option>
             <option value="pending">Pending</option>
             <option value="inProgress">In Progress</option>
             <option value="completed">Completed</option>
@@ -106,7 +105,7 @@ const FileForm: React.FC = () => {
             onChange={(e) => setDivision(e.target.value as DivisionOption)}
             className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             >
-            <option value="selectOption" disabled>Select Option</option>
+            <option value="selectOption">Select Option</option>
             <option value="flex">Flex</option>
             <option value="flexAir">Flex Air</option>
             <option value="other">Other</option>
@@ -119,40 +118,58 @@ const FileForm: React.FC = () => {
             <input type="text" value={partNumber} onChange={(e) => setPartNumber(e.target.value)} placeholder='Type Here' className="mt-1 block w-full border border-gray-300 rounded-md p-2"/>
         </div>
 
-        {/* Upload Image Icon */}
-        <div className="flex flex-col items-center justify-center space-y-2 mt-6">
-            <label htmlFor="imageUpload" className="cursor-pointer flex flex-col items-center">
-                <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-26 h-26 mb-2"/>
-                <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload Image</span>
-            </label>
+        {/* Upload Image Section */}
+<div className="flex flex-col items-center justify-center space-y-2 mt-6">
+  {/* Upload Icon */}
+  <label htmlFor="imageUpload" className="cursor-pointer flex flex-col items-center">
+    <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-26 h-26 mb-2"/>
+    <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload Image</span>
+  </label>
 
-            {/* Hidden File Input */}
-            <input
-                id="imageUpload"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageUpload}
-                className="hidden"
-            />
-            </div>
+  {/* Hidden File Input */}
+  <input
+    id="imageUpload"
+    type="file"
+    accept="image/*"
+    multiple
+    onChange={(e) => {
+      if (e.target.files) {
+        const filesArray = Array.from(e.target.files);
+        filesArray.forEach((file) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImages(prev => [...prev, { name: file.name, data: reader.result as string }]);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+    }}
+    className="hidden"
+  />
 
-
-        {/* Upload Image 
-        <div>
-        <label className="block text-sm font-medium text-gray-700">Upload Image</label>
-        <input type="file" accept="image/*" onChange={(e) => {
-            if (e.target.files && e.target.files[0]) {
-                setImages((prev) => [...prev, e.target.files![0]]);
-            }
-            }}
-            className="mt-1 block w-full"/> {images.length > 0 && (<ul className="mt-2 space-y-2 text-sm text-gray-700"> {images.map((file, index) => ( <li key={index} className="flex justify-between items-center bg-gray-100 p-2 rounded"> <span>{file.name}</span>
-        <button onClick={() => {setImages((prev) => prev.filter((_, i) => i !== index));}} className="text-red-500 hover:text-red-700">
+  {/* Uploaded Images List */}
+  {images.length > 0 && (
+    <ul className="mt-2 space-y-2 text-sm text-gray-700 w-full">
+      {images.map((img, index) => (
+        <li key={index} className="flex items-center bg-gray-100 p-2 rounded">
+          <img
+            src={img.data}
+            alt={img.name}
+            className="w-16 h-16 object-cover rounded mr-2"
+          />
+          <span className="flex-1">{img.name}</span>
+          <button
+            onClick={() => setImages(prev => prev.filter((_, i) => i !== index))}
+            className="text-red-500 hover:text-red-700"
+          >
             Remove
-        </button></li>))}</ul>)}
-        </div>
-        /*)
-
+          </button>
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
+            
         {/* Description */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Description</label>
