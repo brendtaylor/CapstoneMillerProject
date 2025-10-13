@@ -45,7 +45,7 @@ const FileForm: React.FC = () => {
         // Stores images in an array 
         if (e.target.files) {
             const fileArray = Array.from(e.target.files);
-            filesArrary.forEach((file) => {
+            filesArray.forEach((file) => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
             setImages(prev => [...prev, {name: file.name, data: reader.result as string }]);
@@ -123,7 +123,7 @@ const FileForm: React.FC = () => {
         <div className="flex flex-col items-center justify-center space-y-2 mt-6">
             <label htmlFor="imageUpload" className="cursor-pointer flex flex-col items-center">
                 <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-26 h-26 mb-2"/>
-                {/*<span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload Image</span>*/}
+                <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload Image</span>
             </label>
 
             {/* Hidden File Input */}
@@ -131,13 +131,14 @@ const FileForm: React.FC = () => {
                 id="imageUpload"
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleImageUpload}
                 className="hidden"
             />
             </div>
 
 
-        {/* Upload Image */}
+        {/* Upload Image 
         <div>
         <label className="block text-sm font-medium text-gray-700">Upload Image</label>
         <input type="file" accept="image/*" onChange={(e) => {
@@ -150,6 +151,7 @@ const FileForm: React.FC = () => {
             Remove
         </button></li>))}</ul>)}
         </div>
+        /*)
 
         {/* Description */}
         <div>
