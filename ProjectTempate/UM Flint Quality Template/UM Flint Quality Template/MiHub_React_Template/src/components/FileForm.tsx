@@ -22,15 +22,19 @@ const FileForm: React.FC = () => {
 
     //Load draft from localStorage when component mounts
     useEffect(() => {
-        const saveDraft = localStorage.getItem(STORAGE_KEY);
-        if (saveDraft) {
-            const draft = JSON.parse(saveDraft);
-            setName(draft.name || '');
-            setStatus(draft.status || 'selectOption');
-            setDivision(draft.division || 'selectOption');
-            setPartNumber(draft.partNumber || '');
-            setDescription(draft.description || '');
-            setImages(draft.images || []);
+        const draft = localStorage.getItem(STORAGE_KEY);
+        if (draft) {
+            try {
+            const parsed = JSON.parse(saveDraft);
+            setName(parsed.name || '');
+            setStatus(parsed.status || 'selectOption');
+            setDivision(parsed.division || 'selectOption');
+            setPartNumber(parsed.partNumber || '');
+            setDescription(parsed.description || '');
+            setImages(parsed.images || []);
+        } catch {
+                console.warn("Failed to parse draft from localStorage");
+            }
         }
     },[]);
 
