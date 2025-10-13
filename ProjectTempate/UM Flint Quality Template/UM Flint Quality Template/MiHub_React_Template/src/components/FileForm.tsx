@@ -61,7 +61,11 @@ const FileForm: React.FC = () => {
 
     const handleSave = () => {
         // Implement how to save here
-        console.log("Saving fianl ticket:", { name, status, division, partNumber, description, images });
+        const finalTicket = {name, status, division, partNumber, description, images };
+        console.log("Saving fianl ticket:", finalTicket);
+
+        localStorage.setItem("fianlTicket", JSON.stringify(finalTicket));
+        
         alert("Ticket saved successfully!");
 };
 
