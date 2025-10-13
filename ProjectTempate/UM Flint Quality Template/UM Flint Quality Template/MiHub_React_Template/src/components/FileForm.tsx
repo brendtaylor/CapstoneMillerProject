@@ -25,7 +25,7 @@ const FileForm: React.FC = () => {
         const draft = localStorage.getItem(STORAGE_KEY);
         if (draft) {
             try {
-            const parsed = JSON.parse(saveDraft);
+            const parsed = JSON.parse(draft);
             setName(parsed.name || '');
             setStatus(parsed.status || 'selectOption');
             setDivision(parsed.division || 'selectOption');
@@ -63,7 +63,6 @@ const FileForm: React.FC = () => {
         // Implement how to save here
         console.log("Saving fianl ticket:", { name, status, division, partNumber, description, images });
         alert("Ticket saved successfully!");
-        handleDelete();
 };
 
     const handleDelete = () => {
@@ -76,7 +75,7 @@ const FileForm: React.FC = () => {
         localStorage.removeItem(STORAGE_KEY);
 
         const imageInput = document.getElementById('imageUpload') as HTMLInputElement;
-        if (imageInput) imageInput.vaule = '';
+        if (imageInput) imageInput.value = '';
     };
 
     return (
