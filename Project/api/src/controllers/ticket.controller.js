@@ -5,9 +5,10 @@ const ticketService = require("../services/ticket.service.js");
 // Controller to handle getting all tickets
 async function getAllTickets(req, res) {
     try {
-        const tickets = await ticketService.getAllTickets();
+        const tickets = await ticketService.findAll();
         res.json(tickets);
     } catch (error) {
+        console.error("Error fetching tickets:", error); 
         res.status(500).json({ error: "Internal Server Error" });
     }
 }

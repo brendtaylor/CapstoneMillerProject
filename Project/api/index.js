@@ -2,10 +2,13 @@
 
 // load environment variables
 require('dotenv').config();
-
 const express = require("express");
+const cors = require('cors');
+
+const mainApiRouter = require("./src/routes/index.js");
+
 const { AppDataSource } = require("./src/data-source");
-const ticketRoutes = require("./src/routes/ticket.routes.js");
+
 
 // Initialize database connection
 AppDataSource.initialize()
@@ -16,11 +19,12 @@ AppDataSource.initialize()
         const app = express();
         const port = process.env.PORT || 3000;
 
-        // Add middleware to parse incoming JSON requests
+        // Middleware to parse incoming JSON requests
         app.use(express.json());
+        app.use(cors());
 
-        // --- API routes will go here ---
-        app.use("/api/tickets", ticketRoutes);
+        // main router
+        app.use('/api', mainApiRouter);
 
         // Start the Express server
         app.listen(port, () => {
