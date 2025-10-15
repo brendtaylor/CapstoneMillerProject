@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const username = "username";
   const displayName = "displayName";
-  const userRole = "default";
+  const userRole = "admin";
 
 
   return (
