@@ -1,5 +1,5 @@
 const { AppDataSource } = require("../data-source");
-const { Sequence } = require("../entities/sequence.entity");
+const Sequence = require("../entities/sequence.entity");
 
 const sequenceRepository = AppDataSource.getRepository(Sequence);
 

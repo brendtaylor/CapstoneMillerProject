@@ -1,5 +1,5 @@
 const { AppDataSource } = require("../data-source");
-const { Noncon } = require("../entities/manufact_noncon.entity");
+const Noncon  = require("../entities/manufact_noncon.entity");
 
 const nonconRepository = AppDataSource.getRepository(Noncon);
 

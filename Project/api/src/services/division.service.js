@@ -1,13 +1,13 @@
-const { AppDataSource } = require("../data-source"); // Adjust path if needed
+const Division = require("../entities/division.entity"); 
+const { AppDataSource } = require("../data-source");
+
+// Pass the imported entity object directly
+const divisionRepository = AppDataSource.getRepository(Division); 
 
 class DivisionService {
-  static async findAll() {
-    // Get the repository using the ENTITY NAME STRING from your schema
-    const divisionRepository = AppDataSource.getRepository("Division");
-
-    // Fetch all records
-    return divisionRepository.find();
-  }
+    static async findAll() {
+        return divisionRepository.find();
+    }
 }
 
 module.exports = { DivisionService };

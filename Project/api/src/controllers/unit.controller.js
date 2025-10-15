@@ -1,7 +1,7 @@
 const { UnitService } = require("../services/unit.service");
 
 class UnitController {
-    static async getAllDivsions(req, res){
+    static async getAllUnits(req, res){
         try{
             const units = await UnitService.findAll();
             res.status(200).json(units);

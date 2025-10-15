@@ -1,5 +1,5 @@
 const { AppDataSource } = require("../data-source");
-const { Status } = require("../entities/status.entity");
+const Status = require("../entities/status.entity");
 
 const statusRepository = AppDataSource.getRepository(Status);
 

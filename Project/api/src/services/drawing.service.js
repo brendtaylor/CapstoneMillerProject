@@ -1,8 +1,10 @@
 const { AppDataSource } = require("../data-source");
+const Drawing = require("../entities/drawing.entity"); 
+
+const drawingRepository = AppDataSource.getRepository(Drawing); 
 
 class DrawingService {
     static async findAll() {
-        const drawingRepository = AppDataSource.getRepository("Drawing");
         return drawingRepository.find();
     }
 }
