@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ScaleLoader from "react-spinners/ScaleLoader";
 import { useAuth } from './AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from './ui/dialog';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useToast } from '../hooks/use-toast';
@@ -150,56 +150,76 @@ const TicketList: React.FC = () => {
                 {isSearching ? (
                     <div className="text-center p-4 text-gray-500">Searching...</div>
                 ) : (searchResult ?? tickets).length > 0 ? (
-                    (searchResult ?? tickets).map((ticket) => (
-                        <Dialog key={ticket.ticketId}>
-                            <DialogTrigger asChild>
-                                <div className="p-4 border rounded-md shadow-sm bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors">
-                                    <h3 className="font-bold text-lg">Ticket #{ticket.ticketId}</h3>
-                                    <p><span className="font-semibold">Status:</span> {ticket.status?.statusDescription || 'N/A'}</p>
-                                    <p className="truncate"><span className="font-semibold">Description:</span> {ticket.description || 'N/A'}</p>
-                                    <p><span className="font-semibold">Initiator:</span> {ticket.initiator?.name || ticket.initiator?.username || 'N/A'}</p>
-                                    <p className="text-sm text-gray-500 mt-2">Opened: {new Date(ticket.openDate).toLocaleString()}</p>
-                                </div>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-2xl">
-                                <DialogHeader>
-                                    <DialogTitle>Ticket #{ticket.ticketId} - Read Only</DialogTitle>
-                                </DialogHeader>
-                                <div className="grid gap-4 py-4 text-sm">
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="text-right font-semibold">Status</span>
-                                        <span className="col-span-3">{ticket.status?.statusDescription || 'N/A'}</span>
+                    <Accordion type="single" collapsible className="w-full space-y-4">
+                        {(searchResult ?? tickets).map((ticket) => (
+                            <AccordionItem value={`item-${ticket.ticketId}`} key={ticket.ticketId} className="border rounded-md shadow-sm bg-gray-50 data-[state=open]:bg-white">
+                                <AccordionTrigger className="p-4 hover:no-underline hover:bg-gray-100 rounded-t-md data-[state=open]:rounded-b-none data-[state=open]:border-b overflow-hidden">
+                                    <div className="flex-1 text-left min-w-0">
+                                        <h3 className="font-bold text-lg">Ticket #{ticket.ticketId}</h3>
+                                        <p><span className="font-semibold">Status:</span> {ticket.status?.statusDescription || 'N/A'}</p>
+                                        <p><span className="font-semibold">Description:</span> {ticket.description || 'N/A'}</p>
+                                        <p><span className="font-semibold">Initiator:</span> {ticket.initiator?.name || ticket.initiator?.username || 'N/A'}</p>
+                                        <p className="text-sm text-gray-500 mt-2">Opened: {new Date(ticket.openDate).toLocaleString()}</p>
                                     </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="text-right font-semibold">Description</span>
-                                        <p className="col-span-3 whitespace-pre-wrap">{ticket.description || 'N/A'}</p>
+                                </AccordionTrigger>
+                                <AccordionContent className="p-4">
+                                    <div className="space-y-4 py-4 text-sm">
+                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
+                                            <span className="text-right font-semibold">Status</span>
+                                            <span>{ticket.status?.statusDescription || 'N/A'}</span>
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_3fr] items-start gap-4">
+                                            <span className="text-right font-semibold">Description</span>
+                                            <p className="break-words min-w-0">{ticket.description || 'N/A'}</p>
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
+                                            <span className="text-right font-semibold">Initiator</span>
+                                            <span>{ticket.initiator?.name || ticket.initiator?.username || 'N/A'}</span>
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
+                                            <span className="text-right font-semibold">Division</span>
+                                            <span>{ticket.division?.divisionName || 'N/A'}</span>
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
+                                            <span className="text-right font-semibold">Part #</span>
+                                            <span>{ticket.partNum?.partNum || 'N/A'}</span>
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
+                                            <span className="text-right font-semibold">Drawing #</span>
+                                            <span>{ticket.drawingNum?.drawing_num || 'N/A'}</span>
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
+                                            <span className="text-right font-semibold">Work Order</span>
+                                            <span>{ticket.wo?.wo || 'N/A'}</span>
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
+                                            <span className="text-right font-semibold">Unit</span>
+                                            <span>{ticket.unit?.unitName || 'N/A'}</span>
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
+                                            <span className="text-right font-semibold">Sequence</span>
+                                            <span>{ticket.sequence?.seqName || 'N/A'}</span>
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
+                                            <span className="text-right font-semibold">Nonconformance</span>
+                                            <span className="break-words min-w-0">{ticket.manNonCon?.nonCon || 'N/A'}</span>
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
+                                            <span className="text-right font-semibold">Attachments</span>
+                                            <span className="text-gray-500 italic">Attachment display not yet implemented.</span>
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="text-right font-semibold">Initiator</span>
-                                        <span className="col-span-3">{ticket.initiator?.name || ticket.initiator?.username || 'N/A'}</span>
+                                    <div className="flex justify-start mt-4">
+                                        {userRole === 'admin' && (
+                                            <Button variant="destructive" onClick={() => confirmAndArchive(ticket.ticketId)}>
+                                                Archive Ticket
+                                            </Button>
+                                        )}
                                     </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="text-right font-semibold">Division</span>
-                                        <span className="col-span-3">{ticket.division?.divisionName || 'N/A'}</span>
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="text-right font-semibold">Attachments</span>
-                                        <span className="col-span-3 text-gray-500 italic">Attachment display not yet implemented.</span>
-                                    </div>
-                                </div>
-                                <DialogFooter className="sm:justify-between">
-                                    {userRole === 'admin' && (
-                                        <Button variant="destructive" onClick={() => confirmAndArchive(ticket.ticketId)}>
-                                            Archive Ticket
-                                        </Button>
-                                    )}
-                                    <DialogClose asChild>
-                                        <Button variant="outline">Close</Button>
-                                    </DialogClose>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    ))
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
                 ) : (
                     <p>{searchTerm ? 'No tickets found matching your search.' : 'No tickets available.'}</p>
                 )
