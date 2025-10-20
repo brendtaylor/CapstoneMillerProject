@@ -20,6 +20,7 @@ async function createTicket(req, res) {
         const newTicket = await ticketService.createTicket(req.body);
         res.status(201).json(newTicket);
     } catch (error) {
+        console.error("Error creating ticket:", error);
         //Check if the error is a validation error
         if (error.message.includes("cannot be empty")) {
             return res.status(400).json({ error: error.message });
