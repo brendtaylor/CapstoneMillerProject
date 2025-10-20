@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
 
 interface AuthContextType {
+  userId: number | null;
   username: string | null;
   displayName: string | null;
   userRole: string | null;
@@ -13,13 +14,14 @@ interface AuthProviderProps {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const userId = 1001; // Assuming user 'NROACH' for now
   const username = "username";
   const displayName = "displayName";
   const userRole = "admin";
 
 
   return (
-    <AuthContext.Provider value={{ username, displayName, userRole}}>
+    <AuthContext.Provider value={{ userId, username, displayName, userRole}}>
       {children}
     </AuthContext.Provider>
   );
