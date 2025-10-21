@@ -37,7 +37,7 @@ async function createTicket(ticketData) {
 
 //Find a specific ticket by its ID
 async function getTicketByID(id) {
-    return ticketRepository.findOneBy({ 
+    return ticketRepository.findOne({ 
         where: {ticketId: parseInt(id) },
         relations: ticketRelations,
     });
