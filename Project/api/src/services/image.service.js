@@ -32,9 +32,7 @@ class ImageService {
         await imageRepository.save(newImage);
         return newImage;
     }
-    static async findAll() {
-        return imageRepository.find();
-    }
 }
+
 
 module.exports = { ImageService };
