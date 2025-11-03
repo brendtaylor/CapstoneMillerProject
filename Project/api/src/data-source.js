@@ -12,6 +12,7 @@ const Sequence = require("./entities/sequence.entity");
 const Unit = require("./entities/unit.entity");
 const WorkOrder = require("./entities/wo.entity");
 const ArchivedTicket = require("./entities/archived-ticket.entity");
+const Image = require("./entities/image.entity");
 
 
 const AppDataSource = new DataSource({
@@ -34,7 +35,8 @@ const AppDataSource = new DataSource({
         Sequence,
         Unit,
         WorkOrder,
-        ArchivedTicket
+        ArchivedTicket,
+        Image
     ],
     
     synchronize: false, 
@@ -55,4 +57,3 @@ AppDataSource.initialize()
     });
 
 module.exports = { AppDataSource };
-
