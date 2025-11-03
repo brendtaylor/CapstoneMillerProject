@@ -81,6 +81,7 @@ async function archiveTicket(req, res) {
             res.status(404).json({ error: "Ticket not found" });
         } 
     } catch (error) {
+        console.error("Error archiving ticket:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 }

@@ -29,6 +29,42 @@ module.exports = new EntitySchema({
             name: "DESCRIPTION",
             length: "max",
             nullable: true,
+        },
+        status: {
+            type: "tinyint",
+            name: "STATUS"
+        },
+        initiator: {
+            type: "smallint",
+            name: "INITIATOR"
+        }, 
+        division: {
+            type: "smallint",
+            name: "DIVISION"
+        },
+        drawingNum: {
+            type: "int",
+            name: "DRAWING_NUM"
+        },
+        manNonCon: {
+            type: "tinyint",
+            name: "MANUFACTURING_NONCONFORMANCE"
+        },
+        partNum: {
+            type: "int",
+            name: "PART_NUM"
+        },
+        sequence: {
+            type: "smallint",
+            name: "SEQUENCE"
+        },
+        unit: {
+            type: "smallint",
+            name: "UNIT"
+        },
+        wo: {
+            type: "int",
+            name: "WO"
         }
     },
 
