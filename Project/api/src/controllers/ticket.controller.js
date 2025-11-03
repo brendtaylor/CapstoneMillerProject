@@ -1,6 +1,7 @@
 //Acts like the kitchen manager. Takes order from ticket.routes.js and delegates the task to the right station (service)
 
 const ticketService = require("../services/ticket.service.js");
+const { emitToMake } = require('../utils/makeEmitter.js');
 
 // Controller to handle getting all tickets
 async function getAllTickets(req, res) {
@@ -8,6 +9,7 @@ async function getAllTickets(req, res) {
         const tickets = await ticketService.getAllTickets();
         res.json(tickets);
     } catch (error) {
+        console.error("Error fetching tickets:", error); 
         res.status(500).json({ error: "Internal Server Error" });
     }
 }
@@ -18,7 +20,9 @@ async function createTicket(req, res) {
         // req.body contains the JSON data sent by the client
         const newTicket = await ticketService.createTicket(req.body);
         res.status(201).json(newTicket);
+        emitToMake('ticket.create', { ticket: newTicket });
     } catch (error) {
+        console.error("Error creating ticket:", error);
         //Check if the error is a validation error
         if (error.message.includes("cannot be empty")) {
             return res.status(400).json({ error: error.message });
@@ -56,6 +60,7 @@ async function updateTicket(req, res) {
 
         if (updatedTicket) {
             res.json(updatedTicket);                                                                //sending back the updated ticket
+            emitToMake('ticket.update', { ticket: updatedTicket });
         } else {
             res.status(404).json({ error: "Ticket not found" });
         }
@@ -76,6 +81,7 @@ async function archiveTicket(req, res) {
             res.status(404).json({ error: "Ticket not found" });
         } 
     } catch (error) {
+        console.error("Error archiving ticket:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 }

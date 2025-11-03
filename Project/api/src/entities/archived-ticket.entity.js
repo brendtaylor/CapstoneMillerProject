@@ -55,7 +55,6 @@ module.exports = new EntitySchema({
             type: "int",
             name: "PART_NUM",
         },
-        // This is the corrected version
         description: {
             type: "nvarchar",
             length: "max",

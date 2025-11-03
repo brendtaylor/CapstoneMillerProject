@@ -1,22 +1,27 @@
-//Acts like the Waiter in a restaurant. Takes in requests and forwards them to the controller.
-//defines the possible actions that a customer can request
-
 const express = require("express");
-const ticketController = require("../controllers/ticket.controller.js");
+const {
+    getAllTickets,
+    getTicketByID,
+    createTicket,
+    updateTicket,
+    archiveTicket
+} = require("../controllers/ticket.controller");
+
 const router = express.Router();
 
-// Route for GET request to '/' (which is '/api/tickets/')
-router.get("/", ticketController.getAllTickets);
+/// GET /api/tickets - Get all tickets
+router.get("/", getAllTickets);
 
-// Route for POST request to '/' (which is '/api/tickets/')
-router.post("/", ticketController.createTicket);
+// GET /api/tickets/:id - Get a single ticket by its ID
+router.get("/:id", getTicketByID);
 
-//Route for GET request to ('/api/tickets/')
-router.get("/:id", ticketController.getTicketByID);
+// POST /api/tickets - Create a new ticket
+router.post("/", createTicket);
 
-//Route for PUT request to (/api/tickets/')
-router.put("/:id", ticketController.updateTicket);
+// PUT /api/tickets/:id - Update an existing ticket
+router.put("/:id", updateTicket);
 
-//Route for DELETE request to ('/api/tickets/')
-router.delete("/:id", ticketController.archiveTicket);
+// DELETE /api/tickets/:id - Delete (archive) a ticket
+router.delete("/:id", archiveTicket);
+
 module.exports = router;

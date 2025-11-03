@@ -1,0 +1,33 @@
+services:
+  api:
+    container_name: ticket-api
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: sql-server-db
+      DB_PORT: 1433
+      DB_USER: sa
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_NAME}
+      NODE_ENV: ${NODE_ENV}
+      MAKE_SIGNING_SECRET: ${MAKE_SIGNING_SECRET}
+      MAKE_WEBHOOK_URL: ${MAKE_WEBHOOK_URL}
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    container_name: sql-server-db
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: 'Y'
+      SA_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - sql_server_data:/var/opt/mssql
+    
+
+volumes:
+  sql_server_data:
