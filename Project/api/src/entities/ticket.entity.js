@@ -69,6 +69,11 @@ module.exports = new EntitySchema({
     },
 
     relations: {
+        images: {
+            target: "Image", // The 'name' from image.entity.js
+            type: "one-to-many", // One Ticket can have Many Images
+            inverseSide: "ticket", // Links to the 'ticket' property in image.entity.js
+        },
         status: {
             target: "Status", // This will be the 'name' in ticket-status.entity.js
             type: "many-to-one",
