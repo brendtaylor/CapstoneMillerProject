@@ -55,7 +55,7 @@ async function updateTicket(id, ticketData) {
 //Archive a specific ticket
 async function archiveTicket(id) {
     const ticketId = parseInt(id);
-    const ticketToArchive = await ticketRepository.findOneBy({ ticketId });
+    const ticketToArchive = await ticketRepository.findOneBy({ ticketId: ticketId });
 
     if (!ticketToArchive) {
         return null;
@@ -66,6 +66,6 @@ async function archiveTicket(id) {
     await archivedTicketRepository.save(archivedTicket);
 
     //Delete the original ticket
-    return ticketRepository.delete({ ticketId });
+    return ticketRepository.delete({ ticketId: ticketId });
 }
 module.exports = { getAllTickets, createTicket, getTicketByID, updateTicket, archiveTicket };
