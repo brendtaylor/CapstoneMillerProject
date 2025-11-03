@@ -12,6 +12,7 @@ const statusRoutes = require("./status.routes");
 const unitRoutes = require("./unit.routes");
 const userRoutes = require("./user.routes");
 const woRoutes = require("./wo.routes");
+const imageRoutes = require('./image.routes');
 
 
 router.use("/tickets", ticketRoutes);
@@ -24,6 +25,7 @@ router.use("/statuses", statusRoutes);
 router.use("/units", unitRoutes);
 router.use("/users", userRoutes);
 router.use("/work-orders", woRoutes);
+router.use('/images', imageRoutes);
 
 
 module.exports = router;
