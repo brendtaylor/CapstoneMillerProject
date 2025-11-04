@@ -13,10 +13,7 @@ services:
       NODE_ENV: ${NODE_ENV}
       MAKE_SIGNING_SECRET: ${MAKE_SIGNING_SECRET}
       MAKE_WEBHOOK_URL: ${MAKE_WEBHOOK_URL}
-    depends_on:
-      database:
-        condition: service_healthy
-
+   
   database:
     container_name: sql-server-db
     image: mcr.microsoft.com/mssql/server:2022-latest
