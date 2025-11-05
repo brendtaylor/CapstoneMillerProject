@@ -20,6 +20,7 @@ const Quality: React.FC = () => {
     const construction = false;
 
     const { userRole } = useAuth();
+    const [showForm, setShowForm] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
     //Set sidebar/drop down for mobile and desktop
@@ -125,9 +126,6 @@ const Quality: React.FC = () => {
             <TabsTrigger value="checklist" className="w-full justify-start data-[state=active]:bg-background">
               Checklist
             </TabsTrigger>
-            <TabsTrigger value="ticketForm" className="w-full justify-start data-[state=active]:bg-background">
-              File Form
-            </TabsTrigger>
           </TabsList>
         </div>
       );
@@ -146,16 +144,49 @@ const Quality: React.FC = () => {
           <TabsContent value="tickets" className="my-2">
             <Card>
               <CardHeader>
-                <CardTitle> 
-                  Tickets
-                  <p className="text-sm font-normal mt-1">List of Tickets</p>
-                </CardTitle>
+                <div className="flex items-center justify-between w-full">
+                  <div>
+                    <CardTitle>Tickets</CardTitle>
+                    <p className="text-sm font-normal mt-1">List of Tickets</p>
+                  </div>
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Create Ticket
+                  </button>
+                </div>
               </CardHeader>
+
               <CardContent>
-                  <TicketList />
+                <TicketList />
               </CardContent>
             </Card>
           </TabsContent>
+
+          {showForm && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 sm:px-0"
+              onClick={() => setShowForm(false)}
+            >
+              <div
+                className="bg-white p-4 sm:p-6 rounded shadow-lg w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center bg-red-600 text-white text-2xl font-bold rounded-lg hover:bg-red-700"
+                >
+                  ✕
+                </button>
+
+                <CardTitle>File Form</CardTitle>
+                <p className="text-sm font-normal mt-1">Create a Ticket</p>
+                <div className="h-4" />
+                <FileForm />
+              </div>
+            </div>
+          )}
 
           {/* Checklist Page */}
           <TabsContent value="checklist" className="my-2">
@@ -168,21 +199,6 @@ const Quality: React.FC = () => {
               </CardHeader>
               <CardContent>
                   <div>You can ignore this but using as placeholder.</div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* File Form Page */}
-          <TabsContent value="ticketForm" className="my-2">
-            <Card>
-              <CardHeader className="flex flex-row">
-                <CardTitle>
-                  File Form
-                  <p className="text-sm font-normal mt-1">Create A Ticket</p>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FileForm/>
               </CardContent>
             </Card>
           </TabsContent>
