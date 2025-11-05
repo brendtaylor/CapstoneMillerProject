@@ -22,9 +22,9 @@ AppDataSource.initialize()
         // Middleware to parse incoming JSON requests
         app.use(express.json());
         app.use(cors({
-            origin: ['http://localhost:5173', 'https://hoppscotch.io', 'https://web.hoppscotch.io'],
+            origin: ['http://localhost:5173', 'http://localhost:4001', 'https://hoppscotch.io', 'https://web.hoppscotch.io'],
             methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-            allowedHeaders: ['Content-Type','Authorization']
+            allowedHeaders: ['Content-Type','Authorization', 'cache-control', 'pragma']
         }));
 
         // main router
