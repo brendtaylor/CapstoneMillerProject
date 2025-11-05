@@ -1,6 +1,6 @@
 //*******************************************************************************************//
 // This module contains a "controller factory" that creates controller objects for simple    //
-// reference tables.                                                                         //
+// reference tables. Only handles HTTP logic.                                                //
 //                                                                                           //
 // This avoids duplicating controller logic for every simple table.                          //
 //                                                                                           //

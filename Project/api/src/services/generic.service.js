@@ -1,5 +1,6 @@
 //************************************************************************************************************************************//
 // This module covers all of the generic services that apply to a majority/all of the tables (e.g. finding all objects in a table)    //
+// Only handles Database Logic.                                                                                                       //
 //                                                                                                                                    //
 // Called by generic.controller.js                                                                                                    //
 //************************************************************************************************************************************//
@@ -23,10 +24,10 @@ class GenericService {
       return repository.find({
         where: {
           [searchColumn]: Like(`%${searchTerm}%`)                                                                                       // Use computed property name to search the correct column
-        }                                                                                                                               //Translates to something like "SELECT * FROM MiHub_Divisions WHERE "DIVISION_NAME" LIKE '%Flex%' "
+        }                                                                                                                               // Translates to something like "SELECT * FROM MiHub_Divisions WHERE "DIVISION_NAME" LIKE '%Flex%' "
       });
     } else {
-      return repository.find();                                                                                                         //No search text = return all
+      return repository.find();                                                                                                         // No search text = return all
     }
   }
 }
