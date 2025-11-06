@@ -5,6 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useToast } from '../hooks/use-toast';
+import { useIsMobile } from '../hooks/use-mobile';
    
 const TicketList: React.FC = () => {
     const [tickets, setTickets] = useState<any[]>([]);
@@ -15,6 +16,9 @@ const TicketList: React.FC = () => {
     const { userRole } = useAuth();
     const [searchResult, setSearchResult] = useState<any[] | null>(null);
     const { toast } = useToast();
+    const isMobile = useIsMobile();
+    // Track the last scroll position to restore it when closing tickets
+    const [lastScrollPosition, setLastScrollPosition] = useState<number | null>(null);
 
     // Dropdown data 
     const [divisions, setDivisions] = useState<any[]>([]);
@@ -308,14 +312,33 @@ const handleSaveEdit = async () => {
                             <AccordionItem id={`ticket-${ticket.ticketId}`} value={`item-${ticket.ticketId}`} key={ticket.ticketId} className="border rounded-md shadow-sm bg-gray-50 data-[state=open]:bg-white">
                                 <AccordionTrigger
                                     className="p-4 hover:no-underline hover:bg-gray-100 rounded-t-md data-[state=open]:rounded-b-none data-[state=open]:border-b overflow-hidden"
-                                    onClick={() => {
-                                        // Delay scroll slightly to allow accordion to open and layout to settle
-                                        setTimeout(() => {
-                                            const el = document.getElementById(`ticket-${ticket.ticketId}`);
-                                            if (el) {
-                                                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    onClick={(e) => {
+                                        // Get current value state from the accordion item's data-state
+                                        const isClosing = (e.currentTarget.closest('[data-state]')?.getAttribute('data-state') === 'open');
+                                        
+                                        if (isClosing) {
+                                            // Restore previous scroll position when closing
+                                            if (lastScrollPosition !== null) {
+                                                window.scrollTo({ top: lastScrollPosition, behavior: 'smooth' });
+                                                setLastScrollPosition(null);
                                             }
-                                        }, 150);
+                                        } else {
+                                            // Save current scroll position and scroll to opened ticket
+                                            setLastScrollPosition(window.scrollY);
+                                            setTimeout(() => {
+                                                const el = document.getElementById(`ticket-${ticket.ticketId}`);
+                                                if (el) {
+                                                    // Scroll to the ticket header instead of content
+                                                    if (el instanceof HTMLElement) {
+                                                        el.style.scrollMarginTop = isMobile ? '10px' : '20px';
+                                                    }
+                                                    el.scrollIntoView({ 
+                                                        behavior: 'smooth', 
+                                                        block: 'start'
+                                                    });
+                                                }
+                                            }, 150);
+                                        }
                                     }}
                                 >
                                     <div className="flex-1 text-left min-w-0">
