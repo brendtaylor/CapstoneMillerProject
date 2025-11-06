@@ -88,7 +88,7 @@ const Quality: React.FC = () => {
                 >
                   Checklist
                 </TabsTrigger>
-                <TabsTrigger
+                {/* <TabsTrigger
                   value="ticketForm"
                   className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2
                             hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform
@@ -96,7 +96,7 @@ const Quality: React.FC = () => {
                   onClick={() => setDropdownOpen(false)}
                 >
                   File Form
-                </TabsTrigger>
+                </TabsTrigger> */}
               </TabsList>
             </div>
           )}
