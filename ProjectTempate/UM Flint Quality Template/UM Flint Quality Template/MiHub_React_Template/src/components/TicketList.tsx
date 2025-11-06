@@ -152,6 +152,18 @@ const TicketList: React.FC = () => {
     });
     };
 
+    // Prevent background scrolling while the edit modal is open
+    useEffect(() => {
+        if (isEditing) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isEditing]);
+
 const handleSaveEdit = async () => {
     if (!editingTicket) return;
 
@@ -293,8 +305,19 @@ const handleSaveEdit = async () => {
                 ) : (searchResult ?? tickets).length > 0 ? (
                     <Accordion type="single" collapsible className="w-full space-y-4">
                         {(searchResult ?? tickets).map((ticket) => (
-                            <AccordionItem value={`item-${ticket.ticketId}`} key={ticket.ticketId} className="border rounded-md shadow-sm bg-gray-50 data-[state=open]:bg-white">
-                                <AccordionTrigger className="p-4 hover:no-underline hover:bg-gray-100 rounded-t-md data-[state=open]:rounded-b-none data-[state=open]:border-b overflow-hidden">
+                            <AccordionItem id={`ticket-${ticket.ticketId}`} value={`item-${ticket.ticketId}`} key={ticket.ticketId} className="border rounded-md shadow-sm bg-gray-50 data-[state=open]:bg-white">
+                                <AccordionTrigger
+                                    className="p-4 hover:no-underline hover:bg-gray-100 rounded-t-md data-[state=open]:rounded-b-none data-[state=open]:border-b overflow-hidden"
+                                    onClick={() => {
+                                        // Delay scroll slightly to allow accordion to open and layout to settle
+                                        setTimeout(() => {
+                                            const el = document.getElementById(`ticket-${ticket.ticketId}`);
+                                            if (el) {
+                                                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                            }
+                                        }, 150);
+                                    }}
+                                >
                                     <div className="flex-1 text-left min-w-0">
                                         <h3 className="font-bold text-lg">Ticket #{ticket.ticketId}</h3>
                                         <p><span className="font-semibold">Status:</span> {ticket.status?.statusDescription || 'N/A'}</p>

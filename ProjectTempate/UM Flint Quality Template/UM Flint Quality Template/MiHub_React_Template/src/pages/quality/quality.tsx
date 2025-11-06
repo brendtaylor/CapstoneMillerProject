@@ -23,6 +23,18 @@ const Quality: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
+    // Prevent background scrolling when the create ticket overlay is open
+    useEffect(() => {
+      if (showForm) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }, [showForm]);
+
     //Set sidebar/drop down for mobile and desktop
     let sidebar;
     if (isMobile) {
@@ -143,24 +155,28 @@ const Quality: React.FC = () => {
           {/* Tickets Page */}
           <TabsContent value="tickets" className="my-2">
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between w-full">
-                  <div>
-                    <CardTitle>Tickets</CardTitle>
-                    <p className="text-sm font-normal mt-1">List of Tickets</p>
+        {/* Constrain header and content so they align with ticket boxes.
+          Add extra top spacing on larger screens so the header and button sit lower. */}
+        <div className="max-w-3xl mx-auto w-full mt-6 lg:mt-12">
+                <CardHeader>
+                  <div className="flex items-center justify-between w-full">
+                    <div>
+                      <CardTitle>Tickets</CardTitle>
+                      <p className="text-sm font-normal mt-1">List of Tickets</p>
+                    </div>
+                    <button
+                      onClick={() => setShowForm(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      Create Ticket
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setShowForm(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Create Ticket
-                  </button>
-                </div>
-              </CardHeader>
+                </CardHeader>
 
-              <CardContent>
-                <TicketList />
-              </CardContent>
+                <CardContent>
+                  <TicketList />
+                </CardContent>
+              </div>
             </Card>
           </TabsContent>
 
@@ -183,7 +199,7 @@ const Quality: React.FC = () => {
                 <CardTitle>File Form</CardTitle>
                 <p className="text-sm font-normal mt-1">Create a Ticket</p>
                 <div className="h-4" />
-                <FileForm />
+                <FileForm onClose={() => setShowForm(false)} />
               </div>
             </div>
           )}
