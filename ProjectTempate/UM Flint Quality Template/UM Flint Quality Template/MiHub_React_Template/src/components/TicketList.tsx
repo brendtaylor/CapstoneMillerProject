@@ -19,6 +19,9 @@ const TicketList: React.FC = () => {
     const isMobile = useIsMobile();
     // Track the last scroll position to restore it when closing tickets
     const [lastScrollPosition, setLastScrollPosition] = useState<number | null>(null);
+    // State for archive confirmation dialog
+    const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+    const [ticketToArchive, setTicketToArchive] = useState<number | null>(null);
 
     // Dropdown data 
     const [divisions, setDivisions] = useState<any[]>([]);
@@ -275,10 +278,8 @@ const handleSaveEdit = async () => {
 
 
     const confirmAndArchive = (ticketId: number) => {
-        const isConfirmed = window.confirm(`Are you sure you want to archive Ticket #${ticketId}? This action cannot be undone.`);
-        if (isConfirmed) {
-            handleArchive(ticketId);
-        }
+        setTicketToArchive(ticketId);
+        setShowArchiveConfirm(true);
     };
 
     // Effect to handle debouncing the search term
@@ -384,6 +385,26 @@ const handleSaveEdit = async () => {
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="p-4">
+                                    {/* Action Buttons */}
+                                    {userRole === 'admin' && (
+                                        <div className="flex md:inline-flex gap-3 mb-6">
+                                            <Button
+                                                variant="default"
+                                                onClick={() => handleEdit(ticket.ticketId)}
+                                                className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
+                                            >
+                                                Edit Ticket
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                onClick={() => confirmAndArchive(ticket.ticketId)}
+                                                className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
+                                            >
+                                                Archive Ticket
+                                            </Button>
+                                        </div>
+                                    )}
+                                    
                                     <div className="space-y-4 py-4 text-sm">
                                         <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
                                             <span className="text-right font-semibold">Status</span>
@@ -430,20 +451,6 @@ const handleSaveEdit = async () => {
                                             <span className="text-gray-500 italic">Attachment display not yet implemented.</span>
                                         </div>
                                     </div>
-                                    <div className="flex justify-between mt-4">
-    {userRole === 'admin' && (
-    <Button
-        variant="default"onClick={() => handleEdit(ticket.ticketId)}>
-        Edit Ticket
-    </Button>
-    )}
-    {userRole === 'admin' && (
-        <Button
-            variant="destructive"onClick={() => confirmAndArchive(ticket.ticketId)}>
-            Archive Ticket
-        </Button>
-    )}
-</div>
 
                                 </AccordionContent>
                             </AccordionItem>
@@ -619,6 +626,40 @@ const handleSaveEdit = async () => {
 )}
 
 
+            {/* Archive confirmation modal */}
+            {showArchiveConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+                        <h3 className="text-lg font-semibold mb-2">Archive Ticket</h3>
+                        <p className="text-sm text-gray-700 mb-4">
+                            Are you sure you want to archive Ticket #{ticketToArchive}? This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                onClick={() => {
+                                    setShowArchiveConfirm(false);
+                                    setTicketToArchive(null);
+                                }}
+                                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (ticketToArchive) {
+                                        handleArchive(ticketToArchive);
+                                        setShowArchiveConfirm(false);
+                                        setTicketToArchive(null);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                                Archive
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
