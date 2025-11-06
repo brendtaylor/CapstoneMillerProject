@@ -35,12 +35,12 @@ const Quality: React.FC = () => {
       };
     }, [showForm]);
 
-    //Set sidebar/drop down for mobile and desktop
+    //Set sidebar/drop down for mobile and tablet
     let sidebar;
     if (isMobile) {
       sidebar = (
         <>
-          <div className="md:hidden w-full bg-muted/50 border-b-2 p-4 flex justify-between items-center">
+          <div className="xl:hidden w-full bg-muted/50 border-b-2 p-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
                 <ClipboardList className="w-6 h-6 text-white" />
@@ -120,7 +120,7 @@ const Quality: React.FC = () => {
     else {
       {/* Website Sidebar */}
       sidebar = (
-        <div className="md:w-64 w-full md:flex-shrink-0 bg-muted/50 border-r-2 p-4">
+        <div className="xl:w-64 w-full xl:flex-shrink-0 bg-muted/50 border-r-2 p-4 hidden xl:block">
           
           <div className="flex items-center gap-2 mb-4">
             <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
@@ -146,7 +146,7 @@ const Quality: React.FC = () => {
 
   return (
     <Tabs defaultValue="tickets" className="min-h-screen bg-gray-100">
-      <div className="flex flex-col md:flex-row w-full max-w-[1300px] mx-auto min-h-screen">
+      <div className="flex flex-col xl:flex-row w-full max-w-[1300px] mx-auto min-h-screen">
         
         {sidebar}
 

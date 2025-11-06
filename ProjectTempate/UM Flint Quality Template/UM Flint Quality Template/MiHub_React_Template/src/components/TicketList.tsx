@@ -73,6 +73,44 @@ const TicketList: React.FC = () => {
         fetchTickets();
     }, []);
 
+    // Set consistent scroll margins for all tickets
+    useEffect(() => {
+        const setTicketMargins = () => {
+            // Get the header height to calculate proper margin
+            const header = document.querySelector('nav, header, .navbar') || document.querySelector('[class*="bg-muted"]');
+            let headerHeight = header ? header.getBoundingClientRect().height : 0;
+            
+            // Add some padding to the header height
+            const paddingTop = isMobile ? 10 : 20;
+            const marginTop = headerHeight + paddingTop;
+
+            const tickets = document.querySelectorAll('[id^="ticket-"]');
+            tickets.forEach(ticket => {
+                if (ticket instanceof HTMLElement) {
+                    ticket.style.scrollMarginTop = `${marginTop}px`;
+                }
+            });
+        };
+
+        // Set initial margins
+        setTicketMargins();
+
+        // Update margins when tickets are loaded or changed
+        const observer = new MutationObserver(setTicketMargins);
+        observer.observe(document.body, { 
+            childList: true, 
+            subtree: true 
+        });
+
+        // Also update on window resize to handle layout changes
+        window.addEventListener('resize', setTicketMargins);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', setTicketMargins);
+        };
+    }, [isMobile]);
+
     //Fetch dropdown data
     useEffect(() => {
     const fetchData = async () => {
@@ -328,10 +366,6 @@ const handleSaveEdit = async () => {
                                             setTimeout(() => {
                                                 const el = document.getElementById(`ticket-${ticket.ticketId}`);
                                                 if (el) {
-                                                    // Scroll to the ticket header instead of content
-                                                    if (el instanceof HTMLElement) {
-                                                        el.style.scrollMarginTop = isMobile ? '10px' : '20px';
-                                                    }
                                                     el.scrollIntoView({ 
                                                         behavior: 'smooth', 
                                                         block: 'start'
