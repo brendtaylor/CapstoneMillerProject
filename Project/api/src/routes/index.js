@@ -27,7 +27,7 @@ router.get('/divisions', divisionController.getAll);
 const userController = createGenericController(User, 'name');
 router.get('/users', userController.getAll);
 
-const drawingController = createGenericController(DrawingNum, 'drawingNum');
+const drawingController = createGenericController(DrawingNum, 'drawing_num');
 router.get('/drawings', drawingController.getAll);
 
 const partController = createGenericController(PartNum, 'partNum');
@@ -39,7 +39,7 @@ router.get('/work-orders', woController.getAll);
 const unitController = createGenericController(Unit, 'unitName');
 router.get('/units', unitController.getAll);
 
-const sequenceController = createGenericController(Sequence, 'sequence');
+const sequenceController = createGenericController(Sequence, 'seqName');
 router.get('/sequences', sequenceController.getAll);
 
 const nonConController = createGenericController(ManNonCon, 'nonCon');
