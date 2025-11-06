@@ -151,11 +151,6 @@ const TicketList: React.FC = () => {
         description: ticket.description || '',
     });
     };
-    
-    const handleCloseEdit = () => {
-    setIsEditing(false);
-    setEditingTicket(null);
-    };
 
 const handleSaveEdit = async () => {
     if (!editingTicket) return;
@@ -355,7 +350,7 @@ const handleSaveEdit = async () => {
                                             <span className="text-gray-500 italic">Attachment display not yet implemented.</span>
                                         </div>
                                     </div>
-                                    <div className="flex justify-start mt-4 gap-2">
+                                    <div className="flex justify-between mt-4">
     {userRole === 'admin' && (
     <Button
         variant="default"onClick={() => handleEdit(ticket.ticketId)}>
@@ -386,9 +381,9 @@ const handleSaveEdit = async () => {
       {/* Close (X) Button */}
       <button
         onClick={() => setIsEditing(false)}
-        className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold"
-      >
-        ×
+        className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center bg-red-600 text-white text-2xl font-bold rounded-lg hover:bg-red-700"
+             >
+          ✕
       </button>
 
       {/* Title */}
