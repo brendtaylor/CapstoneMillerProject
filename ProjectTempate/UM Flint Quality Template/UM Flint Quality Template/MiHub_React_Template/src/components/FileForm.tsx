@@ -286,7 +286,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     const selected = divisions.find(d => d.divisionName === e.target.value);
                     setDivisionId(selected ? String(selected.divisionId) : '');
                 }}
-                onFocus={() => divisions.length === 0 && fetchDropdownData('divisions', setDivisions, divisionSearch)}
+                onFocus={() => !divisionSearch && fetchDropdownData('divisions', setDivisions)}
                 placeholder="Search or select a division"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -306,7 +306,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     const selected = parts.find(p => p.partNum === e.target.value);
                     setPartNumId(selected ? String(selected.partNumId) : '');
                 }}
-                onFocus={() => parts.length === 0 && fetchDropdownData('parts', setParts, partSearch)}
+                onFocus={() => !partSearch && fetchDropdownData('parts', setParts)}
                 placeholder="Search or select a part"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -326,7 +326,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     const selected = drawings.find(d => d.drawing_num === e.target.value);
                     setDrawingId(selected ? String(selected.drawingId) : '');
                 }}
-                onFocus={() => drawings.length === 0 && fetchDropdownData('drawings', setDrawings, drawingSearch)}
+                onFocus={() => !drawingSearch && fetchDropdownData('drawings', setDrawings)}
                 placeholder="Search or select a drawing"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -346,7 +346,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     const selected = workOrders.find(wo => String(wo.wo) === e.target.value);
                     setWorkOrderId(selected ? String(selected.woId) : '');
                 }}
-                onFocus={() => workOrders.length === 0 && fetchDropdownData('work-orders', setWorkOrders, workOrderSearch)}
+                onFocus={() => !workOrderSearch && fetchDropdownData('work-orders', setWorkOrders)}
                 placeholder="Search or select a work order"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -366,7 +366,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     const selected = units.find(u => u.unitName === e.target.value);
                     setUnitId(selected ? String(selected.unitId) : '');
                 }}
-                onFocus={() => units.length === 0 && fetchDropdownData('units', setUnits, unitSearch)}
+                onFocus={() => !unitSearch && fetchDropdownData('units', setUnits)}
                 placeholder="Search or select a unit"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -386,7 +386,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     const selected = sequences.find(s => s.seqName === e.target.value);
                     setSequenceId(selected ? String(selected.seqID) : '');
                 }}
-                onFocus={() => sequences.length === 0 && fetchDropdownData('sequences', setSequences, sequenceSearch)}
+                onFocus={() => !sequenceSearch && fetchDropdownData('sequences', setSequences)}
                 placeholder="Search or select a sequence"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -406,7 +406,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     const selected = manNonCons.find(m => m.nonCon === e.target.value);
                     setManNonConId(selected ? String(selected.nonConId) : '');
                 }}
-                onFocus={() => manNonCons.length === 0 && fetchDropdownData('manufact-noncons', setManNonCons, manNonConSearch)}
+                onFocus={() => !manNonConSearch && fetchDropdownData('manufact-noncons', setManNonCons)}
                 placeholder="Search or select a nonconformance"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />

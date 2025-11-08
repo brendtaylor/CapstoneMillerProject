@@ -525,12 +525,9 @@ const handleSaveEdit = async () => {
                     const selected = divisions.find(d => d.divisionName === e.target.value);
                     setEditFields({ ...editFields, divisionId: selected ? String(selected.divisionId) : '' });
                 }}
-                onFocus={() => {
-                    // Fetch initial list if search is empty and options aren't loaded
-                    if (!editDivisionSearch && divisions.length === 0) {
-                        fetchDropdownData('divisions', setDivisions);
-                    }
-                }}
+                onFocus={() =>
+                    !editDivisionSearch && fetchDropdownData("divisions", setDivisions)
+                }
                 placeholder="Search or select a division"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -550,11 +547,8 @@ const handleSaveEdit = async () => {
                     const selected = parts.find(p => p.partNum === e.target.value);
                     setEditFields({ ...editFields, partNumId: selected ? String(selected.partNumId) : '' });
                 }}
-                onFocus={() => {
-                    if (!editPartSearch && parts.length === 0) {
-                        fetchDropdownData('parts', setParts);
-                    }
-                }}
+                onFocus={() =>
+                    !editPartSearch && fetchDropdownData("parts", setParts)}
                 placeholder="Search or select a part"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -574,11 +568,8 @@ const handleSaveEdit = async () => {
                     const selected = drawings.find(d => d.drawing_num === e.target.value);
                     setEditFields({ ...editFields, drawingId: selected ? String(selected.drawingId) : '' });
                 }}
-                onFocus={() => {
-                    if (!editDrawingSearch && drawings.length === 0) {
-                        fetchDropdownData('drawings', setDrawings);
-                    }
-                }}
+                onFocus={() =>
+                    !editDrawingSearch && fetchDropdownData("drawings", setDrawings)}
                 placeholder="Search or select a drawing"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -598,11 +589,8 @@ const handleSaveEdit = async () => {
                     const selected = workOrders.find(wo => String(wo.wo) === e.target.value);
                     setEditFields({ ...editFields, workOrderId: selected ? String(selected.woId) : '' });
                 }}
-                onFocus={() => {
-                    if (!editWorkOrderSearch && workOrders.length === 0) {
-                        fetchDropdownData('work-orders', setWorkOrders);
-                    }
-                }}
+                onFocus={() =>
+                    !editWorkOrderSearch && fetchDropdownData("work-orders", setWorkOrders)}
                 placeholder="Search or select a work order"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -622,11 +610,8 @@ const handleSaveEdit = async () => {
                     const selected = units.find(u => u.unitName === e.target.value);
                     setEditFields({ ...editFields, unitId: selected ? String(selected.unitId) : '' });
                 }}
-                onFocus={() => {
-                    if (!editUnitSearch && units.length === 0) {
-                        fetchDropdownData('units', setUnits);
-                    }
-                }}
+                onFocus={() =>
+                    !editUnitSearch && fetchDropdownData("units", setUnits)}
                 placeholder="Search or select a unit"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -646,11 +631,8 @@ const handleSaveEdit = async () => {
                     const selected = sequences.find(s => s.seqName === e.target.value);
                     setEditFields({ ...editFields, sequenceId: selected ? String(selected.seqID) : '' });
                 }}
-                onFocus={() => {
-                    if (!editSequenceSearch && sequences.length === 0) {
-                        fetchDropdownData('sequences', setSequences);
-                    }
-                }}
+                onFocus={() =>
+                    !editSequenceSearch && fetchDropdownData("sequences", setSequences)}
                 placeholder="Search or select a sequence"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
@@ -670,11 +652,8 @@ const handleSaveEdit = async () => {
                     const selected = manNonCons.find(m => m.nonCon === e.target.value);
                     setEditFields({ ...editFields, manNonConId: selected ? String(selected.nonConId) : '' });
                 }}
-                onFocus={() => {
-                    if (!editManNonConSearch && manNonCons.length === 0) {
-                        fetchDropdownData('manufact-noncons', setManNonCons);
-                    }
-                }}
+                onFocus={() =>
+                    !editManNonConSearch && fetchDropdownData("manufact-noncons", setManNonCons)}
                 placeholder="Search or select a nonconformance"
                 className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />
