@@ -11,7 +11,7 @@ module.exports = new EntitySchema({
             generated: false
         },
         wo: {
-            type: "int",
+            type: "varchar",
             name: "WO",
         },
     },
