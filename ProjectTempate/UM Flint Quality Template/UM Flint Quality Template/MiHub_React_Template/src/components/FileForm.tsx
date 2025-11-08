@@ -230,6 +230,9 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             // Show a post-create prompt (create another or return to list)
             setCreatedTicketId(newTicket.ticketId);
             setShowPostCreate(true);
+
+            // Dispatch an event to tell ticket list that a ticket was created
+            window.dispatchEvent(new CustomEvent('ticketCreated'));
         } catch (error: any) {
             toast({ variant: "destructive", title: "Save Failed", description: error.message });
             console.error("Failed to save ticket:", error);

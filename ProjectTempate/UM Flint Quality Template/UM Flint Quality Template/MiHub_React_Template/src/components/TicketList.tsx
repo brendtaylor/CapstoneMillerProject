@@ -95,6 +95,18 @@ const TicketList: React.FC = () => {
         fetchTickets();
     }, []);
 
+    // bandaid fix before we add pagination, Refresh ticket list once a ticket is created
+    useEffect(() => {
+        const handleTicketCreated = () => {
+            fetchTickets();
+        };
+
+        window.addEventListener('ticketCreated', handleTicketCreated);
+
+        // Cleanup the event listener when the component unmounts
+        return () => window.removeEventListener('ticketCreated', handleTicketCreated);
+    }, []); // Empty dependency array ensures this runs only once
+
     // Set consistent scroll margins for all tickets
     useEffect(() => {
         const setTicketMargins = () => {
