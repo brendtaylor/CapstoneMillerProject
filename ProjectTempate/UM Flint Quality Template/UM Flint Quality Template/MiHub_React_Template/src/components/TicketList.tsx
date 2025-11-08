@@ -5,8 +5,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useToast } from '../hooks/use-toast';
+import { useDebounce } from '../hooks/use-debounce';
 import { useIsMobile } from '../hooks/use-mobile';
-   
+
 const TicketList: React.FC = () => {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -47,6 +48,24 @@ const TicketList: React.FC = () => {
     manNonConId: '',
     description: '',
     });
+
+    // State for edit form search input values
+    const [editDivisionSearch, setEditDivisionSearch] = useState('');
+    const [editPartSearch, setEditPartSearch] = useState('');
+    const [editDrawingSearch, setEditDrawingSearch] = useState('');
+    const [editWorkOrderSearch, setEditWorkOrderSearch] = useState('');
+    const [editUnitSearch, setEditUnitSearch] = useState('');
+    const [editSequenceSearch, setEditSequenceSearch] = useState('');
+    const [editManNonConSearch, setEditManNonConSearch] = useState('');
+
+    // Debounced search values for the edit form
+    const debouncedEditDivisionSearch = useDebounce(editDivisionSearch, 300);
+    const debouncedEditPartSearch = useDebounce(editPartSearch, 300);
+    const debouncedEditDrawingSearch = useDebounce(editDrawingSearch, 300);
+    const debouncedEditWorkOrderSearch = useDebounce(editWorkOrderSearch, 300);
+    const debouncedEditUnitSearch = useDebounce(editUnitSearch, 300);
+    const debouncedEditSequenceSearch = useDebounce(editSequenceSearch, 300);
+    const debouncedEditManNonConSearch = useDebounce(editManNonConSearch, 300);
 
 
     const fetchTickets = async () => {
@@ -115,32 +134,26 @@ const TicketList: React.FC = () => {
     }, [isMobile]);
 
     //Fetch dropdown data
-    useEffect(() => {
-    const fetchData = async () => {
+    const fetchDropdownData = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<any[]>>, search: string = '') => {
         try {
-            const [divisionRes, partRes, drawingRes, woRes, unitRes, seqRes, manNonConRes] = await Promise.all([
-                fetch('http://localhost:3000/api/divisions'),
-                fetch('http://localhost:3000/api/parts'),
-                fetch('http://localhost:3000/api/drawings'),
-                fetch('http://localhost:3000/api/work-orders'),
-                fetch('http://localhost:3000/api/units'),
-                fetch('http://localhost:3000/api/sequences'),
-                fetch('http://localhost:3000/api/manufact-noncons'),
-            ]);
-
-            setDivisions(await divisionRes.json());
-            setParts(await partRes.json());
-            setDrawings(await drawingRes.json());
-            setWorkOrders(await woRes.json());
-            setUnits(await unitRes.json());
-            setSequences(await seqRes.json());
-            setManNonCons(await manNonConRes.json());
+            const url = search ? `http://localhost:3000/api/${endpoint}?search=${search}` : `http://localhost:3000/api/${endpoint}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                setter(await response.json());
+            }
         } catch (error) {
-            console.error("Failed to fetch dropdown data:", error);
+            console.error(`Failed to fetch ${endpoint}:`, error);
         }
     };
-    fetchData();
-    }, []);
+
+    // Effects to fetch data for the edit modal when debounced search terms change
+    useEffect(() => { if (isEditing) fetchDropdownData('divisions', setDivisions, debouncedEditDivisionSearch); }, [debouncedEditDivisionSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('parts', setParts, debouncedEditPartSearch); }, [debouncedEditPartSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('drawings', setDrawings, debouncedEditDrawingSearch); }, [debouncedEditDrawingSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('work-orders', setWorkOrders, debouncedEditWorkOrderSearch); }, [debouncedEditWorkOrderSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('units', setUnits, debouncedEditUnitSearch); }, [debouncedEditUnitSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('sequences', setSequences, debouncedEditSequenceSearch); }, [debouncedEditSequenceSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('manufact-noncons', setManNonCons, debouncedEditManNonConSearch); }, [debouncedEditManNonConSearch, isEditing]);
 
     const handleArchive = async (ticketId: number) => {
         try {
@@ -195,6 +208,15 @@ const TicketList: React.FC = () => {
         manNonConId: ticket.manNonCon?.nonConId?.toString() || '',
         description: ticket.description || '',
     });
+
+    // Set initial search values for the edit form
+    setEditDivisionSearch(ticket.division?.divisionName || '');
+    setEditPartSearch(ticket.partNum?.partNum || '');
+    setEditDrawingSearch(ticket.drawingNum?.drawing_num || '');
+    setEditWorkOrderSearch(ticket.wo?.wo?.toString() || '');
+    setEditUnitSearch(ticket.unit?.unitName || '');
+    setEditSequenceSearch(ticket.sequence?.seqName || '');
+    setEditManNonConSearch(ticket.manNonCon?.nonCon || '');
     };
 
     // Prevent background scrolling while the edit modal is open
@@ -494,107 +516,171 @@ const handleSaveEdit = async () => {
 
         {/* Division */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Division</label>
-          <select
-            value={editFields.divisionId}
-            onChange={(e) => setEditFields({ ...editFields, divisionId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Division</option>
-            {divisions.map((d) => (
-              <option key={d.divisionId} value={d.divisionId}>{d.divisionName}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Division</label>
+            <input
+                list="edit-division-list"
+                value={editDivisionSearch}
+                onChange={(e) => {
+                    setEditDivisionSearch(e.target.value);
+                    const selected = divisions.find(d => d.divisionName === e.target.value);
+                    setEditFields({ ...editFields, divisionId: selected ? String(selected.divisionId) : '' });
+                }}
+                onFocus={() => {
+                    // Fetch initial list if search is empty and options aren't loaded
+                    if (!editDivisionSearch && divisions.length === 0) {
+                        fetchDropdownData('divisions', setDivisions);
+                    }
+                }}
+                placeholder="Search or select a division"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-division-list">
+                {divisions.map((d) => <option key={d.divisionId} value={d.divisionName} />)}
+            </datalist>
         </div>
 
         {/* Part # */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Part #</label>
-          <select
-            value={editFields.partNumId}
-            onChange={(e) => setEditFields({ ...editFields, partNumId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Part</option>
-            {parts.map((p) => (
-              <option key={p.partNumId} value={p.partNumId}>{p.partNum}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Part #</label>
+            <input
+                list="edit-part-list"
+                value={editPartSearch}
+                onChange={(e) => {
+                    setEditPartSearch(e.target.value);
+                    const selected = parts.find(p => p.partNum === e.target.value);
+                    setEditFields({ ...editFields, partNumId: selected ? String(selected.partNumId) : '' });
+                }}
+                onFocus={() => {
+                    if (!editPartSearch && parts.length === 0) {
+                        fetchDropdownData('parts', setParts);
+                    }
+                }}
+                placeholder="Search or select a part"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-part-list">
+                {parts.map((p) => <option key={p.partNumId} value={p.partNum} />)}
+            </datalist>
         </div>
 
         {/* Drawing # */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Drawing #</label>
-          <select
-            value={editFields.drawingId}
-            onChange={(e) => setEditFields({ ...editFields, drawingId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Drawing</option>
-            {drawings.map((d) => (
-              <option key={d.drawingId} value={d.drawingId}>{d.drawing_num}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Drawing #</label>
+            <input
+                list="edit-drawing-list"
+                value={editDrawingSearch}
+                onChange={(e) => {
+                    setEditDrawingSearch(e.target.value);
+                    const selected = drawings.find(d => d.drawing_num === e.target.value);
+                    setEditFields({ ...editFields, drawingId: selected ? String(selected.drawingId) : '' });
+                }}
+                onFocus={() => {
+                    if (!editDrawingSearch && drawings.length === 0) {
+                        fetchDropdownData('drawings', setDrawings);
+                    }
+                }}
+                placeholder="Search or select a drawing"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-drawing-list">
+                {drawings.map((d) => <option key={d.drawingId} value={d.drawing_num} />)}
+            </datalist>
         </div>
 
         {/* Work Order */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Work Order</label>
-          <select
-            value={editFields.workOrderId}
-            onChange={(e) => setEditFields({ ...editFields, workOrderId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Work Order</option>
-            {workOrders.map((wo) => (
-              <option key={wo.woId} value={wo.woId}>{wo.wo}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Work Order</label>
+            <input
+                list="edit-workorder-list"
+                value={editWorkOrderSearch}
+                onChange={(e) => {
+                    setEditWorkOrderSearch(e.target.value);
+                    const selected = workOrders.find(wo => String(wo.wo) === e.target.value);
+                    setEditFields({ ...editFields, workOrderId: selected ? String(selected.woId) : '' });
+                }}
+                onFocus={() => {
+                    if (!editWorkOrderSearch && workOrders.length === 0) {
+                        fetchDropdownData('work-orders', setWorkOrders);
+                    }
+                }}
+                placeholder="Search or select a work order"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-workorder-list">
+                {workOrders.map((wo) => <option key={wo.woId} value={wo.wo} />)}
+            </datalist>
         </div>
 
         {/* Unit */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Unit</label>
-          <select
-            value={editFields.unitId}
-            onChange={(e) => setEditFields({ ...editFields, unitId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Unit</option>
-            {units.map((u) => (
-              <option key={u.unitId} value={u.unitId}>{u.unitName}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Unit</label>
+            <input
+                list="edit-unit-list"
+                value={editUnitSearch}
+                onChange={(e) => {
+                    setEditUnitSearch(e.target.value);
+                    const selected = units.find(u => u.unitName === e.target.value);
+                    setEditFields({ ...editFields, unitId: selected ? String(selected.unitId) : '' });
+                }}
+                onFocus={() => {
+                    if (!editUnitSearch && units.length === 0) {
+                        fetchDropdownData('units', setUnits);
+                    }
+                }}
+                placeholder="Search or select a unit"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-unit-list">
+                {units.map((u) => <option key={u.unitId} value={u.unitName} />)}
+            </datalist>
         </div>
 
         {/* Sequence */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Sequence</label>
-          <select
-            value={editFields.sequenceId}
-            onChange={(e) => setEditFields({ ...editFields, sequenceId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Sequence</option>
-            {sequences.map((s) => (
-              <option key={s.seqID} value={s.seqID}>{s.seqName}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Sequence</label>
+            <input
+                list="edit-sequence-list"
+                value={editSequenceSearch}
+                onChange={(e) => {
+                    setEditSequenceSearch(e.target.value);
+                    const selected = sequences.find(s => s.seqName === e.target.value);
+                    setEditFields({ ...editFields, sequenceId: selected ? String(selected.seqID) : '' });
+                }}
+                onFocus={() => {
+                    if (!editSequenceSearch && sequences.length === 0) {
+                        fetchDropdownData('sequences', setSequences);
+                    }
+                }}
+                placeholder="Search or select a sequence"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-sequence-list">
+                {sequences.map((s) => <option key={s.seqID} value={s.seqName} />)}
+            </datalist>
         </div>
 
         {/* Nonconformance */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Nonconformance</label>
-          <select
-            value={editFields.manNonConId}
-            onChange={(e) => setEditFields({ ...editFields, manNonConId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Nonconformance</option>
-            {manNonCons.map((m) => (
-              <option key={m.nonConId} value={m.nonConId}>{m.nonCon}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Nonconformance</label>
+            <input
+                list="edit-noncon-list"
+                value={editManNonConSearch}
+                onChange={(e) => {
+                    setEditManNonConSearch(e.target.value);
+                    const selected = manNonCons.find(m => m.nonCon === e.target.value);
+                    setEditFields({ ...editFields, manNonConId: selected ? String(selected.nonConId) : '' });
+                }}
+                onFocus={() => {
+                    if (!editManNonConSearch && manNonCons.length === 0) {
+                        fetchDropdownData('manufact-noncons', setManNonCons);
+                    }
+                }}
+                placeholder="Search or select a nonconformance"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-noncon-list">
+                {manNonCons.map((m) => <option key={m.nonConId} value={m.nonCon} />)}
+            </datalist>
         </div>
          <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
             <span className="text-right font-semibold">Attachments</span>

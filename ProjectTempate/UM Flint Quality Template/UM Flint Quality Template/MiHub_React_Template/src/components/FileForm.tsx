@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from '../hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
-
-interface Status {
-    statusId: number;
-    statusDescription: string;
-}
+import { useDebounce } from '../hooks/use-debounce';
 
 interface Division {
     divisionId: number;
@@ -53,14 +48,12 @@ const STORAGE_KEY = "ticketDraft";
 // A helper to check if a value is a non-empty string
 const isSet = (value: string | null | undefined) => value !== null && value !== undefined && value !== '';
 
-
 interface FileFormProps {
     onClose?: () => void;
 }
 
 const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     const [divisionId, setDivisionId] = useState('');
-    const [partNumber, setPartNumber] = useState('');
     const [partNumId, setPartNumId] = useState('');
     const [drawingId, setDrawingId] = useState('');
     const [workOrderId, setWorkOrderId] = useState('');
@@ -70,9 +63,26 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     const [description, setDescription] = useState('');
     const [images, setImages] = useState<SavedImage[]>([]);
 
+    // State for search input values
+    const [divisionSearch, setDivisionSearch] = useState('');
+    const [partSearch, setPartSearch] = useState('');
+    const [drawingSearch, setDrawingSearch] = useState('');
+    const [workOrderSearch, setWorkOrderSearch] = useState('');
+    const [unitSearch, setUnitSearch] = useState('');
+    const [sequenceSearch, setSequenceSearch] = useState('');
+    const [manNonConSearch, setManNonConSearch] = useState('');
+
+    // Debounced search values
+    const debouncedDivisionSearch = useDebounce(divisionSearch, 300);
+    const debouncedPartSearch = useDebounce(partSearch, 300);
+    const debouncedDrawingSearch = useDebounce(drawingSearch, 300);
+    const debouncedWorkOrderSearch = useDebounce(workOrderSearch, 300);
+    const debouncedUnitSearch = useDebounce(unitSearch, 300);
+    const debouncedSequenceSearch = useDebounce(sequenceSearch, 300);
+    const debouncedManNonConSearch = useDebounce(manNonConSearch, 300);
+
     const { userId } = useAuth();
     const { toast } = useToast();
-    const navigate = useNavigate();
 
     // State for dropdown options
     const [divisions, setDivisions] = useState<Division[]>([]);
@@ -97,8 +107,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         if (draft) {
             try {
             const parsed = JSON.parse(draft);
-            setDivisionId(parsed.divisionId || '');
-            setPartNumber(parsed.partNumber || '');
+            setDivisionId(parsed.divisionId || '');            
             setPartNumId(parsed.partNumId || '');
             setDrawingId(parsed.drawingId || '');
             setWorkOrderId(parsed.workOrderId || '');
@@ -107,6 +116,14 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             setManNonConId(parsed.manNonConId || '');
             setDescription(parsed.description || '');
             setImages(parsed.images || []);
+            // Restore search terms
+            setDivisionSearch(parsed.divisionSearch || '');
+            setPartSearch(parsed.partSearch || '');
+            setDrawingSearch(parsed.drawingSearch || '');
+            setWorkOrderSearch(parsed.workOrderSearch || '');
+            setUnitSearch(parsed.unitSearch || '');
+            setSequenceSearch(parsed.sequenceSearch || '');
+            setManNonConSearch(parsed.manNonConSearch || '');
         } catch (e) {
                 console.warn("Failed to parse draft", e);
             }
@@ -114,46 +131,46 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     }, []);
 
     // Fetch data for all dropdowns
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [divisionRes, partRes, drawingRes, woRes, unitRes, seqRes, manNonConRes] = await Promise.all([
-                    fetch('http://localhost:3000/api/divisions'),
-                    fetch('http://localhost:3000/api/parts'),
-                    fetch('http://localhost:3000/api/drawings'),
-                    fetch('http://localhost:3000/api/work-orders'),
-                    fetch('http://localhost:3000/api/units'),
-                    fetch('http://localhost:3000/api/sequences'),
-                    fetch('http://localhost:3000/api/manufact-noncons'),
-                ]);
-
-                setDivisions(await divisionRes.json());
-                setParts(await partRes.json());
-                setDrawings(await drawingRes.json());
-                setWorkOrders(await woRes.json());
-                setUnits(await unitRes.json());
-                setSequences(await seqRes.json());
-                setManNonCons(await manNonConRes.json());
-
-            } catch (error) {
-                console.error("Failed to fetch dropdown data:", error);
-                // Optionally, show a toast or error message to the user
-            } finally {
-                setLoading(false);
+    const fetchDropdownData = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<any[]>>, search: string = '') => {
+        try {
+            const url = search ? `http://localhost:3000/api/${endpoint}?search=${search}` : `http://localhost:3000/api/${endpoint}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                setter(await response.json());
             }
-        };
+        } catch (error) {
+            console.error(`Failed to fetch ${endpoint}:`, error);
+        }
+    };
 
-        fetchData();
+    // Data will be fetched on user interaction.
+    useEffect(() => {
+        setLoading(false);
     }, []);
+
+
+    // Effects to fetch data when debounced search terms change
+    useEffect(() => { if (debouncedDivisionSearch) fetchDropdownData('divisions', setDivisions, debouncedDivisionSearch); }, [debouncedDivisionSearch]);
+    useEffect(() => { if (debouncedPartSearch) fetchDropdownData('parts', setParts, debouncedPartSearch); }, [debouncedPartSearch]);
+    useEffect(() => { if (debouncedDrawingSearch) fetchDropdownData('drawings', setDrawings, debouncedDrawingSearch); }, [debouncedDrawingSearch]);
+    useEffect(() => { if (debouncedWorkOrderSearch) fetchDropdownData('work-orders', setWorkOrders, debouncedWorkOrderSearch); }, [debouncedWorkOrderSearch]);
+    useEffect(() => { if (debouncedUnitSearch) fetchDropdownData('units', setUnits, debouncedUnitSearch); }, [debouncedUnitSearch]);
+    useEffect(() => { if (debouncedSequenceSearch) fetchDropdownData('sequences', setSequences, debouncedSequenceSearch); }, [debouncedSequenceSearch]);
+    useEffect(() => { if (debouncedManNonConSearch) fetchDropdownData('manufact-noncons', setManNonCons, debouncedManNonConSearch); }, [debouncedManNonConSearch]);
 
     //Auto-save draft to localStorage whenever fields change 
     useEffect(() => {
         // Avoid saving initial empty state
         if (loading) return;
-        const data = { divisionId, partNumber, partNumId, drawingId, workOrderId, unitId, sequenceId, manNonConId, description, images };
+        const data = { 
+            divisionId, partNumId, drawingId, workOrderId, unitId, sequenceId, manNonConId, description, images,
+            divisionSearch, partSearch, drawingSearch, workOrderSearch, unitSearch, sequenceSearch, manNonConSearch
+        };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }, [divisionId, partNumber, partNumId, drawingId, workOrderId, unitId, sequenceId, manNonConId, description, images, loading]);
+    }, [
+        divisionId, partNumId, drawingId, workOrderId, unitId, sequenceId, manNonConId, description, images, loading,
+        divisionSearch, partSearch, drawingSearch, workOrderSearch, unitSearch, sequenceSearch, manNonConSearch
+    ]);
     
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -228,7 +245,6 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
 
     const handleDelete = () => {
         setDivisionId('');
-        setPartNumber('');
         setPartNumId('');
         setDrawingId('');
         setWorkOrderId('');
@@ -238,6 +254,14 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         setDescription('');
         setImages([]);
         localStorage.removeItem(STORAGE_KEY);
+        
+        setDivisionSearch('');
+        setPartSearch('');
+        setDrawingSearch('');
+        setWorkOrderSearch('');
+        setUnitSearch('');
+        setSequenceSearch('');
+        setManNonConSearch('');
 
         const imageInput = document.getElementById('imageUpload') as HTMLInputElement;
         if (imageInput) imageInput.value = '';
@@ -254,86 +278,141 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         {/* Division Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Division</label>
-            <select
-            value={divisionId}
-            onChange={(e) => setDivisionId(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-            >
-            <option value="">Select Division</option>
-            {divisions.map((d) => (
-                <option key={d.divisionId} value={d.divisionId}>{d.divisionName}</option>
-            ))}
-            </select>
+            <input
+                list="division-list"
+                value={divisionSearch}
+                onChange={(e) => {
+                    setDivisionSearch(e.target.value);
+                    const selected = divisions.find(d => d.divisionName === e.target.value);
+                    setDivisionId(selected ? String(selected.divisionId) : '');
+                }}
+                onFocus={() => divisions.length === 0 && fetchDropdownData('divisions', setDivisions, divisionSearch)}
+                placeholder="Search or select a division"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="division-list">
+                {divisions.map((d) => <option key={d.divisionId} value={d.divisionName} />)}
+            </datalist>
         </div>
 
         {/* Part Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Part</label>
-            <select value={partNumId} onChange={(e) => setPartNumId(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
-                <option value="">Select Part</option>
-                {parts.map((p) => (
-                    <option key={p.partNumId} value={p.partNumId}>{p.partNum}</option>
-                ))}
-            </select>
+            <input
+                list="part-list"
+                value={partSearch}
+                onChange={(e) => {
+                    setPartSearch(e.target.value);
+                    const selected = parts.find(p => p.partNum === e.target.value);
+                    setPartNumId(selected ? String(selected.partNumId) : '');
+                }}
+                onFocus={() => parts.length === 0 && fetchDropdownData('parts', setParts, partSearch)}
+                placeholder="Search or select a part"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="part-list">
+                {parts.map((p) => <option key={p.partNumId} value={p.partNum} />)}
+            </datalist>
         </div>
 
         {/* Drawing Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Drawing</label>
-            <select value={drawingId} onChange={(e) => setDrawingId(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
-                <option value="">Select Drawing</option>
-                {drawings.map((d) => (
-                    <option key={d.drawingId} value={d.drawingId}>{d.drawing_num}</option>
-                ))}
-            </select>
+            <input
+                list="drawing-list"
+                value={drawingSearch}
+                onChange={(e) => {
+                    setDrawingSearch(e.target.value);
+                    const selected = drawings.find(d => d.drawing_num === e.target.value);
+                    setDrawingId(selected ? String(selected.drawingId) : '');
+                }}
+                onFocus={() => drawings.length === 0 && fetchDropdownData('drawings', setDrawings, drawingSearch)}
+                placeholder="Search or select a drawing"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="drawing-list">
+                {drawings.map((d) => <option key={d.drawingId} value={d.drawing_num} />)}
+            </datalist>
         </div>
 
         {/* Work Order Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Work Order</label>
-            <select value={workOrderId} onChange={(e) => setWorkOrderId(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
-                <option value="">Select Work Order</option>
-                {workOrders.map((wo) => (
-                    <option key={wo.woId} value={wo.woId}>{wo.wo}</option>
-                ))}
-            </select>
+            <input
+                list="workorder-list"
+                value={workOrderSearch}
+                onChange={(e) => {
+                    setWorkOrderSearch(e.target.value);
+                    const selected = workOrders.find(wo => String(wo.wo) === e.target.value);
+                    setWorkOrderId(selected ? String(selected.woId) : '');
+                }}
+                onFocus={() => workOrders.length === 0 && fetchDropdownData('work-orders', setWorkOrders, workOrderSearch)}
+                placeholder="Search or select a work order"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="workorder-list">
+                {workOrders.map((wo) => <option key={wo.woId} value={wo.wo} />)}
+            </datalist>
         </div>
 
         {/* Unit Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Unit</label>
-            <select value={unitId} onChange={(e) => setUnitId(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
-                <option value="">Select Unit</option>
-                {units.map((u) => (
-                    <option key={u.unitId} value={u.unitId}>{u.unitName}</option>
-                ))}
-            </select>
+            <input
+                list="unit-list"
+                value={unitSearch}
+                onChange={(e) => {
+                    setUnitSearch(e.target.value);
+                    const selected = units.find(u => u.unitName === e.target.value);
+                    setUnitId(selected ? String(selected.unitId) : '');
+                }}
+                onFocus={() => units.length === 0 && fetchDropdownData('units', setUnits, unitSearch)}
+                placeholder="Search or select a unit"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="unit-list">
+                {units.map((u) => <option key={u.unitId} value={u.unitName} />)}
+            </datalist>
         </div>
 
         {/* Sequence Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Sequence</label>
-            <select value={sequenceId} onChange={(e) => setSequenceId(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
-                <option value="">Select Sequence</option>
-                {sequences.map((s) => (
-                    <option key={s.seqID} value={s.seqID}>{s.seqName}</option>
-                ))}
-            </select>
+            <input
+                list="sequence-list"
+                value={sequenceSearch}
+                onChange={(e) => {
+                    setSequenceSearch(e.target.value);
+                    const selected = sequences.find(s => s.seqName === e.target.value);
+                    setSequenceId(selected ? String(selected.seqID) : '');
+                }}
+                onFocus={() => sequences.length === 0 && fetchDropdownData('sequences', setSequences, sequenceSearch)}
+                placeholder="Search or select a sequence"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="sequence-list">
+                {sequences.map((s) => <option key={s.seqID} value={s.seqName} />)}
+            </datalist>
         </div>
 
         {/* Manufacturing Nonconformance Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Manufacturing Nonconformance</label>
-            <select
-            value={manNonConId}
-            onChange={(e) => setManNonConId(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-            >
-            <option value="">Select Nonconformance</option>
-            {manNonCons.map((m) => (
-                <option key={m.nonConId} value={m.nonConId}>{m.nonCon}</option>
-            ))}
-            </select>
+            <input
+                list="noncon-list"
+                value={manNonConSearch}
+                onChange={(e) => {
+                    setManNonConSearch(e.target.value);
+                    const selected = manNonCons.find(m => m.nonCon === e.target.value);
+                    setManNonConId(selected ? String(selected.nonConId) : '');
+                }}
+                onFocus={() => manNonCons.length === 0 && fetchDropdownData('manufact-noncons', setManNonCons, manNonConSearch)}
+                placeholder="Search or select a nonconformance"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="noncon-list">
+                {manNonCons.map((m) => <option key={m.nonConId} value={m.nonCon} />)}
+            </datalist>
         </div>
 
         {/* Image Upload */}
