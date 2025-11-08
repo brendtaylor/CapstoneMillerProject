@@ -5,7 +5,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useToast } from '../hooks/use-toast';
-   
+import { useDebounce } from '../hooks/use-debounce';
+import { useIsMobile } from '../hooks/use-mobile';
+
 const TicketList: React.FC = () => {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -15,6 +17,12 @@ const TicketList: React.FC = () => {
     const { userRole } = useAuth();
     const [searchResult, setSearchResult] = useState<any[] | null>(null);
     const { toast } = useToast();
+    const isMobile = useIsMobile();
+    // Track the last scroll position to restore it when closing tickets
+    const [lastScrollPosition, setLastScrollPosition] = useState<number | null>(null);
+    // State for archive confirmation dialog
+    const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+    const [ticketToArchive, setTicketToArchive] = useState<number | null>(null);
 
     // Dropdown data 
     const [divisions, setDivisions] = useState<any[]>([]);
@@ -40,6 +48,24 @@ const TicketList: React.FC = () => {
     manNonConId: '',
     description: '',
     });
+
+    // State for edit form search input values
+    const [editDivisionSearch, setEditDivisionSearch] = useState('');
+    const [editPartSearch, setEditPartSearch] = useState('');
+    const [editDrawingSearch, setEditDrawingSearch] = useState('');
+    const [editWorkOrderSearch, setEditWorkOrderSearch] = useState('');
+    const [editUnitSearch, setEditUnitSearch] = useState('');
+    const [editSequenceSearch, setEditSequenceSearch] = useState('');
+    const [editManNonConSearch, setEditManNonConSearch] = useState('');
+
+    // Debounced search values for the edit form
+    const debouncedEditDivisionSearch = useDebounce(editDivisionSearch, 300);
+    const debouncedEditPartSearch = useDebounce(editPartSearch, 300);
+    const debouncedEditDrawingSearch = useDebounce(editDrawingSearch, 300);
+    const debouncedEditWorkOrderSearch = useDebounce(editWorkOrderSearch, 300);
+    const debouncedEditUnitSearch = useDebounce(editUnitSearch, 300);
+    const debouncedEditSequenceSearch = useDebounce(editSequenceSearch, 300);
+    const debouncedEditManNonConSearch = useDebounce(editManNonConSearch, 300);
 
 
     const fetchTickets = async () => {
@@ -69,33 +95,65 @@ const TicketList: React.FC = () => {
         fetchTickets();
     }, []);
 
-    //Fetch dropdown data
+    // Set consistent scroll margins for all tickets
     useEffect(() => {
-    const fetchData = async () => {
-        try {
-            const [divisionRes, partRes, drawingRes, woRes, unitRes, seqRes, manNonConRes] = await Promise.all([
-                fetch('http://localhost:3000/api/divisions'),
-                fetch('http://localhost:3000/api/parts'),
-                fetch('http://localhost:3000/api/drawings'),
-                fetch('http://localhost:3000/api/work-orders'),
-                fetch('http://localhost:3000/api/units'),
-                fetch('http://localhost:3000/api/sequences'),
-                fetch('http://localhost:3000/api/manufact-noncons'),
-            ]);
+        const setTicketMargins = () => {
+            // Get the header height to calculate proper margin
+            const header = document.querySelector('nav, header, .navbar') || document.querySelector('[class*="bg-muted"]');
+            let headerHeight = header ? header.getBoundingClientRect().height : 0;
+            
+            // Add some padding to the header height
+            const paddingTop = isMobile ? 10 : 20;
+            const marginTop = headerHeight + paddingTop;
 
-            setDivisions(await divisionRes.json());
-            setParts(await partRes.json());
-            setDrawings(await drawingRes.json());
-            setWorkOrders(await woRes.json());
-            setUnits(await unitRes.json());
-            setSequences(await seqRes.json());
-            setManNonCons(await manNonConRes.json());
+            const tickets = document.querySelectorAll('[id^="ticket-"]');
+            tickets.forEach(ticket => {
+                if (ticket instanceof HTMLElement) {
+                    ticket.style.scrollMarginTop = `${marginTop}px`;
+                }
+            });
+        };
+
+        // Set initial margins
+        setTicketMargins();
+
+        // Update margins when tickets are loaded or changed
+        const observer = new MutationObserver(setTicketMargins);
+        observer.observe(document.body, { 
+            childList: true, 
+            subtree: true 
+        });
+
+        // Also update on window resize to handle layout changes
+        window.addEventListener('resize', setTicketMargins);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', setTicketMargins);
+        };
+    }, [isMobile]);
+
+    //Fetch dropdown data
+    const fetchDropdownData = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<any[]>>, search: string = '') => {
+        try {
+            const url = search ? `http://localhost:3000/api/${endpoint}?search=${search}` : `http://localhost:3000/api/${endpoint}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                setter(await response.json());
+            }
         } catch (error) {
-            console.error("Failed to fetch dropdown data:", error);
+            console.error(`Failed to fetch ${endpoint}:`, error);
         }
     };
-    fetchData();
-    }, []);
+
+    // Effects to fetch data for the edit modal when debounced search terms change
+    useEffect(() => { if (isEditing) fetchDropdownData('divisions', setDivisions, debouncedEditDivisionSearch); }, [debouncedEditDivisionSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('parts', setParts, debouncedEditPartSearch); }, [debouncedEditPartSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('drawings', setDrawings, debouncedEditDrawingSearch); }, [debouncedEditDrawingSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('work-orders', setWorkOrders, debouncedEditWorkOrderSearch); }, [debouncedEditWorkOrderSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('units', setUnits, debouncedEditUnitSearch); }, [debouncedEditUnitSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('sequences', setSequences, debouncedEditSequenceSearch); }, [debouncedEditSequenceSearch, isEditing]);
+    useEffect(() => { if (isEditing) fetchDropdownData('manufact-noncons', setManNonCons, debouncedEditManNonConSearch); }, [debouncedEditManNonConSearch, isEditing]);
 
     const handleArchive = async (ticketId: number) => {
         try {
@@ -150,7 +208,28 @@ const TicketList: React.FC = () => {
         manNonConId: ticket.manNonCon?.nonConId?.toString() || '',
         description: ticket.description || '',
     });
+
+    // Set initial search values for the edit form
+    setEditDivisionSearch(ticket.division?.divisionName || '');
+    setEditPartSearch(ticket.partNum?.partNum || '');
+    setEditDrawingSearch(ticket.drawingNum?.drawing_num || '');
+    setEditWorkOrderSearch(ticket.wo?.wo?.toString() || '');
+    setEditUnitSearch(ticket.unit?.unitName || '');
+    setEditSequenceSearch(ticket.sequence?.seqName || '');
+    setEditManNonConSearch(ticket.manNonCon?.nonCon || '');
     };
+
+    // Prevent background scrolling while the edit modal is open
+    useEffect(() => {
+        if (isEditing) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isEditing]);
 
 const handleSaveEdit = async () => {
     if (!editingTicket) return;
@@ -221,10 +300,8 @@ const handleSaveEdit = async () => {
 
 
     const confirmAndArchive = (ticketId: number) => {
-        const isConfirmed = window.confirm(`Are you sure you want to archive Ticket #${ticketId}? This action cannot be undone.`);
-        if (isConfirmed) {
-            handleArchive(ticketId);
-        }
+        setTicketToArchive(ticketId);
+        setShowArchiveConfirm(true);
     };
 
     // Effect to handle debouncing the search term
@@ -293,8 +370,34 @@ const handleSaveEdit = async () => {
                 ) : (searchResult ?? tickets).length > 0 ? (
                     <Accordion type="single" collapsible className="w-full space-y-4">
                         {(searchResult ?? tickets).map((ticket) => (
-                            <AccordionItem value={`item-${ticket.ticketId}`} key={ticket.ticketId} className="border rounded-md shadow-sm bg-gray-50 data-[state=open]:bg-white">
-                                <AccordionTrigger className="p-4 hover:no-underline hover:bg-gray-100 rounded-t-md data-[state=open]:rounded-b-none data-[state=open]:border-b overflow-hidden">
+                            <AccordionItem id={`ticket-${ticket.ticketId}`} value={`item-${ticket.ticketId}`} key={ticket.ticketId} className="border rounded-md shadow-sm bg-gray-50 data-[state=open]:bg-white">
+                                <AccordionTrigger
+                                    className="p-4 hover:no-underline hover:bg-gray-100 rounded-t-md data-[state=open]:rounded-b-none data-[state=open]:border-b overflow-hidden"
+                                    onClick={(e) => {
+                                        // Get current value state from the accordion item's data-state
+                                        const isClosing = (e.currentTarget.closest('[data-state]')?.getAttribute('data-state') === 'open');
+                                        
+                                        if (isClosing) {
+                                            // Restore previous scroll position when closing
+                                            if (lastScrollPosition !== null) {
+                                                window.scrollTo({ top: lastScrollPosition, behavior: 'smooth' });
+                                                setLastScrollPosition(null);
+                                            }
+                                        } else {
+                                            // Save current scroll position and scroll to opened ticket
+                                            setLastScrollPosition(window.scrollY);
+                                            setTimeout(() => {
+                                                const el = document.getElementById(`ticket-${ticket.ticketId}`);
+                                                if (el) {
+                                                    el.scrollIntoView({ 
+                                                        behavior: 'smooth', 
+                                                        block: 'start'
+                                                    });
+                                                }
+                                            }, 150);
+                                        }
+                                    }}
+                                >
                                     <div className="flex-1 text-left min-w-0">
                                         <h3 className="font-bold text-lg">Ticket #{ticket.ticketId}</h3>
                                         <p><span className="font-semibold">Status:</span> {ticket.status?.statusDescription || 'N/A'}</p>
@@ -304,6 +407,26 @@ const handleSaveEdit = async () => {
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="p-4">
+                                    {/* Action Buttons */}
+                                    {userRole === 'admin' && (
+                                        <div className="flex md:inline-flex gap-3 mb-6">
+                                            <Button
+                                                variant="default"
+                                                onClick={() => handleEdit(ticket.ticketId)}
+                                                className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
+                                            >
+                                                Edit Ticket
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                onClick={() => confirmAndArchive(ticket.ticketId)}
+                                                className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
+                                            >
+                                                Archive Ticket
+                                            </Button>
+                                        </div>
+                                    )}
+                                    
                                     <div className="space-y-4 py-4 text-sm">
                                         <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
                                             <span className="text-right font-semibold">Status</span>
@@ -350,20 +473,6 @@ const handleSaveEdit = async () => {
                                             <span className="text-gray-500 italic">Attachment display not yet implemented.</span>
                                         </div>
                                     </div>
-                                    <div className="flex justify-between mt-4">
-    {userRole === 'admin' && (
-    <Button
-        variant="default"onClick={() => handleEdit(ticket.ticketId)}>
-        Edit Ticket
-    </Button>
-    )}
-    {userRole === 'admin' && (
-        <Button
-            variant="destructive"onClick={() => confirmAndArchive(ticket.ticketId)}>
-            Archive Ticket
-        </Button>
-    )}
-</div>
 
                                 </AccordionContent>
                             </AccordionItem>
@@ -407,107 +516,150 @@ const handleSaveEdit = async () => {
 
         {/* Division */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Division</label>
-          <select
-            value={editFields.divisionId}
-            onChange={(e) => setEditFields({ ...editFields, divisionId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Division</option>
-            {divisions.map((d) => (
-              <option key={d.divisionId} value={d.divisionId}>{d.divisionName}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Division</label>
+            <input
+                list="edit-division-list"
+                value={editDivisionSearch}
+                onChange={(e) => {
+                    setEditDivisionSearch(e.target.value);
+                    const selected = divisions.find(d => d.divisionName === e.target.value);
+                    setEditFields({ ...editFields, divisionId: selected ? String(selected.divisionId) : '' });
+                }}
+                onFocus={() =>
+                    !editDivisionSearch && fetchDropdownData("divisions", setDivisions)
+                }
+                placeholder="Search or select a division"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-division-list">
+                {divisions.map((d) => <option key={d.divisionId} value={d.divisionName} />)}
+            </datalist>
         </div>
 
         {/* Part # */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Part #</label>
-          <select
-            value={editFields.partNumId}
-            onChange={(e) => setEditFields({ ...editFields, partNumId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Part</option>
-            {parts.map((p) => (
-              <option key={p.partNumId} value={p.partNumId}>{p.partNum}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Part #</label>
+            <input
+                list="edit-part-list"
+                value={editPartSearch}
+                onChange={(e) => {
+                    setEditPartSearch(e.target.value);
+                    const selected = parts.find(p => p.partNum === e.target.value);
+                    setEditFields({ ...editFields, partNumId: selected ? String(selected.partNumId) : '' });
+                }}
+                onFocus={() =>
+                    !editPartSearch && fetchDropdownData("parts", setParts)}
+                placeholder="Search or select a part"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-part-list">
+                {parts.map((p) => <option key={p.partNumId} value={p.partNum} />)}
+            </datalist>
         </div>
 
         {/* Drawing # */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Drawing #</label>
-          <select
-            value={editFields.drawingId}
-            onChange={(e) => setEditFields({ ...editFields, drawingId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Drawing</option>
-            {drawings.map((d) => (
-              <option key={d.drawingId} value={d.drawingId}>{d.drawing_num}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Drawing #</label>
+            <input
+                list="edit-drawing-list"
+                value={editDrawingSearch}
+                onChange={(e) => {
+                    setEditDrawingSearch(e.target.value);
+                    const selected = drawings.find(d => d.drawing_num === e.target.value);
+                    setEditFields({ ...editFields, drawingId: selected ? String(selected.drawingId) : '' });
+                }}
+                onFocus={() =>
+                    !editDrawingSearch && fetchDropdownData("drawings", setDrawings)}
+                placeholder="Search or select a drawing"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-drawing-list">
+                {drawings.map((d) => <option key={d.drawingId} value={d.drawing_num} />)}
+            </datalist>
         </div>
 
         {/* Work Order */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Work Order</label>
-          <select
-            value={editFields.workOrderId}
-            onChange={(e) => setEditFields({ ...editFields, workOrderId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Work Order</option>
-            {workOrders.map((wo) => (
-              <option key={wo.woId} value={wo.woId}>{wo.wo}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Work Order</label>
+            <input
+                list="edit-workorder-list"
+                value={editWorkOrderSearch}
+                onChange={(e) => {
+                    setEditWorkOrderSearch(e.target.value);
+                    const selected = workOrders.find(wo => String(wo.wo) === e.target.value);
+                    setEditFields({ ...editFields, workOrderId: selected ? String(selected.woId) : '' });
+                }}
+                onFocus={() =>
+                    !editWorkOrderSearch && fetchDropdownData("work-orders", setWorkOrders)}
+                placeholder="Search or select a work order"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-workorder-list">
+                {workOrders.map((wo) => <option key={wo.woId} value={wo.wo} />)}
+            </datalist>
         </div>
 
         {/* Unit */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Unit</label>
-          <select
-            value={editFields.unitId}
-            onChange={(e) => setEditFields({ ...editFields, unitId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Unit</option>
-            {units.map((u) => (
-              <option key={u.unitId} value={u.unitId}>{u.unitName}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Unit</label>
+            <input
+                list="edit-unit-list"
+                value={editUnitSearch}
+                onChange={(e) => {
+                    setEditUnitSearch(e.target.value);
+                    const selected = units.find(u => u.unitName === e.target.value);
+                    setEditFields({ ...editFields, unitId: selected ? String(selected.unitId) : '' });
+                }}
+                onFocus={() =>
+                    !editUnitSearch && fetchDropdownData("units", setUnits)}
+                placeholder="Search or select a unit"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-unit-list">
+                {units.map((u) => <option key={u.unitId} value={u.unitName} />)}
+            </datalist>
         </div>
 
         {/* Sequence */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Sequence</label>
-          <select
-            value={editFields.sequenceId}
-            onChange={(e) => setEditFields({ ...editFields, sequenceId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Sequence</option>
-            {sequences.map((s) => (
-              <option key={s.seqID} value={s.seqID}>{s.seqName}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Sequence</label>
+            <input
+                list="edit-sequence-list"
+                value={editSequenceSearch}
+                onChange={(e) => {
+                    setEditSequenceSearch(e.target.value);
+                    const selected = sequences.find(s => s.seqName === e.target.value);
+                    setEditFields({ ...editFields, sequenceId: selected ? String(selected.seqID) : '' });
+                }}
+                onFocus={() =>
+                    !editSequenceSearch && fetchDropdownData("sequences", setSequences)}
+                placeholder="Search or select a sequence"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-sequence-list">
+                {sequences.map((s) => <option key={s.seqID} value={s.seqName} />)}
+            </datalist>
         </div>
 
         {/* Nonconformance */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Nonconformance</label>
-          <select
-            value={editFields.manNonConId}
-            onChange={(e) => setEditFields({ ...editFields, manNonConId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-          >
-            <option value="">Select Nonconformance</option>
-            {manNonCons.map((m) => (
-              <option key={m.nonConId} value={m.nonConId}>{m.nonCon}</option>
-            ))}
-          </select>
+            <label className="block text-sm font-medium text-gray-700">Nonconformance</label>
+            <input
+                list="edit-noncon-list"
+                value={editManNonConSearch}
+                onChange={(e) => {
+                    setEditManNonConSearch(e.target.value);
+                    const selected = manNonCons.find(m => m.nonCon === e.target.value);
+                    setEditFields({ ...editFields, manNonConId: selected ? String(selected.nonConId) : '' });
+                }}
+                onFocus={() =>
+                    !editManNonConSearch && fetchDropdownData("manufact-noncons", setManNonCons)}
+                placeholder="Search or select a nonconformance"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-noncon-list">
+                {manNonCons.map((m) => <option key={m.nonConId} value={m.nonCon} />)}
+            </datalist>
         </div>
          <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
             <span className="text-right font-semibold">Attachments</span>
@@ -539,6 +691,40 @@ const handleSaveEdit = async () => {
 )}
 
 
+            {/* Archive confirmation modal */}
+            {showArchiveConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+                        <h3 className="text-lg font-semibold mb-2">Archive Ticket</h3>
+                        <p className="text-sm text-gray-700 mb-4">
+                            Are you sure you want to archive Ticket #{ticketToArchive}? This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                onClick={() => {
+                                    setShowArchiveConfirm(false);
+                                    setTicketToArchive(null);
+                                }}
+                                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (ticketToArchive) {
+                                        handleArchive(ticketToArchive);
+                                        setShowArchiveConfirm(false);
+                                        setTicketToArchive(null);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                                Archive
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from '../hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
-
-interface Status {
-    statusId: number;
-    statusDescription: string;
-}
+import { useDebounce } from '../hooks/use-debounce';
 
 interface Division {
     divisionId: number;
@@ -53,10 +48,12 @@ const STORAGE_KEY = "ticketDraft";
 // A helper to check if a value is a non-empty string
 const isSet = (value: string | null | undefined) => value !== null && value !== undefined && value !== '';
 
+interface FileFormProps {
+    onClose?: () => void;
+}
 
-const FileForm: React.FC = () => {
+const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     const [divisionId, setDivisionId] = useState('');
-    const [partNumber, setPartNumber] = useState('');
     const [partNumId, setPartNumId] = useState('');
     const [drawingId, setDrawingId] = useState('');
     const [workOrderId, setWorkOrderId] = useState('');
@@ -66,9 +63,26 @@ const FileForm: React.FC = () => {
     const [description, setDescription] = useState('');
     const [images, setImages] = useState<SavedImage[]>([]);
 
+    // State for search input values
+    const [divisionSearch, setDivisionSearch] = useState('');
+    const [partSearch, setPartSearch] = useState('');
+    const [drawingSearch, setDrawingSearch] = useState('');
+    const [workOrderSearch, setWorkOrderSearch] = useState('');
+    const [unitSearch, setUnitSearch] = useState('');
+    const [sequenceSearch, setSequenceSearch] = useState('');
+    const [manNonConSearch, setManNonConSearch] = useState('');
+
+    // Debounced search values
+    const debouncedDivisionSearch = useDebounce(divisionSearch, 300);
+    const debouncedPartSearch = useDebounce(partSearch, 300);
+    const debouncedDrawingSearch = useDebounce(drawingSearch, 300);
+    const debouncedWorkOrderSearch = useDebounce(workOrderSearch, 300);
+    const debouncedUnitSearch = useDebounce(unitSearch, 300);
+    const debouncedSequenceSearch = useDebounce(sequenceSearch, 300);
+    const debouncedManNonConSearch = useDebounce(manNonConSearch, 300);
+
     const { userId } = useAuth();
     const { toast } = useToast();
-    const navigate = useNavigate();
 
     // State for dropdown options
     const [divisions, setDivisions] = useState<Division[]>([]);
@@ -81,6 +95,11 @@ const FileForm: React.FC = () => {
 
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    // Show a post-create prompt offering to create another ticket or return to the list
+    const [showPostCreate, setShowPostCreate] = useState(false);
+    const [createdTicketId, setCreatedTicketId] = useState<number | null>(null);
+    // Show a styled confirmation modal before submitting (replaces window.confirm)
+    const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
     //Load draft from localStorage when component mounts
     useEffect(() => {
@@ -88,8 +107,7 @@ const FileForm: React.FC = () => {
         if (draft) {
             try {
             const parsed = JSON.parse(draft);
-            setDivisionId(parsed.divisionId || '');
-            setPartNumber(parsed.partNumber || '');
+            setDivisionId(parsed.divisionId || '');            
             setPartNumId(parsed.partNumId || '');
             setDrawingId(parsed.drawingId || '');
             setWorkOrderId(parsed.workOrderId || '');
@@ -98,6 +116,14 @@ const FileForm: React.FC = () => {
             setManNonConId(parsed.manNonConId || '');
             setDescription(parsed.description || '');
             setImages(parsed.images || []);
+            // Restore search terms
+            setDivisionSearch(parsed.divisionSearch || '');
+            setPartSearch(parsed.partSearch || '');
+            setDrawingSearch(parsed.drawingSearch || '');
+            setWorkOrderSearch(parsed.workOrderSearch || '');
+            setUnitSearch(parsed.unitSearch || '');
+            setSequenceSearch(parsed.sequenceSearch || '');
+            setManNonConSearch(parsed.manNonConSearch || '');
         } catch (e) {
                 console.warn("Failed to parse draft", e);
             }
@@ -105,46 +131,46 @@ const FileForm: React.FC = () => {
     }, []);
 
     // Fetch data for all dropdowns
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [divisionRes, partRes, drawingRes, woRes, unitRes, seqRes, manNonConRes] = await Promise.all([
-                    fetch('http://localhost:3000/api/divisions'),
-                    fetch('http://localhost:3000/api/parts'),
-                    fetch('http://localhost:3000/api/drawings'),
-                    fetch('http://localhost:3000/api/work-orders'),
-                    fetch('http://localhost:3000/api/units'),
-                    fetch('http://localhost:3000/api/sequences'),
-                    fetch('http://localhost:3000/api/manufact-noncons'),
-                ]);
-
-                setDivisions(await divisionRes.json());
-                setParts(await partRes.json());
-                setDrawings(await drawingRes.json());
-                setWorkOrders(await woRes.json());
-                setUnits(await unitRes.json());
-                setSequences(await seqRes.json());
-                setManNonCons(await manNonConRes.json());
-
-            } catch (error) {
-                console.error("Failed to fetch dropdown data:", error);
-                // Optionally, show a toast or error message to the user
-            } finally {
-                setLoading(false);
+    const fetchDropdownData = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<any[]>>, search: string = '') => {
+        try {
+            const url = search ? `http://localhost:3000/api/${endpoint}?search=${search}` : `http://localhost:3000/api/${endpoint}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                setter(await response.json());
             }
-        };
+        } catch (error) {
+            console.error(`Failed to fetch ${endpoint}:`, error);
+        }
+    };
 
-        fetchData();
+    // Data will be fetched on user interaction.
+    useEffect(() => {
+        setLoading(false);
     }, []);
+
+
+    // Effects to fetch data when debounced search terms change
+    useEffect(() => { if (debouncedDivisionSearch) fetchDropdownData('divisions', setDivisions, debouncedDivisionSearch); }, [debouncedDivisionSearch]);
+    useEffect(() => { if (debouncedPartSearch) fetchDropdownData('parts', setParts, debouncedPartSearch); }, [debouncedPartSearch]);
+    useEffect(() => { if (debouncedDrawingSearch) fetchDropdownData('drawings', setDrawings, debouncedDrawingSearch); }, [debouncedDrawingSearch]);
+    useEffect(() => { if (debouncedWorkOrderSearch) fetchDropdownData('work-orders', setWorkOrders, debouncedWorkOrderSearch); }, [debouncedWorkOrderSearch]);
+    useEffect(() => { if (debouncedUnitSearch) fetchDropdownData('units', setUnits, debouncedUnitSearch); }, [debouncedUnitSearch]);
+    useEffect(() => { if (debouncedSequenceSearch) fetchDropdownData('sequences', setSequences, debouncedSequenceSearch); }, [debouncedSequenceSearch]);
+    useEffect(() => { if (debouncedManNonConSearch) fetchDropdownData('manufact-noncons', setManNonCons, debouncedManNonConSearch); }, [debouncedManNonConSearch]);
 
     //Auto-save draft to localStorage whenever fields change 
     useEffect(() => {
         // Avoid saving initial empty state
         if (loading) return;
-        const data = { divisionId, partNumber, partNumId, drawingId, workOrderId, unitId, sequenceId, manNonConId, description, images };
+        const data = { 
+            divisionId, partNumId, drawingId, workOrderId, unitId, sequenceId, manNonConId, description, images,
+            divisionSearch, partSearch, drawingSearch, workOrderSearch, unitSearch, sequenceSearch, manNonConSearch
+        };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }, [divisionId, partNumber, partNumId, drawingId, workOrderId, unitId, sequenceId, manNonConId, description, images, loading]);
+    }, [
+        divisionId, partNumId, drawingId, workOrderId, unitId, sequenceId, manNonConId, description, images, loading,
+        divisionSearch, partSearch, drawingSearch, workOrderSearch, unitSearch, sequenceSearch, manNonConSearch
+    ]);
     
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -199,8 +225,11 @@ const FileForm: React.FC = () => {
             console.log(response);
             const newTicket = await response.json();
             toast({ title: "Success!", description: `Ticket #${newTicket.ticketId} has been created.` });
-            handleDelete(); // Clear the form and local storage draft
-            navigate('/quality'); // Redirect to the ticket list
+            // Clear the form and local storage draft
+            handleDelete();
+            // Show a post-create prompt (create another or return to list)
+            setCreatedTicketId(newTicket.ticketId);
+            setShowPostCreate(true);
         } catch (error: any) {
             toast({ variant: "destructive", title: "Save Failed", description: error.message });
             console.error("Failed to save ticket:", error);
@@ -210,15 +239,12 @@ const FileForm: React.FC = () => {
     };
 
     const confirmAndSave = () => {
-        const isConfirmed = window.confirm("Are you sure you want to submit this ticket?");
-        if (isConfirmed) {
-            handleSave();
-        }
+        // Open the styled confirmation modal instead of using window.confirm
+        setShowSubmitConfirm(true);
     };
 
     const handleDelete = () => {
         setDivisionId('');
-        setPartNumber('');
         setPartNumId('');
         setDrawingId('');
         setWorkOrderId('');
@@ -228,6 +254,14 @@ const FileForm: React.FC = () => {
         setDescription('');
         setImages([]);
         localStorage.removeItem(STORAGE_KEY);
+        
+        setDivisionSearch('');
+        setPartSearch('');
+        setDrawingSearch('');
+        setWorkOrderSearch('');
+        setUnitSearch('');
+        setSequenceSearch('');
+        setManNonConSearch('');
 
         const imageInput = document.getElementById('imageUpload') as HTMLInputElement;
         if (imageInput) imageInput.value = '';
@@ -244,86 +278,141 @@ const FileForm: React.FC = () => {
         {/* Division Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Division</label>
-            <select
-            value={divisionId}
-            onChange={(e) => setDivisionId(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-            >
-            <option value="">Select Division</option>
-            {divisions.map((d) => (
-                <option key={d.divisionId} value={d.divisionId}>{d.divisionName}</option>
-            ))}
-            </select>
+            <input
+                list="division-list"
+                value={divisionSearch}
+                onChange={(e) => {
+                    setDivisionSearch(e.target.value);
+                    const selected = divisions.find(d => d.divisionName === e.target.value);
+                    setDivisionId(selected ? String(selected.divisionId) : '');
+                }}
+                onFocus={() => !divisionSearch && fetchDropdownData('divisions', setDivisions)}
+                placeholder="Search or select a division"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="division-list">
+                {divisions.map((d) => <option key={d.divisionId} value={d.divisionName} />)}
+            </datalist>
         </div>
 
         {/* Part Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Part</label>
-            <select value={partNumId} onChange={(e) => setPartNumId(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
-                <option value="">Select Part</option>
-                {parts.map((p) => (
-                    <option key={p.partNumId} value={p.partNumId}>{p.partNum}</option>
-                ))}
-            </select>
+            <input
+                list="part-list"
+                value={partSearch}
+                onChange={(e) => {
+                    setPartSearch(e.target.value);
+                    const selected = parts.find(p => p.partNum === e.target.value);
+                    setPartNumId(selected ? String(selected.partNumId) : '');
+                }}
+                onFocus={() => !partSearch && fetchDropdownData('parts', setParts)}
+                placeholder="Search or select a part"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="part-list">
+                {parts.map((p) => <option key={p.partNumId} value={p.partNum} />)}
+            </datalist>
         </div>
 
         {/* Drawing Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Drawing</label>
-            <select value={drawingId} onChange={(e) => setDrawingId(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
-                <option value="">Select Drawing</option>
-                {drawings.map((d) => (
-                    <option key={d.drawingId} value={d.drawingId}>{d.drawing_num}</option>
-                ))}
-            </select>
+            <input
+                list="drawing-list"
+                value={drawingSearch}
+                onChange={(e) => {
+                    setDrawingSearch(e.target.value);
+                    const selected = drawings.find(d => d.drawing_num === e.target.value);
+                    setDrawingId(selected ? String(selected.drawingId) : '');
+                }}
+                onFocus={() => !drawingSearch && fetchDropdownData('drawings', setDrawings)}
+                placeholder="Search or select a drawing"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="drawing-list">
+                {drawings.map((d) => <option key={d.drawingId} value={d.drawing_num} />)}
+            </datalist>
         </div>
 
         {/* Work Order Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Work Order</label>
-            <select value={workOrderId} onChange={(e) => setWorkOrderId(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
-                <option value="">Select Work Order</option>
-                {workOrders.map((wo) => (
-                    <option key={wo.woId} value={wo.woId}>{wo.wo}</option>
-                ))}
-            </select>
+            <input
+                list="workorder-list"
+                value={workOrderSearch}
+                onChange={(e) => {
+                    setWorkOrderSearch(e.target.value);
+                    const selected = workOrders.find(wo => String(wo.wo) === e.target.value);
+                    setWorkOrderId(selected ? String(selected.woId) : '');
+                }}
+                onFocus={() => !workOrderSearch && fetchDropdownData('work-orders', setWorkOrders)}
+                placeholder="Search or select a work order"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="workorder-list">
+                {workOrders.map((wo) => <option key={wo.woId} value={wo.wo} />)}
+            </datalist>
         </div>
 
         {/* Unit Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Unit</label>
-            <select value={unitId} onChange={(e) => setUnitId(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
-                <option value="">Select Unit</option>
-                {units.map((u) => (
-                    <option key={u.unitId} value={u.unitId}>{u.unitName}</option>
-                ))}
-            </select>
+            <input
+                list="unit-list"
+                value={unitSearch}
+                onChange={(e) => {
+                    setUnitSearch(e.target.value);
+                    const selected = units.find(u => u.unitName === e.target.value);
+                    setUnitId(selected ? String(selected.unitId) : '');
+                }}
+                onFocus={() => !unitSearch && fetchDropdownData('units', setUnits)}
+                placeholder="Search or select a unit"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="unit-list">
+                {units.map((u) => <option key={u.unitId} value={u.unitName} />)}
+            </datalist>
         </div>
 
         {/* Sequence Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Sequence</label>
-            <select value={sequenceId} onChange={(e) => setSequenceId(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
-                <option value="">Select Sequence</option>
-                {sequences.map((s) => (
-                    <option key={s.seqID} value={s.seqID}>{s.seqName}</option>
-                ))}
-            </select>
+            <input
+                list="sequence-list"
+                value={sequenceSearch}
+                onChange={(e) => {
+                    setSequenceSearch(e.target.value);
+                    const selected = sequences.find(s => s.seqName === e.target.value);
+                    setSequenceId(selected ? String(selected.seqID) : '');
+                }}
+                onFocus={() => !sequenceSearch && fetchDropdownData('sequences', setSequences)}
+                placeholder="Search or select a sequence"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="sequence-list">
+                {sequences.map((s) => <option key={s.seqID} value={s.seqName} />)}
+            </datalist>
         </div>
 
         {/* Manufacturing Nonconformance Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Manufacturing Nonconformance</label>
-            <select
-            value={manNonConId}
-            onChange={(e) => setManNonConId(e.target.value)}
-            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-            >
-            <option value="">Select Nonconformance</option>
-            {manNonCons.map((m) => (
-                <option key={m.nonConId} value={m.nonConId}>{m.nonCon}</option>
-            ))}
-            </select>
+            <input
+                list="noncon-list"
+                value={manNonConSearch}
+                onChange={(e) => {
+                    setManNonConSearch(e.target.value);
+                    const selected = manNonCons.find(m => m.nonCon === e.target.value);
+                    setManNonConId(selected ? String(selected.nonConId) : '');
+                }}
+                onFocus={() => !manNonConSearch && fetchDropdownData('manufact-noncons', setManNonCons)}
+                placeholder="Search or select a nonconformance"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="noncon-list">
+                {manNonCons.map((m) => <option key={m.nonConId} value={m.nonCon} />)}
+            </datalist>
         </div>
 
         {/* Image Upload */}
@@ -377,6 +466,74 @@ const FileForm: React.FC = () => {
                 {isSaving ? 'Saving...' : 'Save'}
             </button>
         </div>
+
+        {/* Pre-submit confirmation modal (replaces window.confirm) */}
+        {showSubmitConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+                    <h3 className="text-lg font-semibold mb-2">Ready to submit?</h3>
+                    <p className="text-sm text-gray-700 mb-4">Are you sure you want to submit this ticket? You can cancel to continue editing.</p>
+                    <div className="flex justify-end space-x-3">
+                        <button
+                            onClick={() => {
+                                // Cancel and return to editing
+                                setShowSubmitConfirm(false);
+                            }}
+                            className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={async () => {
+                                // Close confirmation modal and submit
+                                setShowSubmitConfirm(false);
+                                await handleSave();
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                            Submit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Post-create prompt modal */}
+        {showPostCreate && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+                    <h3 className="text-lg font-semibold mb-2">Ticket Created</h3>
+                    <p className="text-sm text-gray-700 mb-4">Ticket #{createdTicketId} has been created successfully. What would you like to do next?</p>
+                    <div className="flex justify-end space-x-3">
+                        <button
+                            onClick={() => {
+                                // Close modal and keep the cleared form ready to create another
+                                setShowPostCreate(false);
+                                setCreatedTicketId(null);
+                                // focus description for faster entry
+                                const desc = document.querySelector('textarea') as HTMLTextAreaElement | null;
+                                if (desc) desc.focus();
+                            }}
+                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                            Create Another
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowPostCreate(false);
+                                // Call the onClose prop to close the form
+                                if (onClose) onClose();
+                                // No need to navigate since we're already on /quality
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                            Return to List
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
         </div>
   );
 };

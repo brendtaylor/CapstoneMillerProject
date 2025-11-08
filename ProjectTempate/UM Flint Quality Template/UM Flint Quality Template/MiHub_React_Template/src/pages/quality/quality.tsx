@@ -23,12 +23,24 @@ const Quality: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
-    //Set sidebar/drop down for mobile and desktop
+    // Prevent background scrolling when the create ticket overlay is open
+    useEffect(() => {
+      if (showForm) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }, [showForm]);
+
+    //Set sidebar/drop down for mobile and tablet
     let sidebar;
     if (isMobile) {
       sidebar = (
         <>
-          <div className="md:hidden w-full bg-muted/50 border-b-2 p-4 flex justify-between items-center">
+          <div className="xl:hidden w-full bg-muted/50 border-b-2 p-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
                 <ClipboardList className="w-6 h-6 text-white" />
@@ -108,7 +120,7 @@ const Quality: React.FC = () => {
     else {
       {/* Website Sidebar */}
       sidebar = (
-        <div className="md:w-64 w-full md:flex-shrink-0 bg-muted/50 border-r-2 p-4">
+        <div className="xl:w-64 w-full xl:flex-shrink-0 bg-muted/50 border-r-2 p-4 hidden xl:block">
           
           <div className="flex items-center gap-2 mb-4">
             <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
@@ -134,7 +146,7 @@ const Quality: React.FC = () => {
 
   return (
     <Tabs defaultValue="tickets" className="min-h-screen bg-gray-100">
-      <div className="flex flex-col md:flex-row w-full max-w-[1300px] mx-auto min-h-screen">
+      <div className="flex flex-col xl:flex-row w-full max-w-[1300px] mx-auto min-h-screen">
         
         {sidebar}
 
@@ -143,24 +155,28 @@ const Quality: React.FC = () => {
           {/* Tickets Page */}
           <TabsContent value="tickets" className="my-2">
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between w-full">
-                  <div>
-                    <CardTitle>Tickets</CardTitle>
-                    <p className="text-sm font-normal mt-1">List of Tickets</p>
+        {/* Constrain header and content so they align with ticket boxes.
+          Add extra top spacing on larger screens so the header and button sit lower. */}
+        <div className="max-w-3xl mx-auto w-full mt-6 lg:mt-12">
+                <CardHeader>
+                  <div className="flex items-center justify-between w-full">
+                    <div>
+                      <CardTitle>Tickets</CardTitle>
+                      <p className="text-sm font-normal mt-1">List of Tickets</p>
+                    </div>
+                    <button
+                      onClick={() => setShowForm(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      Create Ticket
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setShowForm(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Create Ticket
-                  </button>
-                </div>
-              </CardHeader>
+                </CardHeader>
 
-              <CardContent>
-                <TicketList />
-              </CardContent>
+                <CardContent>
+                  <TicketList />
+                </CardContent>
+              </div>
             </Card>
           </TabsContent>
 
@@ -183,7 +199,7 @@ const Quality: React.FC = () => {
                 <CardTitle>File Form</CardTitle>
                 <p className="text-sm font-normal mt-1">Create a Ticket</p>
                 <div className="h-4" />
-                <FileForm />
+                <FileForm onClose={() => setShowForm(false)} />
               </div>
             </div>
           )}
