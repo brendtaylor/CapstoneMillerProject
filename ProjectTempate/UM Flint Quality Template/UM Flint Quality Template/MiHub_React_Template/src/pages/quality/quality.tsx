@@ -155,22 +155,20 @@ const Quality: React.FC = () => {
           {/* Tickets Page */}
           <TabsContent value="tickets" className="my-2">
             <Card>
-        {/* Constrain header and content so they align with ticket boxes.
-          Add extra top spacing on larger screens so the header and button sit lower. */}
-        <div className="max-w-3xl mx-auto w-full mt-6 lg:mt-12">
-                <CardHeader>
-                  <div className="flex items-center justify-between w-full">
-                    <div>
-                      <CardTitle>Tickets</CardTitle>
+              {/* Constrain header and content so they align with ticket boxes.
+                Add extra top spacing on larger screens so the header and button sit lower. */}
+              <div className="max-w-full px-8 mx-auto w-full mt-6 lg:mt-12">
+                <CardHeader className="flex flex-row justify-between item-center w-full">
+                    <CardTitle>
+                      Tickets
                       <p className="text-sm font-normal mt-1">List of Tickets</p>
+                    </CardTitle>
+                      
+                    <div className="flex-shrink-0">
+                      <button onClick={() => setShowForm(true)} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Create Ticket
+                      </button>
                     </div>
-                    <button
-                      onClick={() => setShowForm(true)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      Create Ticket
-                    </button>
-                  </div>
                 </CardHeader>
 
                 <CardContent>
@@ -178,6 +176,8 @@ const Quality: React.FC = () => {
                 </CardContent>
               </div>
             </Card>
+
+            
           </TabsContent>
 
           {showForm && (
