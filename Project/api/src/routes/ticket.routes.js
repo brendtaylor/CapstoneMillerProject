@@ -2,6 +2,8 @@ const express = require("express");
 const {
     getAllTickets,
     getTicketByID,
+    getAllArchivedTickets,
+    getArchivedTicketByID,
     createTicket,
     updateTicket,
     archiveTicket
@@ -14,6 +16,12 @@ router.get("/", getAllTickets);
 
 // GET /api/tickets/:id - Get a single ticket by its ID
 router.get("/:id", getTicketByID);
+
+//GET /api/tickets/archived - Get all archived tickets
+router.get("/archived", getAllArchivedTickets);
+
+//GET /api/tickets/archived/:id - Get a single archived ticket by its ID
+router.get("/archived/:id", getArchivedTicketByID);
 
 // POST /api/tickets - Create a new ticket
 router.post("/", createTicket);

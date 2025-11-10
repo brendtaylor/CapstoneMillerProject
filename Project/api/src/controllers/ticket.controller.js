@@ -85,4 +85,33 @@ async function archiveTicket(req, res) {
         res.status(500).json({ error: "Internal Server Error" });
     }
 }
+
+//Controller to handle getting all archived tickets
+async function getAllArchivedTickets(req, res) {
+    try {
+        const archivedTickets = await ticketService.getAllArchivedTickets();
+        res.json(archivedTickets);
+    } catch (error) {
+        console.error("Error fetching archived tickets:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+}
+
+//Controller to handle getting a single archived ticket by ID
+async function getArchivedTicketByID(req, res) {
+    try {
+        const id = req.params.id;
+        const archivedTicket = await ticketService.getArchivedTicketByID(id);
+
+        if (archivedTicket) {
+            res.json(archivedTicket);
+        } else {
+            res.status(404).json({ error: "Archived ticket not found" });
+        }
+    } catch (error) {
+        console.error("Error fetching archived ticket:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+}
+
 module.exports = { getAllTickets, createTicket, getTicketByID, updateTicket, archiveTicket };
