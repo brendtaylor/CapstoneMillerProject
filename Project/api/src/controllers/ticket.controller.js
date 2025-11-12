@@ -10,7 +10,7 @@ async function getAllTickets(req, res) {
         res.json(tickets);
     } catch (error) {
         console.error("Error fetching tickets:", error); 
-        res.status(500).json({ error: "Internal Server Error" });
+        res.status(500).json({ message: "Internal Server Error" });
     }
 }
 
@@ -23,12 +23,15 @@ async function createTicket(req, res) {
         emitToMake('ticket.create', { ticket: newTicket });
     } catch (error) {
         console.error("Error creating ticket:", error);
-        //Check if the error is a validation error
-        if (error.message.includes("cannot be empty")) {
-            return res.status(400).json({ error: error.message });
+        
+        // Catch ANY error starting with "Validation Error:"
+        if (error.message.startsWith("Validation Error:")) {
+            const friendlyErrorMessage = error.message.replace("Validation Error: ", "");
+            return res.status(400).json({ message: friendlyErrorMessage });
         }
-        //If its another kind of error, its a server error
-        res.status(500).json({ error: "Internal Server Error" });
+        
+        //If its not a validation error its a server error
+        res.status(500).json({ message: "Internal Server Error" });
     }
 }
 
@@ -44,10 +47,11 @@ async function getTicketByID(req, res) {
             res.json(ticket);
         } else {
             //If the ticket is not found, send 404 error
-            res.status(404).json({ error: "Ticket not found" });
+            res.status(404).json({ message: "Ticket not found" });
         }
     } catch (error) {
-        res.status(500).json({ error: "Internal Server Error" });
+        console.error("Error getting ticket by ID:", error);
+        res.status(500).json({ message: "Internal Server Error" });
     }
 }
 
@@ -62,10 +66,24 @@ async function updateTicket(req, res) {
             res.json(updatedTicket);                                                                //sending back the updated ticket
             emitToMake('ticket.update', { ticket: updatedTicket });
         } else {
-            res.status(404).json({ error: "Ticket not found" });
+            res.status(404).json({ message: "Ticket not found" });
         }
     } catch (error) {
-        res.status(500).json({ error: "Internal Server Error" });
+        console.error("Error updating ticket:", error);
+
+        // Catch validation errors
+        if (error.message.startsWith("Validation Error:")) {
+            const friendlyErrorMessage = error.message.replace("Validation Error: ", "");
+            return res.status(400).json({ message: friendlyErrorMessage });
+        }
+
+        // Catch the specific "Not Found" error from the service
+        if (error.message === "Ticket not found") {
+            return res.status(404).json({ message: "Ticket not found" });
+        }
+       
+
+        res.status(500).json({ message: "Internal Server Error" });
     }
 }
 
@@ -78,11 +96,11 @@ async function archiveTicket(req, res) {
         if (result && result.affected > 0) {
             res.status(204).send();
         } else {
-            res.status(404).json({ error: "Ticket not found" });
+            res.status(404).json({ message: "Ticket not found" });
         } 
     } catch (error) {
         console.error("Error archiving ticket:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+        res.status(500).json({ message: "Internal Server Error" });
     }
 }
 module.exports = { getAllTickets, createTicket, getTicketByID, updateTicket, archiveTicket };
