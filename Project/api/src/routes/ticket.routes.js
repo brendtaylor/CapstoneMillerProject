@@ -14,14 +14,14 @@ const router = express.Router();
 /// GET /api/tickets - Get all tickets
 router.get("/", getAllTickets);
 
-// GET /api/tickets/:id - Get a single ticket by its ID
-router.get("/:id", getTicketByID);
-
 //GET /api/tickets/archived - Get all archived tickets
 router.get("/archived", getAllArchivedTickets);
 
 //GET /api/tickets/archived/:id - Get a single archived ticket by its ID
 router.get("/archived/:id", getArchivedTicketByID);
+
+// GET /api/tickets/:id - Get a single ticket by its ID
+router.get("/:id", getTicketByID);
 
 // POST /api/tickets - Create a new ticket
 router.post("/", createTicket);
