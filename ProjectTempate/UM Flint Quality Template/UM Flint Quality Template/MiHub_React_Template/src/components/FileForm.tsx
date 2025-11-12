@@ -191,6 +191,34 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             toast({ variant: "destructive", title: "Authentication Error", description: "User could not be identified. Please log in again." });
             return;
         }
+        if (!divisionId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Division' field is empty." });
+            return;
+        }
+        if (!partNumId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Part #' field is empty." });
+            return;
+        }
+        if (!drawingId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Drawing #' field is empty." });
+            return;
+        }
+        if (!workOrderId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Work Order' field is empty." });
+            return;
+        }
+        if (!unitId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Unit' field is empty." });
+            return;
+        }
+        if (!sequenceId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Sequence' field is empty." });
+            return;
+        }
+        if (!manNonConId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Manufacturing Noncomformance' field is empty." });
+            return;
+        }
         if (!description) {
             toast({ variant: "destructive", title: "Validation Error", description: "Description is a required field." });
             return;
@@ -230,6 +258,9 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             // Show a post-create prompt (create another or return to list)
             setCreatedTicketId(newTicket.ticketId);
             setShowPostCreate(true);
+
+            // Dispatch an event to tell ticket list that a ticket was created
+            window.dispatchEvent(new CustomEvent('ticketCreated'));
         } catch (error: any) {
             toast({ variant: "destructive", title: "Save Failed", description: error.message });
             console.error("Failed to save ticket:", error);
@@ -297,7 +328,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
 
         {/* Part Dropdown */}
         <div>
-            <label className="block text-sm font-medium text-gray-700">Part</label>
+            <label className="block text-sm font-medium text-gray-700">Part #</label>
             <input
                 list="part-list"
                 value={partSearch}
@@ -317,7 +348,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
 
         {/* Drawing Dropdown */}
         <div>
-            <label className="block text-sm font-medium text-gray-700">Drawing</label>
+            <label className="block text-sm font-medium text-gray-700">Drawing #</label>
             <input
                 list="drawing-list"
                 value={drawingSearch}

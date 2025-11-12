@@ -17,6 +17,7 @@ const TicketList: React.FC = () => {
     const { userRole } = useAuth();
     const [searchResult, setSearchResult] = useState<any[] | null>(null);
     const { toast } = useToast();
+    const { userId } = useAuth();
     const isMobile = useIsMobile();
     // Track the last scroll position to restore it when closing tickets
     const [lastScrollPosition, setLastScrollPosition] = useState<number | null>(null);
@@ -33,9 +34,10 @@ const TicketList: React.FC = () => {
     const [sequences, setSequences] = useState<any[]>([]);
     const [manNonCons, setManNonCons] = useState<any[]>([]);
 
-    //editing state
+    //editing states
     const [isEditing, setIsEditing] = useState(false);
     const [editingTicket, setEditingTicket] = useState<any | null>(null);
+    const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     //fields
     const [editFields, setEditFields] = useState({
     status: '',
@@ -94,6 +96,18 @@ const TicketList: React.FC = () => {
     useEffect(() => {
         fetchTickets();
     }, []);
+
+    // bandaid fix before we add pagination, Refresh ticket list once a ticket is created
+    useEffect(() => {
+        const handleTicketCreated = () => {
+            fetchTickets();
+        };
+
+        window.addEventListener('ticketCreated', handleTicketCreated);
+
+        // Cleanup the event listener when the component unmounts
+        return () => window.removeEventListener('ticketCreated', handleTicketCreated);
+    }, []); // Empty dependency array ensures this runs only once
 
     // Set consistent scroll margins for all tickets
     useEffect(() => {
@@ -230,10 +244,50 @@ const TicketList: React.FC = () => {
             document.body.style.overflow = '';
         };
     }, [isEditing]);
+    
+    const showconfirm = () => {
+        setShowSubmitConfirm(true);
+    };
 
+    
 const handleSaveEdit = async () => {
     if (!editingTicket) return;
-
+        if (!userId) {
+            toast({ variant: "destructive", title: "Authentication Error", description: "User could not be identified. Please log in again." });
+            return;
+        }
+        if (!editFields.divisionId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Division' field is empty." });
+            return;
+        }
+        if (!editFields.partNumId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Part #' field is empty." });
+            return;
+        }
+        if (!editFields.drawingId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Drawing #' field is empty." });
+            return;
+        }
+        if (!editFields.workOrderId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Work Order' field is empty." });
+            return;
+        }
+        if (!editFields.unitId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Unit' field is empty." });
+            return;
+        }
+        if (!editFields.sequenceId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Sequence' field is empty." });
+            return;
+        }
+        if (!editFields.manNonConId) {
+            toast({ variant: "destructive", title: "Validation Error", description: "'Manufacturing Noncomformance' field is empty." });
+            return;
+        }
+        if (!editFields.description) {
+            toast({ variant: "destructive", title: "Validation Error", description: "Description is a required field." });
+            return;
+        }
     try {
         const statusValue =
             editFields.status === "Closed" ? 1 : 0; // mirror create flow
@@ -643,7 +697,7 @@ const handleSaveEdit = async () => {
 
         {/* Nonconformance */}
         <div>
-            <label className="block text-sm font-medium text-gray-700">Nonconformance</label>
+            <label className="block text-sm font-medium text-gray-700">Manufacturing Nonconformance</label>
             <input
                 list="edit-noncon-list"
                 value={editManNonConSearch}
@@ -680,12 +734,41 @@ const handleSaveEdit = async () => {
       {/* Save Button */}
       <div className="flex justify-end mt-6">
         <button
-          onClick={handleSaveEdit}
+          onClick={showconfirm}
           className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
         >
           Save
         </button>
       </div>
+      {showSubmitConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+                    <h3 className="text-lg font-semibold mb-2">Ready to submit?</h3>
+                    <p className="text-sm text-gray-700 mb-4">Are you sure you want to submit these changes? You can cancel to continue editing.</p>
+                    <div className="flex justify-end space-x-3">
+                        <button
+                            onClick={() => {
+                                // Cancel and return to editing
+                                setShowSubmitConfirm(false);
+                            }}
+                            className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={async () => {
+                                // Close confirmation modal and submit
+                                setShowSubmitConfirm(false);
+                                await handleSaveEdit();
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                            Submit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   </div>
 )}

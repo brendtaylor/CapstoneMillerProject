@@ -138,6 +138,9 @@ const Quality: React.FC = () => {
             <TabsTrigger value="checklist" className="w-full justify-start data-[state=active]:bg-background">
               Checklist
             </TabsTrigger>
+            <TabsTrigger value="auditlog" className="w-full justify-start data-[state=active]:bg-background">
+              Audit Log
+            </TabsTrigger>
           </TabsList>
         </div>
       );
@@ -155,31 +158,30 @@ const Quality: React.FC = () => {
           {/* Tickets Page */}
           <TabsContent value="tickets" className="my-2">
             <Card>
-        {/* Constrain header and content so they align with ticket boxes.
-          Add extra top spacing on larger screens so the header and button sit lower. */}
-        <div className="max-w-3xl mx-auto w-full mt-6 lg:mt-12">
-                <CardHeader>
-                  <div className="flex items-center justify-between w-full">
-                    <div>
-                      <CardTitle>Tickets</CardTitle>
+              {/* Constrain header and content so they align with ticket boxes.
+                Add extra top spacing on larger screens so the header and button sit lower. */}
+              
+                <CardHeader className="flex flex-row justify-between item-center w-full">
+                    <CardTitle>
+                      Tickets
                       <p className="text-sm font-normal mt-1">List of Tickets</p>
+                    </CardTitle>
+                      
+                    <div className="flex-shrink-0">
+                      <button onClick={() => setShowForm(true)} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Create Ticket
+                      </button>
                     </div>
-                    <button
-                      onClick={() => setShowForm(true)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      Create Ticket
-                    </button>
-                  </div>
                 </CardHeader>
 
                 <CardContent>
                   <TicketList />
                 </CardContent>
-              </div>
+              
             </Card>
           </TabsContent>
-
+          
+          {/* Ticket Form Button */}
           {showForm && (
             <div
               className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 sm:px-0"
@@ -215,6 +217,22 @@ const Quality: React.FC = () => {
               </CardHeader>
               <CardContent>
                   <div>You can ignore this but using as placeholder.</div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Audit Log Page */}
+          <TabsContent value="auditlog" className="my-2">
+            <Card>
+              <CardHeader className="flex flex-row">
+                <CardTitle>
+                  Audit Log
+                  <p className="text-sm font-normal mt-1">Edited Tickets</p>
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent>
+                  <div>Placeholder for Audit log stuff</div>
               </CardContent>
             </Card>
           </TabsContent>
