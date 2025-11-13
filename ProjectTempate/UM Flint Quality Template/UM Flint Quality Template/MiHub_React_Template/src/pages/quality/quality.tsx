@@ -183,23 +183,23 @@ const Quality: React.FC = () => {
           
           {/* Ticket Form Button */}
           {showForm && (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-        <div className="bg-white p-6 rounded-lg w-full max-w-3xl relative max-h-[90vh] overflow-y-auto">
-
-      {/* Close (X) Button */}
-      <button
-        onClick={() => setShowForm(false)}
-        className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center bg-red-600 text-white text-2xl font-bold rounded-lg hover:bg-red-700"
-             >
-          ✕
-      </button>
+    <div className="fixed inset-0 flex items-start justify-center bg-black bg-opacity-50 z-50 pt-[80px]">
+        <div className="relative w-full max-w-3xl">
+          <button
+            onClick={() => setShowForm(false)}
+            className="absolute -top-16 right-0 w-12 h-12 flex items-center justify-center bg-red-600 text-white text-2xl font-bold rounded-lg hover:bg-red-700"
+          >
+            ✕
+          </button>
+        <div className="bg-white p-6 rounded-lg w-full relative max-h-[90vh] overflow-y-auto">
 
       {/* Title */}
       <h2 className="text-xl font-semibold mb-4">Create New Ticket</h2>
 
       <FileForm onClose={() => setShowForm(false)} />
+        </div>
+        </div>
     </div>
-  </div>
           )}
 
           {/* Checklist Page */}
