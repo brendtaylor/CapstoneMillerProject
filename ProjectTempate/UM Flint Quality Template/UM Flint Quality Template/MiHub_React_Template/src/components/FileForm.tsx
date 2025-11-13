@@ -195,6 +195,19 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         }
 
         fileArray.forEach((file) => {
+            
+            // Block video files (If thats what trevor wants)
+            if (file.type.startsWith("video/")) {
+            toast({
+                title: "Unsupported File Type",
+                description: "Video files are not allowed.",
+                variant: "destructive"
+            });
+            return; // skip this file
+            }
+            
+
+
             const reader = new FileReader();
             reader.onloadend = () => {
             const isImage = file.type.startsWith("image/");
