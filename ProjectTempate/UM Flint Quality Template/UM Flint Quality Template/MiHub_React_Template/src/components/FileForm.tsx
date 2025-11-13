@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from '../hooks/use-toast';
 import { useDebounce } from '../hooks/use-debounce';
+import { usePersistentFiles } from "../hooks/usePersistentFiles";
+
+
+
 
 interface Division {
     divisionId: number;
@@ -41,6 +45,7 @@ interface ManNonCon {
 interface SavedImage {
     name: string;
     data: string; //Base64 string
+    isImage: boolean;
 }
 
 const STORAGE_KEY = "ticketDraft";
@@ -95,9 +100,11 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
 
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+
     // Show a post-create prompt offering to create another ticket or return to the list
     const [showPostCreate, setShowPostCreate] = useState(false);
     const [createdTicketId, setCreatedTicketId] = useState<number | null>(null);
+
     // Show a styled confirmation modal before submitting (replaces window.confirm)
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
@@ -172,19 +179,33 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         divisionSearch, partSearch, drawingSearch, workOrderSearch, unitSearch, sequenceSearch, manNonConSearch
     ]);
     
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-        const fileArray = Array.from(e.target.files);
+    // Limit amount of files to upload
+    const MAX_FILES = 10;
+
+    // Handles Images and Files
+    const handleFileUpload = (fileArray: File[]) => {
+        // Check if adding these files would exceed the limit
+        if (images.length + fileArray.length > MAX_FILES) {
+            toast({
+            title: "Upload Limit Reached",
+            description: `You can only upload up to ${MAX_FILES} files.`,
+            variant: "destructive"
+            });
+            return;
+        }
+
         fileArray.forEach((file) => {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setImages(prev => [...prev, { name: file.name, data: reader.result as string }]);
+            const isImage = file.type.startsWith("image/");
+            setImages(prev => [
+                ...prev,
+                { name: file.name, data: reader.result as string, isImage }
+            ]);
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(file); // works for images and other files
         });
-    }
-};
-
+    };
 
     const handleSave = async () => {
         if (!userId) {
@@ -384,8 +405,6 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             </datalist>
         </div>
 
-        
-
         {/* Unit Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Unit</label>
@@ -446,41 +465,55 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             </datalist>
         </div>
 
-        {/* Image Upload */}
-        <div className="flex flex-col items-center justify-center space-y-2 mt-6">
-            
-        {/* Upload Icon */}
-        <label htmlFor="imageUpload" className="cursor-pointer flex flex-col items-center">
-            <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-26 h-26 mb-2"/>
-            <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload Image</span>
-        </label>
-        <input
-            id="imageUpload"
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleImageUpload}
-            className="hidden"
-            />
+        {/* File Upload */}
+<div
+  className="flex flex-col items-center justify-center space-y-2 mt-6 border-2 border-dashed border-gray-300 p-6 rounded cursor-pointer"
+  onDragOver={(e) => e.preventDefault()}
+  onDrop={(e) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    handleFileUpload(files);
+  }}
+>
+  {/* Upload Icon */}
+  <label htmlFor="imageUpload" className="cursor-pointer flex flex-col items-center">
+    <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-26 h-26 mb-2"/>
+    <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload or Drag Files</span>
+  </label>
+  <input
+    id="imageUpload"
+    type="file"
+    multiple
+    onChange={(e) => e.target.files && handleFileUpload(Array.from(e.target.files))}
+    className="hidden"
+  />
 
-        {/* Uploaded Images */}
-        {images.length > 0 && (
-            <ul className="mt-2 space-y-2 text-sm text-gray-700 w-full">
-            {images.map((img, i) => (
-                <li key={i} className="flex items-center bg-gray-100 p-2 rounded">
-                <img src={img.data} alt={img.name} className="w-16 h-16 object-cover rounded mr-2"/>
-                <span className="flex-1">{img.name}</span>
-                <button
-                    onClick={() => setImages(prev => prev.filter((_, index) => index !== i))}
-                    className="text-red-500 hover:text-red-700"
-                >
-                    Remove
-                </button>
-                </li>
-            ))}
-            </ul>
-        )}
-        </div>
+  {/* Uploaded Files */}
+  {images.length > 0 && (
+    <ul className="mt-2 space-y-2 text-sm text-gray-700 w-full">
+      {images.map((file, i) => (
+        <li key={i} className="flex items-center bg-gray-100 p-2 rounded">
+          {file.isImage ? (
+            <img src={file.data} alt={file.name} className="w-16 h-16 object-cover rounded mr-2"/>
+          ) : (
+            <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded mr-2">
+              📄
+            </div>
+          )}
+          <span className="flex-1">{file.name}</span>
+          <button
+            onClick={() => setImages(prev => prev.filter((_, index) => index !== i))}
+            className="text-red-500 hover:text-red-700"
+          >
+            Remove
+          </button>
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
+
+
             
         {/* Description */}
         <div>
