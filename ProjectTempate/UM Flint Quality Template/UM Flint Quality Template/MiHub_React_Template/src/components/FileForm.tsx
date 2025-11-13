@@ -305,7 +305,25 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     return (
         <div className="max-w-2xl mx-auto p-4 sm:p-6 bg-white shadow-md rounded-md space-y-6">
         
-
+        {/* Work Order Dropdown */}
+        <div>
+            <label className="block text-sm font-medium text-gray-700">Work Order</label>
+            <input
+                list="workorder-list"
+                value={workOrderSearch}
+                onChange={(e) => {
+                    setWorkOrderSearch(e.target.value);
+                    const selected = workOrders.find(wo => String(wo.wo) === e.target.value);
+                    setWorkOrderId(selected ? String(selected.woId) : '');
+                }}
+                onFocus={() => !workOrderSearch && fetchDropdownData('work-orders', setWorkOrders)}
+                placeholder="Search or select a work order"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="workorder-list">
+                {workOrders.map((wo) => <option key={wo.woId} value={wo.wo} />)}
+            </datalist>
+        </div>
         {/* Division Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Division</label>
@@ -366,25 +384,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             </datalist>
         </div>
 
-        {/* Work Order Dropdown */}
-        <div>
-            <label className="block text-sm font-medium text-gray-700">Work Order</label>
-            <input
-                list="workorder-list"
-                value={workOrderSearch}
-                onChange={(e) => {
-                    setWorkOrderSearch(e.target.value);
-                    const selected = workOrders.find(wo => String(wo.wo) === e.target.value);
-                    setWorkOrderId(selected ? String(selected.woId) : '');
-                }}
-                onFocus={() => !workOrderSearch && fetchDropdownData('work-orders', setWorkOrders)}
-                placeholder="Search or select a work order"
-                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-            />
-            <datalist id="workorder-list">
-                {workOrders.map((wo) => <option key={wo.woId} value={wo.wo} />)}
-            </datalist>
-        </div>
+        
 
         {/* Unit Dropdown */}
         <div>

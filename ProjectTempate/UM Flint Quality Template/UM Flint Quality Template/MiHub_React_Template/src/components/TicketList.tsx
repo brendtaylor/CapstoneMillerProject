@@ -486,9 +486,9 @@ const handleSaveEdit = async () => {
                                             <span className="text-right font-semibold">Status</span>
                                             <span>{ticket.status?.statusDescription || 'N/A'}</span>
                                         </div>
-                                        <div className="grid grid-cols-[1fr_3fr] items-start gap-4">
-                                            <span className="text-right font-semibold">Description</span>
-                                            <p className="break-words min-w-0">{ticket.description || 'N/A'}</p>
+                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
+                                            <span className="text-right font-semibold">Work Order</span>
+                                            <span>{ticket.wo?.wo || 'N/A'}</span>
                                         </div>
                                         <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
                                             <span className="text-right font-semibold">Initiator</span>
@@ -507,10 +507,6 @@ const handleSaveEdit = async () => {
                                             <span>{ticket.drawingNum?.drawing_num || 'N/A'}</span>
                                         </div>
                                         <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
-                                            <span className="text-right font-semibold">Work Order</span>
-                                            <span>{ticket.wo?.wo || 'N/A'}</span>
-                                        </div>
-                                        <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
                                             <span className="text-right font-semibold">Unit</span>
                                             <span>{ticket.unit?.unitName || 'N/A'}</span>
                                         </div>
@@ -525,6 +521,10 @@ const handleSaveEdit = async () => {
                                         <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
                                             <span className="text-right font-semibold">Attachments</span>
                                             <span className="text-gray-500 italic">Attachment display not yet implemented.</span>
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_3fr] items-start gap-4">
+                                            <span className="text-right font-semibold">Description</span>
+                                            <p className="break-words min-w-0">{ticket.description || 'N/A'}</p>
                                         </div>
                                     </div>
 
@@ -554,6 +554,26 @@ const handleSaveEdit = async () => {
 
       {/* --- Form Fields --- */}
       <div className="space-y-4">
+        {/* Work Order */}
+        <div>
+            <label className="block text-sm font-medium text-gray-700">Work Order</label>
+            <input
+                list="edit-workorder-list"
+                value={editWorkOrderSearch}
+                onChange={(e) => {
+                    setEditWorkOrderSearch(e.target.value);
+                    const selected = workOrders.find(wo => String(wo.wo) === e.target.value);
+                    setEditFields({ ...editFields, workOrderId: selected ? String(selected.woId) : '' });
+                }}
+                onFocus={() =>
+                    !editWorkOrderSearch && fetchDropdownData("work-orders", setWorkOrders)}
+                placeholder="Search or select a work order"
+                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+            />
+            <datalist id="edit-workorder-list">
+                {workOrders.map((wo) => <option key={wo.woId} value={wo.wo} />)}
+            </datalist>
+        </div>
         {/* Status */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Status</label>
@@ -632,26 +652,7 @@ const handleSaveEdit = async () => {
             </datalist>
         </div>
 
-        {/* Work Order */}
-        <div>
-            <label className="block text-sm font-medium text-gray-700">Work Order</label>
-            <input
-                list="edit-workorder-list"
-                value={editWorkOrderSearch}
-                onChange={(e) => {
-                    setEditWorkOrderSearch(e.target.value);
-                    const selected = workOrders.find(wo => String(wo.wo) === e.target.value);
-                    setEditFields({ ...editFields, workOrderId: selected ? String(selected.woId) : '' });
-                }}
-                onFocus={() =>
-                    !editWorkOrderSearch && fetchDropdownData("work-orders", setWorkOrders)}
-                placeholder="Search or select a work order"
-                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-            />
-            <datalist id="edit-workorder-list">
-                {workOrders.map((wo) => <option key={wo.woId} value={wo.wo} />)}
-            </datalist>
-        </div>
+        
 
         {/* Unit */}
         <div>
