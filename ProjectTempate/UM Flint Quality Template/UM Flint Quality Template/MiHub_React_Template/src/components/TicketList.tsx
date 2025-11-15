@@ -256,52 +256,21 @@ const handleSaveEdit = async () => {
             toast({ variant: "destructive", title: "Authentication Error", description: "User could not be identified. Please log in again." });
             return;
         }
-        if (!editFields.divisionId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Division' field is empty." });
-            return;
-        }
-        if (!editFields.partNumId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Part #' field is empty." });
-            return;
-        }
-        if (!editFields.drawingId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Drawing #' field is empty." });
-            return;
-        }
-        if (!editFields.workOrderId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Work Order' field is empty." });
-            return;
-        }
-        if (!editFields.unitId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Unit' field is empty." });
-            return;
-        }
-        if (!editFields.sequenceId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Sequence' field is empty." });
-            return;
-        }
-        if (!editFields.manNonConId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Manufacturing Noncomformance' field is empty." });
-            return;
-        }
-        if (!editFields.description) {
-            toast({ variant: "destructive", title: "Validation Error", description: "Description is a required field." });
-            return;
-        }
-    try {
+   try {
         const statusValue =
-            editFields.status === "Closed" ? 1 : 0; // mirror create flow
+            editFields.status === "Closed" ? 1 : 0; 
 
         const payload = {
             status: statusValue,
             description: editFields.description,
-            ...(editFields.divisionId && { division: parseInt(editFields.divisionId) }),
-            ...(editFields.partNumId && { partNum: parseInt(editFields.partNumId) }),
-            ...(editFields.drawingId && { drawingNum: parseInt(editFields.drawingId) }),
-            ...(editFields.workOrderId && { wo: parseInt(editFields.workOrderId) }),
-            ...(editFields.unitId && { unit: parseInt(editFields.unitId) }),
-            ...(editFields.sequenceId && { sequence: parseInt(editFields.sequenceId) }),
-            ...(editFields.manNonConId && { manNonCon: parseInt(editFields.manNonConId) }),
+            // Use ?? to send null if the field is undefined
+            division: parseInt(editFields.divisionId) || null,
+            partNum: parseInt(editFields.partNumId) || null,
+            drawingNum: parseInt(editFields.drawingId) || null,
+            wo: parseInt(editFields.workOrderId) || null,
+            unit: parseInt(editFields.unitId) || null,
+            sequence: parseInt(editFields.sequenceId) || null,
+            manNonCon: parseInt(editFields.manNonConId) || null,
         };
 
         const response = await fetch(
@@ -312,26 +281,24 @@ const handleSaveEdit = async () => {
                 body: JSON.stringify(payload),
             }
         );
-
-        // Sometimes backend returns 500 even when the action succeeds
-        let success = false;
-        let responseData: any = null;
-
-        try {
-            responseData = await response.json();
-        } catch {
-            // ignore if no JSON body
+        if (!response.ok) {
+            // The response is an error (400, 404, 500)
+            let errorMsg = `Failed to update ticket. Status: ${response.status}`;
+            try {
+                // Try to get the descriptive message from the backend
+                const errorData = await response.json();
+                if (errorData.message) {
+                    errorMsg = errorData.message;
+                }
+            } catch {
+                // Ignore if no JSON body, use the status code message
+            }
+            // Throw the descriptive error to be caught below
+            throw new Error(errorMsg);
         }
 
-        if (response.ok || response.status === 204 || (responseData && responseData.ticketId)) {
-            success = true;
-        }
-
-        if (!success) {
-            throw new Error(
-                `Failed to update ticket. Status: ${response.status}`
-            );
-        }
+        // If response.ok is true
+        const responseData = await response.json(); 
 
         toast({
             title: "Success",
@@ -341,8 +308,10 @@ const handleSaveEdit = async () => {
         fetchTickets();
         setIsEditing(false);
         setEditingTicket(null);
+
     } catch (err: any) {
         console.error("Update error:", err);
+        // This toast will now show your backend's descriptive error message
         toast({
             variant: "destructive",
             title: "Update Failed",

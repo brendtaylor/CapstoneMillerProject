@@ -187,42 +187,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
 
 
     const handleSave = async () => {
-        if (!userId) {
-            toast({ variant: "destructive", title: "Authentication Error", description: "User could not be identified. Please log in again." });
-            return;
-        }
-        if (!divisionId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Division' field is empty." });
-            return;
-        }
-        if (!partNumId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Part #' field is empty." });
-            return;
-        }
-        if (!drawingId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Drawing #' field is empty." });
-            return;
-        }
-        if (!workOrderId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Work Order' field is empty." });
-            return;
-        }
-        if (!unitId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Unit' field is empty." });
-            return;
-        }
-        if (!sequenceId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Sequence' field is empty." });
-            return;
-        }
-        if (!manNonConId) {
-            toast({ variant: "destructive", title: "Validation Error", description: "'Manufacturing Noncomformance' field is empty." });
-            return;
-        }
-        if (!description) {
-            toast({ variant: "destructive", title: "Validation Error", description: "Description is a required field." });
-            return;
-        }
+        
 
         setIsSaving(true);
 
