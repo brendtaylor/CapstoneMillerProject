@@ -24,9 +24,9 @@ async function emitToMake(event, payload) {
     });
 
     if (res.data.status === 'success') {
-      console.log("Make.com response to", res.status.event, "succeeded.");
+      console.log("Make.com response to", res.data.event, "succeeded.");
     } else {
-      console.log("Make.com response to", res.status.event, "failed.");
+      console.log("Make.com response to", res.data.event, "failed.");
     }
   } catch (err) {
     console.error('[Make webhook] failed', err?.response?.status, err?.message);
