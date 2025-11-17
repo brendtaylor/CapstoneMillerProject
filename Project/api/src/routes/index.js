@@ -5,8 +5,9 @@ const { createGenericController } = require('../controllers/generic.controller')
 
 // Specialized route for tickets since they are more complicated than a single GET function.
 const ticketRoutes = require("./ticket.routes");
+const workOrderRoutes = require("./work-order.routes");
 router.use("/tickets", ticketRoutes);
-
+router.use("/", workOrderRoutes);
 
 // --- Import the ENTITIES for the simple tables ---
 const Division = require('../entities/division.entity');
@@ -27,26 +28,11 @@ router.get('/divisions', divisionController.getAll);
 const userController = createGenericController(User, 'name');
 router.get('/users', userController.getAll);
 
-const drawingController = createGenericController(DrawingNum, 'drawing_num');
-router.get('/drawings', drawingController.getAll);
-
-const partController = createGenericController(PartNum, 'partNum');
-router.get('/parts', partController.getAll);
-
-const woController = createGenericController(WorkOrder, 'wo');
-router.get('/work-orders', woController.getAll);
-
-const unitController = createGenericController(Unit, 'unitName');
-router.get('/units', unitController.getAll);
-
-const sequenceController = createGenericController(Sequence, 'seqName');
-router.get('/sequences', sequenceController.getAll);
-
-const nonConController = createGenericController(ManNonCon, 'nonCon');
-router.get('/manufact-noncons', nonConController.getAll);
-
 const statusController = createGenericController(Status, 'statusDescription');
 router.get('/statuses', statusController.getAll);
+
+const ldController = createGenericController(LaborDepartment, 'departmentName'); // Added
+router.get('/labor-departments', ldController.getAll); // Added
 
 
 module.exports = router;
