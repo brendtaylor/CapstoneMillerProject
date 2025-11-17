@@ -14,7 +14,7 @@ const archivedTicketRepository = AppDataSource.getRepository(ArchivedTicketEntit
 // Define relations to be loaded with tickets
 const ticketRelations = [
     "status", "initiator", "wo", "unit", "sequence",
-    "division", "manNonCon", "drawingNum", "partNum"
+    "division", "manNonCon", "drawingNum", "partNum", "Image"
 ];
 
 // Function to get all tickets
@@ -55,7 +55,7 @@ async function updateTicket(id, ticketData) {
 //Archive a specific ticket
 async function archiveTicket(id) {
     const ticketId = parseInt(id);
-    const ticketToArchive = await ticketRepository.findOneBy({ ticketId: ticketId });
+    const ticketToArchive = await ticketRepository.findOneBy({ ticketId });
 
     if (!ticketToArchive) {
         return null;
@@ -66,6 +66,6 @@ async function archiveTicket(id) {
     await archivedTicketRepository.save(archivedTicket);
 
     //Delete the original ticket
-    return ticketRepository.delete({ ticketId: ticketId });
+    return ticketRepository.delete({ ticketId });
 }
 module.exports = { getAllTickets, createTicket, getTicketByID, updateTicket, archiveTicket };
