@@ -51,7 +51,7 @@ const Quality: React.FC = () => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setDropdownOpen(true)}
-              className="text-sm text-white flex items-center gap-1 border border-black rounded-md px-3 py-1 bg-blue-500 hover:bg-blue-600 transition"
+              className="text-sm text-white flex items-center gap-1 border border-black rounded-md px-3 py-1 bg-blue-700 hover:bg-blue-600 transition"
             >
               Menu <span className="text-lg">▾</span>
             </button>

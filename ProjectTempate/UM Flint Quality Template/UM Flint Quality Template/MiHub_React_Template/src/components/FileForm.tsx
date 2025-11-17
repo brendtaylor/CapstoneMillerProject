@@ -194,7 +194,6 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         }
 
         fileArray.forEach((file) => {
-            
             // Block video files (If thats what trevor wants)
             if (file.type.startsWith("video/")) {
             toast({
@@ -205,8 +204,6 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             return; // skip this file
             }
             
-
-
             const reader = new FileReader();
             reader.onloadend = () => {
             const isImage = file.type.startsWith("image/");
@@ -478,55 +475,53 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         </div>
 
         {/* File Upload */}
-<div
-  className="flex flex-col items-center justify-center space-y-2 mt-6 border-2 border-dashed border-gray-300 p-6 rounded cursor-pointer"
-  onDragOver={(e) => e.preventDefault()}
-  onDrop={(e) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-    handleFileUpload(files);
-  }}
->
-  {/* Upload Icon */}
-    <label htmlFor="imageUpload" className="cursor-pointer flex flex-col items-center">
-        <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-16 h-16 mb-2"/>
-        <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload or Drag Files</span>
-    </label>
-  <input
-    id="imageUpload"
-    type="file"
-    multiple
-    onChange={(e) => e.target.files && handleFileUpload(Array.from(e.target.files))}
-    className="hidden"
-  />
+        <div
+        className="flex flex-col items-center justify-center space-y-2 mt-6 border-2 border-dashed border-gray-300 p-6 rounded cursor-pointer"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+            e.preventDefault();
+            const files = Array.from(e.dataTransfer.files);
+            handleFileUpload(files);
+        }}
+        >
+        {/* Upload Icon */}
+            <label htmlFor="imageUpload" className="cursor-pointer flex flex-col items-center">
+                <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-65 h-56 mb-2"/>
+                <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload or Drag Files</span>
+            </label>
+        <input
+            id="imageUpload"
+            type="file"
+            multiple
+            onChange={(e) => e.target.files && handleFileUpload(Array.from(e.target.files))}
+            className="hidden"
+        />
 
-  {/* Uploaded Files */}
-  {images.length > 0 && (
-    <ul className="mt-2 space-y-2 text-sm text-gray-700 w-full">
-      {images.map((file, i) => (
-        <li key={i} className="flex items-center bg-gray-100 p-2 rounded">
-          {file.isImage ? (
-            <img src={file.data} alt={file.name} className="w-16 h-16 object-cover rounded mr-2"/>
-          ) : (
-            <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded mr-2">
-              📄
-            </div>
-          )}
-          <span className="flex-1">{file.name}</span>
-          <button
-            onClick={() => setImages(prev => prev.filter((_, index) => index !== i))}
-            className="text-red-500 hover:text-red-700"
-          >
-            Remove
-          </button>
-        </li>
-      ))}
-    </ul>
-  )}
-</div>
+        {/* Uploaded Files */}
+        {images.length > 0 && (
+            <ul className="mt-2 space-y-2 text-sm text-gray-700 w-full">
+            {images.map((file, i) => (
+                <li key={i} className="flex items-center bg-gray-100 p-2 rounded">
+                {file.isImage ? (
+                    <img src={file.data} alt={file.name} className="w-16 h-14 object-cover rounded mr-2"/>
+                ) : (
+                    <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded mr-2">
+                    📄
+                    </div>
+                )}
+                <span className="flex-1">{file.name}</span>
+                <button
+                    onClick={() => setImages(prev => prev.filter((_, index) => index !== i))}
+                    className="text-red-500 hover:text-red-700"
+                >
+                    Remove
+                </button>
+                </li>
+            ))}
+            </ul>
+        )}
+        </div>
 
-
-            
         {/* Description */}
         <div>
             <label className="block text-sm font-medium text-gray-700">Description</label>
