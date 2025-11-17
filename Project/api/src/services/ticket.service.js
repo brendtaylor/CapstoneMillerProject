@@ -1,14 +1,14 @@
 const { AppDataSource } = require("../data-source");
-const { makeEmitter } = require("../utils/makeEmitter");
+const { emitToMake } = require("../utils/makeEmitter"); // <-- 1. Import emitToMake correctly
+const { EventEmitter } = require("events"); // <-- 2. Import Node's built-in EventEmitter
 const logger = require("../../logger");
 
 class TicketService {
     constructor() {
         this.ticketRepository = AppDataSource.getRepository("Ticket");
         this.archivedRepository = AppDataSource.getRepository("ArchivedTicket");
-        // Add WorkOrder repository to get WO number for the new ID
         this.workOrderRepository = AppDataSource.getRepository("WorkOrder"); 
-        this.sseEmitter = makeEmitter();
+        this.sseEmitter = new EventEmitter(); // <-- 3. Create a REAL event emitter
         logger.info("TicketService initialized");
     }
 
@@ -17,8 +17,8 @@ class TicketService {
         return await this.ticketRepository.find({
             relations: [
                 "status", "initiator", "division", 
-                "manNonCon", "laborDepartment", // Updated relations
-                "sequence", "unit", "wo", "assignedTo" // Updated relations
+                "manNonCon", "laborDepartment", 
+                "sequence", "unit", "wo", "assignedTo"
             ]
         });
     }
@@ -29,8 +29,8 @@ class TicketService {
             where: { ticketId: id },
             relations: [
                 "status", "initiator", "division", 
-                "manNonCon", "laborDepartment", // Updated relations
-                "sequence", "unit", "wo", "assignedTo" // Updated relations
+                "manNonCon", "laborDepartment", 
+                "sequence", "unit", "wo", "assignedTo"
             ]
         });
         if (!ticket) {
@@ -39,102 +39,72 @@ class TicketService {
         return ticket;
     }
 
-    /**
-     * Creates a new ticket and generates the custom QUALITY_TICKET_ID.
-     * This function uses a transaction to ensure atomic operations.
-     */
     async createTicket(ticketData) {
         logger.info("Creating new ticket with transaction");
-
-        // Use a transaction to safely generate the new ID
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
         try {
-            // Step 1: Get the Work Order string (e.g., "24113") from the WO ID
             const workOrder = await queryRunner.manager.findOne("WorkOrder", {
                 where: { woId: ticketData.wo }
             });
             if (!workOrder) {
                 throw new Error(`Work Order with ID ${ticketData.wo} not found.`);
             }
-            const woNumber = workOrder.wo; // This is the string "24113"
+            const woNumber = workOrder.wo;
 
-            // Step 2: Count existing tickets for this Work Order
             const ticketCount = await queryRunner.manager.count("Ticket", {
                 where: { wo: ticketData.wo }
             });
 
-            // Step 3: Format the new QUALITY_TICKET_ID
-            const newTicketNum = (ticketCount + 1).toString().padStart(3, '0'); // e.g., "001", "012"
-            const qualityTicketId = `${woNumber}-${newTicketNum}`; // e.g., "24113-001"
+            const newTicketNum = (ticketCount + 1).toString().padStart(3, '0');
+            const qualityTicketId = `${woNumber}-${newTicketNum}`;
             logger.info(`Generated new Quality Ticket ID: ${qualityTicketId}`);
 
-            // Step 4: Create and save the new ticket
             const newTicket = queryRunner.manager.create("Ticket", {
                 ...ticketData,
-                qualityTicketId: qualityTicketId, // Set the new generated ID
+                qualityTicketId: qualityTicketId,
                 openDate: new Date(),
-                status: 0, // Default to 'Open'
+                status: 0,
             });
             
-            const savedTicket = await queryRunner.manager.save(newTicket);
-
-            // Step 5: Commit the transaction
+            const savedTicket = await queryRunner.manager.save("Ticket", newTicket);
             await queryRunner.commitTransaction();
 
-            // Step 6: Emit SSE event and return
-            this.sseEmitter.emit('new-ticket', savedTicket);
-            logger.info(`Ticket created with ID: ${savedTicket.ticketId} and Quality ID: ${qualityTicketId}`);
+            // --- 4. Call BOTH emitters ---
+            this.sseEmitter.emit('new-ticket', savedTicket); // For frontend SSE
+            await emitToMake('new-ticket', savedTicket); // For Make.com webhook
             
+            logger.info(`Ticket created with ID: ${savedTicket.ticketId} and Quality ID: ${qualityTicketId}`);
             return savedTicket;
 
         } catch (error) {
-            // Rollback transaction on error
             await queryRunner.rollbackTransaction();
             logger.error(`Error in createTicket transaction: ${error.message}`);
-            throw error; // Re-throw error to be handled by controller
+            throw error;
         } finally {
-            // Always release the query runner
             await queryRunner.release();
         }
     }
 
-    /**
-     * Updates a ticket.
-     * This now handles setting 'assignedTo' and the "closing" fields.
-     */
     async updateTicket(id, ticketData) {
         logger.info(`Updating ticket ID: ${id}`);
-        
-        // This is the data payload from the frontend
         const updatePayload = { ...ticketData };
 
-        // --- Handle new "Closing" logic ---
-        // If status is being set to 1 ('Closed'), set the closeDate
-        if (updatePayload.status === 1) {
+        if (updatePayload.status === 1) { // 1 = 'Closed'
             updatePayload.closeDate = new Date();
             logger.info(`Ticket ${id} is being closed.`);
-            // The 'estimatedLaborHours', 'correctiveAction', and 'materialsUsed'
-            // fields are expected to be in ticketData from the "closing" overlay.
         }
 
-        // --- Handle new "Assigned To" logic ---
-        // If status is being set to "In Progress" (let's assume ID 2, or check if it's not 0 or 1)
-        // This is just an example; you'll need to define the status ID for "In Progress"
-        // if (updatePayload.status === 2 && updatePayload.assignedTo) {
-        //     logger.info(`Ticket ${id} assigned to user: ${updatePayload.assignedTo}`);
-        // }
-
         await this.ticketRepository.update(id, updatePayload);
-        
         const updatedTicket = await this.getTicketById(id);
         
-        // SSE event
-        this.sseEmitter.emit('update-ticket', updatedTicket);
-        logger.info(`Ticket ${id} updated`);
+        // --- Call BOTH emitters ---
+        this.sseEmitter.emit('update-ticket', updatedTicket); // For frontend SSE
+        await emitToMake('update-ticket', updatedTicket); // For Make.com webhook
         
+        logger.info(`Ticket ${id} updated`);
         return updatedTicket;
     }
 
@@ -146,11 +116,8 @@ class TicketService {
             throw new Error("Ticket not found");
         }
 
-        // Move to archive
         const archivedTicket = this.archivedRepository.create(ticketToArchive);
         
-        // Need to handle potential foreign key relation issues if entities are complex
-        // For simple data, this is fine.
         try {
             await this.archivedRepository.save(archivedTicket);
         } catch (error) {
@@ -158,23 +125,23 @@ class TicketService {
             throw error;
         }
 
-        // Delete from main table
         await this.ticketRepository.delete(id);
         
-        // SSE event
-        this.sseEmitter.emit('delete-ticket', { id: id });
-        logger.info(`Ticket ${id} archived and deleted`);
+        // --- Call BOTH emitters ---
+        this.sseEmitter.emit('delete-ticket', { id: id }); // For frontend SSE
+        await emitToMake('delete-ticket', { id: id }); // For Make.com webhook
         
+        logger.info(`Ticket ${id} archived and deleted`);
         return { id: id, message: "Ticket archived successfully" };
     }
 
-    // Function to handle Server-Sent Events (SSE)
+    // This SSE connect function is now correct, as this.sseEmitter is a real EventEmitter
     async connectSSE(req, res) {
         logger.info("SSE client connected");
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders(); // flush the headers to establish the connection
+        res.flushHeaders(); 
 
         const sendEvent = (event, data) => {
             res.write(`event: ${event}\n`);

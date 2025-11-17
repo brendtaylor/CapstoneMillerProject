@@ -1,7 +1,3 @@
-//Description: These are the object-oriented representations of the tables in the database. 
-//Entity files define the structure of the data and the relationships between tables
-//These are the ingredients in our analogy
-
 const { EntitySchema } = require("typeorm");
 
 module.exports = new EntitySchema({
@@ -9,9 +5,9 @@ module.exports = new EntitySchema({
     tableName: "MiHubWeb_Quality_Tickets", 
     columns: {
         ticketId: {
-            primary: true,      //primary key
+            primary: true,
             type: "int",
-            generated: true,      //auto-generate ticketId number
+            generated: true,
             name: "TICKETID",          
         },
         qualityTicketId: {
@@ -58,58 +54,58 @@ module.exports = new EntitySchema({
             type: "tinyint",
             name: "MANUFACTURING_NONCONFORMANCE"
         },
+        laborDepartment: { // <-- This is the new field
+            type: "smallint",
+            name: "LABOR_DEPARTMENT"
+        },
         sequence: {
             type: "smallint",
             name: "SEQUENCE"
         },
         unit: {
             type: "smallint",
-            name: "UNIT"
+            name: "UNIT",
+            nullable: true // Make sure this matches the DB
         },
         wo: {
             type: "int",
             name: "WO"
         },
-        laborDepartment: { 
-            type: "smallint",
-            name: "LABOR_DEPARTMENT"
-        },
-        assignedTo: { 
+        assignedTo: { // <-- This is the new field
             type: "smallint",
             name: "ASSIGNED_TO",
             nullable: true,
         },
-        estimatedLaborHours: { 
+        estimatedLaborHours: { // <-- This is the new field
             type: "decimal",
             precision: 10,
             scale: 2,
             name: "ESTIMATED_LABOR_HOURS",
             nullable: true,
         },
-        correctiveAction: { 
+        correctiveAction: { // <-- This is the new field
             type: "nvarchar",
             length: "max",
             name: "CORRECTIVE_ACTION",
             nullable: true,
         },
-        materialsUsed: { 
+        materialsUsed: { // <-- This is the new field
             type: "nvarchar",
             length: "max",
             name: "MATERIALS_USED",
             nullable: true,
         }
     },
-
     relations: {
         status: {
-            target: "Status", // This will be the 'name' in ticket-status.entity.js
+            target: "Status",
             type: "many-to-one",
             joinColumn: {
-                name: "STATUS", // The foreign key column in this table
+                name: "STATUS",
             },
         },
         initiator: {                      
-            target: "User", // The 'name' in user.entity.js
+            target: "User",
             type: "many-to-one",
             joinColumn: {
                 name: "INITIATOR",
@@ -128,6 +124,13 @@ module.exports = new EntitySchema({
             joinColumn: {
                 name: "MANUFACTURING_NONCONFORMANCE",
             }
+        },
+        laborDepartment: { // <-- This is the new relation
+            target: "LaborDepartment",
+            type: "many-to-one",
+            joinColumn: {
+                name: "LABOR_DEPARTMENT",
+            },
         },
         sequence: {
             target: "Sequence",
@@ -148,6 +151,13 @@ module.exports = new EntitySchema({
             type: "many-to-one",
             joinColumn: {
                 name: "WO",
+            }
+        },
+        assignedTo: { // <-- This is the new relation
+            target: "User",
+            type: "many-to-one",
+            joinColumn: {
+                name: "ASSIGNED_TO",
             }
         }
     },
