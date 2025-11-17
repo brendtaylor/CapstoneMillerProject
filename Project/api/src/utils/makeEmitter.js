@@ -15,13 +15,19 @@ async function emitToMake(event, payload) {
   const signature = signBody(body);
 
   try {
-    await axios.post(MAKE_WEBHOOK_URL, body, {
+    const res = await axios.post(MAKE_WEBHOOK_URL, body, {
       headers: {
         'Content-Type': 'application/json',
         'X-Signature': signature
       },
       timeout: 5000
     });
+
+    if (res.data.status === 'success') {
+      console.log("Make.com response to", res.status.event, "succeeded.");
+    } else {
+      console.log("Make.com response to", res.status.event, "failed.");
+    }
   } catch (err) {
     console.error('[Make webhook] failed', err?.response?.status, err?.message);
   }
