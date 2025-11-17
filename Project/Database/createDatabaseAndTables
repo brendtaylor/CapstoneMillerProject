@@ -287,8 +287,6 @@ CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets_Archive](
 	[DESCRIPTION] [nvarchar](max) NULL,
 ) ON [PRIMARY]
 GO
-SET IDENTITY_INSERT [dbo].[MiHubWeb_Quality_Tickets_Archive] ON
-GO
 ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets] ADD  DEFAULT (getdate()) FOR [OPEN_DATE]
 GO
 ALTER TABLE [dbo].[MiHub_Quality_Images]  WITH CHECK ADD FOREIGN KEY([TICKETID])
