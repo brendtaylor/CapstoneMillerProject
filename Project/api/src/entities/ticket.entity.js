@@ -14,6 +14,12 @@ module.exports = new EntitySchema({
             generated: true,      //auto-generate ticketId number
             name: "TICKETID",          
         },
+        qualityTicketId: {
+            type: "nvarchar",
+            length: 100,
+            nullable: true,
+            name: "QUALITY_TICKET_ID",
+        },
         openDate: {
             type: "datetime",
             name: "OPEN_DATE",
@@ -43,16 +49,14 @@ module.exports = new EntitySchema({
             name: "DIVISION"
         },
         drawingNum: {
-            type: "int",
+            type: "nvarchar",
+            length: 55,
+            nullable: true,
             name: "DRAWING_NUM"
         },
         manNonCon: {
             type: "tinyint",
             name: "MANUFACTURING_NONCONFORMANCE"
-        },
-        partNum: {
-            type: "int",
-            name: "PART_NUM"
         },
         sequence: {
             type: "smallint",
@@ -65,6 +69,34 @@ module.exports = new EntitySchema({
         wo: {
             type: "int",
             name: "WO"
+        },
+        laborDepartment: { 
+            type: "smallint",
+            name: "LABOR_DEPARTMENT"
+        },
+        assignedTo: { 
+            type: "smallint",
+            name: "ASSIGNED_TO",
+            nullable: true,
+        },
+        estimatedLaborHours: { 
+            type: "decimal",
+            precision: 10,
+            scale: 2,
+            name: "ESTIMATED_LABOR_HOURS",
+            nullable: true,
+        },
+        correctiveAction: { 
+            type: "nvarchar",
+            length: "max",
+            name: "CORRECTIVE_ACTION",
+            nullable: true,
+        },
+        materialsUsed: { 
+            type: "nvarchar",
+            length: "max",
+            name: "MATERIALS_USED",
+            nullable: true,
         }
     },
 
@@ -90,25 +122,11 @@ module.exports = new EntitySchema({
                 name: "DIVISION",
             },
         },
-        drawingNum: {
-            target: "DrawingNum",
-            type: "many-to-one",
-            joinColumn: {
-                name: "DRAWING_NUM",
-            }
-        },
         manNonCon: {
             target: "ManNonCon",
             type: "many-to-one",
             joinColumn: {
                 name: "MANUFACTURING_NONCONFORMANCE",
-            }
-        },
-        partNum: {
-            target: "PartNum",
-            type: "many-to-one",
-            joinColumn: {
-                name: "PART_NUM",
             }
         },
         sequence: {

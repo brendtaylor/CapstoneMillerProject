@@ -6,6 +6,13 @@ GO
 USE TICKET_SYSTEM;
 GO
 
+-- ######################################################################
+-- #
+-- # MASTER LOOKUP TABLES
+-- # These tables store the master lists for all possible options.
+-- #
+-- ######################################################################
+
 /****** Object:  Table [dbo].[MiHub_Divisions]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
@@ -20,17 +27,17 @@ PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHub_Drawing_Num]    Script Date: 9/29/2025 4:27:56 PM ******/
+/****** Object:  Table [dbo].[MiHub_Labor_Department]    Script Date: 11/15/2025 6:50:00 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[MiHub_Drawing_Num](
-	[DRAWING_NUM_ID] [int] NOT NULL,
-	[DRAWING_NUM] [nvarchar](55) NOT NULL,
+CREATE TABLE [dbo].[MiHub_Labor_Department](
+	[DEPARTMENT_ID] [smallint] NOT NULL,
+	[DEPARTMENT_NAME] [varchar](255) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
-	[DRAWING_NUM_ID] ASC
+	[DEPARTMENT_ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
@@ -45,49 +52,6 @@ CREATE TABLE [dbo].[MiHub_Manufact_Noncon](
 PRIMARY KEY CLUSTERED 
 (
 	[NONCON_ID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-/****** Object:  Table [dbo].[MiHub_Part_Num]    Script Date: 9/29/2025 4:27:56 PM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[MiHub_Part_Num](
-	[PART_NUM_ID] [int] NOT NULL,
-	[PART_NUM] [nvarchar](55) NOT NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[PART_NUM_ID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-/****** Object:  Table [dbo].[MiHub_Quality_Email_Buffer]    Script Date: 9/29/2025 4:27:56 PM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[MiHub_Quality_Email_Buffer](
-	[ID] [smallint] NOT NULL,
-	[RECEIVER] [nvarchar](55) NULL,
-	[TIME_SENT] [datetime] NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[ID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-/****** Object:  Table [dbo].[MiHub_Quality_Images]    Script Date: 9/29/2025 4:27:56 PM ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[MiHub_Quality_Images](
-	[IMAGE_ID] [int] NOT NULL,
-	[TICKETID] [int] NULL,
-PRIMARY KEY CLUSTERED 
-(
-	[IMAGE_ID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
@@ -163,52 +127,206 @@ PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHubWeb_Quality_Tickets]    Script Date: 9/29/2025 4:27:56 PM ******/
+
+-- ######################################################################
+-- #
+-- # WORK ORDER LINKING TABLES
+-- # These tables define the many-to-many relationships.
+-- # They specify which options are valid for a given Work Order.
+-- #
+-- ######################################################################
+
+/****** Object:  Table [dbo].[WorkOrder_LaborDepartments]    Script Date: 11/15/2025 6:50:00 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[WorkOrder_LaborDepartments](
+    [WO_ID] [int] NOT NULL,
+    [DEPARTMENT_ID] [smallint] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+    [WO_ID] ASC,
+    [DEPARTMENT_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[WorkOrder_LaborDepartments]  WITH CHECK ADD FOREIGN KEY([WO_ID])
+REFERENCES [dbo].[MiHub_WO] ([WO_ID])
+GO
+ALTER TABLE [dbo].[WorkOrder_LaborDepartments]  WITH CHECK ADD FOREIGN KEY([DEPARTMENT_ID])
+REFERENCES [dbo].[MiHub_Labor_Department] ([DEPARTMENT_ID])
+GO
+
+/****** Object:  Table [dbo].[WorkOrder_Units]    Script Date: 11/15/2025 6:50:00 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[WorkOrder_Units](
+    [WO_ID] [int] NOT NULL,
+    [UNIT_ID] [smallint] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+    [WO_ID] ASC,
+    [UNIT_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[WorkOrder_Units]  WITH CHECK ADD FOREIGN KEY([WO_ID])
+REFERENCES [dbo].[MiHub_WO] ([WO_ID])
+GO
+ALTER TABLE [dbo].[WorkOrder_Units]  WITH CHECK ADD FOREIGN KEY([UNIT_ID])
+REFERENCES [dbo].[MiHub_WO_Unit] ([UNIT_ID])
+GO
+
+/****** Object:  Table [dbo].[WorkOrder_Sequences]    Script Date: 11/15/2025 6:50:00 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[WorkOrder_Sequences](
+    [WO_ID] [int] NOT NULL,
+    [SEQUENCE_ID] [smallint] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+    [WO_ID] ASC,
+    [SEQUENCE_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[WorkOrder_Sequences]  WITH CHECK ADD FOREIGN KEY([WO_ID])
+REFERENCES [dbo].[MiHub_WO] ([WO_ID])
+GO
+ALTER TABLE [dbo].[WorkOrder_Sequences]  WITH CHECK ADD FOREIGN KEY([SEQUENCE_ID])
+REFERENCES [dbo].[MiHub_Sequence] ([SEQUENCE_ID])
+GO
+
+/****** Object:  Table [dbo].[WorkOrder_Nonconformances]    Script Date: 11/15/2025 6:50:00 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[WorkOrder_Nonconformances](
+    [WO_ID] [int] NOT NULL,
+    [NONCON_ID] [tinyint] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+    [WO_ID] ASC,
+    [NONCON_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[WorkOrder_Nonconformances]  WITH CHECK ADD FOREIGN KEY([WO_ID])
+REFERENCES [dbo].[MiHub_WO] ([WO_ID])
+GO
+ALTER TABLE [dbo].[WorkOrder_Nonconformances]  WITH CHECK ADD FOREIGN KEY([NONCON_ID])
+REFERENCES [dbo].[MiHub_Manufact_Noncon] ([NONCON_ID])
+GO
+
+
+-- ######################################################################
+-- #
+-- # TRANSACTION TABLES
+-- # These tables store the main application data (tickets, images, etc.)
+-- #
+-- ######################################################################
+
+/****** Object:  Table [dbo].[MiHub_Quality_Email_Buffer]    Script Date: 9/29/2025 4:27:56 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[MiHub_Quality_Email_Buffer](
+	[ID] [smallint] NOT NULL,
+	[RECEIVER] [nvarchar](55) NULL,
+	[TIME_SENT] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+/****** Object:  Table [dbo].[MiHubWeb_Quality_Tickets]    Script Date: 11/15/2025 6:50:00 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets](
 	[TICKETID] [int] IDENTITY(1000,1) NOT NULL,
+	[QUALITY_TICKET_ID] [nvarchar](100) NULL,
 	[STATUS] [tinyint] NOT NULL,
 	[INITIATOR] [smallint] NOT NULL,
 	[WO] [int] NOT NULL,
 	[UNIT] [smallint] NULL,
 	[SEQUENCE] [smallint] NOT NULL,
 	[DIVISION] [smallint] NOT NULL,
+	[LABOR_DEPARTMENT] [smallint] NOT NULL,
 	[OPEN_DATE] [datetime] NOT NULL,
 	[CLOSE_DATE] [datetime] NULL,
 	[MANUFACTURING_NONCONFORMANCE] [tinyint] NOT NULL,
-	[DRAWING_NUM] [int] NOT NULL,
-	[PART_NUM] [int] NOT NULL,
+	[DRAWING_NUM] [nvarchar](55) NULL,
 	[DESCRIPTION] [nvarchar](max) NULL,
+	[ASSIGNED_TO] [smallint] NULL,
+	[ESTIMATED_LABOR_HOURS] [decimal](10, 2) NULL,
+	[CORRECTIVE_ACTION] [nvarchar](max) NULL,
+	[MATERIALS_USED] [nvarchar](max) NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[TICKETID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
-/****** Object:  Table [dbo].[MiHubWeb_Quality_Tickets_Archive]    Script Date: 9/29/2025 4:27:56 PM ******/
+
+/****** Object:  Table [dbo].[MiHubWeb_Quality_Tickets_Archive]    Script Date: 11/15/2025 6:50:00 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets_Archive](
 	[TICKETID] [int] NOT NULL,
+	[QUALITY_TICKET_ID] [nvarchar](100) NULL,
 	[STATUS] [tinyint] NOT NULL,
 	[INITIATOR] [smallint] NOT NULL,
 	[WO] [int] NOT NULL,
 	[UNIT] [smallint] NULL,
 	[SEQUENCE] [smallint] NOT NULL,
 	[DIVISION] [smallint] NOT NULL,
+	[LABOR_DEPARTMENT] [smallint] NOT NULL,
 	[OPEN_DATE] [datetime] NOT NULL,
 	[CLOSE_DATE] [datetime] NULL,
 	[MANUFACTURING_NONCONFORMANCE] [tinyint] NOT NULL,
-	[DRAWING_NUM] [int] NOT NULL,
-	[PART_NUM] [int] NOT NULL,
+	[DRAWING_NUM] [nvarchar](55) NULL,
 	[DESCRIPTION] [nvarchar](max) NULL,
+	[ASSIGNED_TO] [smallint] NULL,
+	[ESTIMATED_LABOR_HOURS] [decimal](10, 2) NULL,
+	[CORRECTIVE_ACTION] [nvarchar](max) NULL,
+	[MATERIALS_USED] [nvarchar](max) NULL,
 ) ON [PRIMARY]
 GO
+
+/****** Object:  Table [dbo].[MiHub_Quality_Images]    Script Date: 9/29/2025 4:27:56 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[MiHub_Quality_Images](
+	[IMAGE_ID] [int] NOT NULL,
+	[TICKETID] [int] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[IMAGE_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+-- ######################################################################
+-- #
+-- # FOREIGN KEY CONSTRAINTS
+-- #
+-- ######################################################################
+
 ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets] ADD  DEFAULT (getdate()) FOR [OPEN_DATE]
 GO
 ALTER TABLE [dbo].[MiHub_Quality_Images]  WITH CHECK ADD FOREIGN KEY([TICKETID])
@@ -217,17 +335,17 @@ GO
 ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets]  WITH CHECK ADD FOREIGN KEY([DIVISION])
 REFERENCES [dbo].[MiHub_Divisions] ([DIVISION_ID])
 GO
-ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets]  WITH CHECK ADD FOREIGN KEY([DRAWING_NUM])
-REFERENCES [dbo].[MiHub_Drawing_Num] ([DRAWING_NUM_ID])
+ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets]  WITH CHECK ADD FOREIGN KEY([LABOR_DEPARTMENT])
+REFERENCES [dbo].[MiHub_Labor_Department] ([DEPARTMENT_ID])
+GO
+ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets]  WITH CHECK ADD FOREIGN KEY([ASSIGNED_TO])
+REFERENCES [dbo].[MiHub_Quality_Users] ([ID])
 GO
 ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets]  WITH CHECK ADD FOREIGN KEY([INITIATOR])
 REFERENCES [dbo].[MiHub_Quality_Users] ([ID])
 GO
 ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets]  WITH CHECK ADD FOREIGN KEY([MANUFACTURING_NONCONFORMANCE])
 REFERENCES [dbo].[MiHub_Manufact_Noncon] ([NONCON_ID])
-GO
-ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets]  WITH CHECK ADD FOREIGN KEY([PART_NUM])
-REFERENCES [dbo].[MiHub_Part_Num] ([PART_NUM_ID])
 GO
 ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets]  WITH CHECK ADD FOREIGN KEY([SEQUENCE])
 REFERENCES [dbo].[MiHub_Sequence] ([SEQUENCE_ID])
@@ -246,11 +364,15 @@ GO
 ALTER DATABASE [TICKET_SYSTEM] SET  READ_WRITE 
 GO
 
+-- ######################################################################
+-- #
+-- # SEED DATA
+-- #
+-- ######################################################################
+
 USE [TICKET_SYSTEM]
 GO
 
-
--- ********Enter seed data to fill reference tables***********
 -- Populate Users Table
 INSERT INTO dbo.MiHub_Quality_Users (ID, ROLE, NAME, EMAIL)
 VALUES 
@@ -276,7 +398,17 @@ VALUES
     (3, 'CInstall');
 GO
 
--- Populate Manufacturing Nonconformance Table
+-- Populate Labor Department Table (MASTER LIST)
+INSERT INTO dbo.MiHub_Labor_Department(DEPARTMENT_ID, DEPARTMENT_NAME)
+VALUES
+    (1, 'Welding'),
+    (2, 'Assembly'),
+    (3, 'Paint'),
+    (4, 'Electrical'),
+    (5, 'Detailing');
+GO
+
+-- Populate Manufacturing Nonconformance Table (MASTER LIST)
 INSERT INTO dbo.MiHub_Manufact_Noncon (NONCON_ID, NONCON)
 VALUES
     (1, 'Material'),
@@ -285,58 +417,77 @@ VALUES
     (4, 'Detailing');
 GO
 
--- Populate Work Orders (WO) Table
+-- Populate Work Orders (WO) Table (MASTER LIST)
 INSERT INTO dbo.MiHub_WO (WO_ID, WO)
 VALUES
     (1, '24113'),
     (2, '023186'),
     (3, '341118'),
     (4, '253233'),
-    (5, '289933'),
-    (6, '113334'),
-    (7, '256662'),
-    (8, '245522'),
-    (9, '247777'),
-    (10, '230000'),
-    (11, '222737'),
-    (12, '276772'),
-    (13, '228282'),
-    (14, '122939'),
-    (15, '300232');
+    (5, '289933');
 GO
 
--- Populate WO Units Table
+-- Populate WO Units Table (MASTER LIST)
 INSERT INTO dbo.MiHub_WO_Unit (UNIT_ID, UNIT_NAME)
 VALUES
     (101, 'A1'), (102, 'A2'), (103, 'A3'), (104, 'A4'), (105, 'A5'),
     (106, 'B1'), (107, 'B2'), (108, 'B3'), (109, 'B4'), (110, 'B5');
 GO
 
--- Populate Sequence Table (Partial List for Brevity)
+-- Populate Sequence Table (MASTER LIST)
 INSERT INTO dbo.MiHub_Sequence(SEQUENCE_ID, SEQUENCE_NAME)
 VALUES
     (101, 'REW-00300'), (102, '000400'), (103, 'DSA-20019'), (104, '019000'),
-    (105, 'LMN-12345'), (106, 'ABC-67890'), (107, 'XYZ-10101'), (108, 'QRS-23456'),
-    (109, 'STU-78901'), (110, 'VWX-01234');
+    (105, 'LMN-12345'), (106, 'ABC-67890');
 GO
 
--- Populate Drawing Numbers Table (Partial List for Brevity)
-INSERT INTO dbo.MiHub_Drawing_Num (DRAWING_NUM_ID, DRAWING_NUM)
+-- ######################################################################
+-- #
+-- # SEED DATA - LINKING TABLES (Example Data)
+-- #
+-- ######################################################################
+
+-- Define valid departments for WO 1 ('24113')
+INSERT INTO dbo.WorkOrder_LaborDepartments (WO_ID, DEPARTMENT_ID)
 VALUES
-    (10000, ''),
-    (23456, '24113-0100A30'),
-    (23465, '24113-FS29A'),
-    (23474, '2024-07-15-001'),
-    (23483, '24113-Rework'),
-    (23492, '2024-07-16-002');
+    (1, 1), -- Welding
+    (1, 2); -- Assembly
 GO
 
--- Populate Part Numbers Table (Partial List for Brevity)
-INSERT INTO MiHub_Part_Num (PART_NUM_ID, PART_NUM)
+-- Define valid departments for WO 2 ('023186')
+INSERT INTO dbo.WorkOrder_LaborDepartments (WO_ID, DEPARTMENT_ID)
 VALUES
-    (34252, '08FSV051104-026-48.75X120.00'),
-    (34253, 'FS29A'),
-    (34254, 'Several'),
-    (34255, 'ABC-12345'),
-    (34256, 'XYZ-67890');
+    (2, 3), -- Paint
+    (2, 5); -- Detailing
+GO
+
+-- Define valid units for WO 1 ('24113')
+INSERT INTO dbo.WorkOrder_Units (WO_ID, UNIT_ID)
+VALUES
+    (1, 101), -- A1
+    (1, 102); -- A2
+GO
+
+-- Define valid units for WO 2 ('023186')
+INSERT INTO dbo.WorkOrder_Units (WO_ID, UNIT_ID)
+VALUES
+    (2, 106), -- B1
+    (2, 107); -- B2
+GO
+
+-- Define valid sequences for WO 1 ('24113')
+INSERT INTO dbo.WorkOrder_Sequences (WO_ID, SEQUENCE_ID)
+VALUES
+    (1, 101), -- REW-00300
+    (1, 103); -- DSA-20019
+GO
+
+-- Define valid nonconformances for ALL WOs (Example)
+INSERT INTO dbo.WorkOrder_Nonconformances (WO_ID, NONCON_ID)
+VALUES
+    (1, 1), (1, 2), (1, 3), (1, 4), -- All 4 for WO 1
+    (2, 1), (2, 2), (2, 3), (2, 4), -- All 4 for WO 2
+    (3, 1), (3, 2), (3, 3), (3, 4), -- All 4 for WO 3
+    (4, 1), (4, 2), (4, 3), (4, 4), -- All 4 for WO 4
+    (5, 1), (5, 2), (5, 3), (5, 4); -- All 4 for WO 5
 GO
