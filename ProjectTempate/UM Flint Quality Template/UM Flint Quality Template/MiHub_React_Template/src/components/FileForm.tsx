@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from '../hooks/use-toast';
 import { useDebounce } from '../hooks/use-debounce';
-import { usePersistentFiles } from "../hooks/usePersistentFiles";
 
 
 
@@ -337,7 +336,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     }
 
     return (
-        <div className="max-w-2xl mx-auto p-4 sm:p-6 bg-white shadow-md rounded-md space-y-6">
+        <div className="space-y-6">
         
         {/* Work Order Dropdown */}
         <div>
@@ -489,10 +488,10 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
   }}
 >
   {/* Upload Icon */}
-  <label htmlFor="imageUpload" className="cursor-pointer flex flex-col items-center">
-    <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-26 h-26 mb-2"/>
-    <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload or Drag Files</span>
-  </label>
+    <label htmlFor="imageUpload" className="cursor-pointer flex flex-col items-center">
+        <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-16 h-16 mb-2"/>
+        <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload or Drag Files</span>
+    </label>
   <input
     id="imageUpload"
     type="file"
@@ -547,7 +546,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         {/* Pre-submit confirmation modal (replaces window.confirm) */}
         {showSubmitConfirm && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+                <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
                     <h3 className="text-lg font-semibold mb-2">Ready to submit?</h3>
                     <p className="text-sm text-gray-700 mb-4">Are you sure you want to submit this ticket? You can cancel to continue editing.</p>
                     <div className="flex justify-end space-x-3">
@@ -578,7 +577,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         {/* Post-create prompt modal */}
         {showPostCreate && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+                <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
                     <h3 className="text-lg font-semibold mb-2">Ticket Created</h3>
                     <p className="text-sm text-gray-700 mb-4">Ticket #{createdTicketId} has been created successfully. What would you like to do next?</p>
                     <div className="flex justify-end space-x-3">
