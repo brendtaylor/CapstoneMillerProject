@@ -260,7 +260,7 @@ CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets](
 	[INITIATOR] [smallint] NOT NULL,
 	[WO] [int] NOT NULL,
 	[UNIT] [smallint] NULL,
-	[SEQUENCE] [smallint] NOT NULL,
+	[SEQUENCE] [smallint] NULL, -- CHANGED FROM NOT NULL TO NULL
 	[DIVISION] [smallint] NOT NULL,
 	[LABOR_DEPARTMENT] [smallint] NOT NULL,
 	[OPEN_DATE] [datetime] NOT NULL,
@@ -291,7 +291,7 @@ CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets_Archive](
 	[INITIATOR] [smallint] NOT NULL,
 	[WO] [int] NOT NULL,
 	[UNIT] [smallint] NULL,
-	[SEQUENCE] [smallint] NOT NULL,
+	[SEQUENCE] [smallint] NULL, -- CHANGED FROM NOT NULL TO NULL
 	[DIVISION] [smallint] NOT NULL,
 	[LABOR_DEPARTMENT] [smallint] NOT NULL,
 	[OPEN_DATE] [datetime] NOT NULL,

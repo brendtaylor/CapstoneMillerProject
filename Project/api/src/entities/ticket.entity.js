@@ -54,42 +54,43 @@ module.exports = new EntitySchema({
             type: "tinyint",
             name: "MANUFACTURING_NONCONFORMANCE"
         },
-        laborDepartment: { // <-- This is the new field
+        laborDepartment: { 
             type: "smallint",
             name: "LABOR_DEPARTMENT"
         },
         sequence: {
             type: "smallint",
-            name: "SEQUENCE"
+            name: "SEQUENCE",
+            nullable: true // <-- ADDED THIS
         },
         unit: {
             type: "smallint",
             name: "UNIT",
-            nullable: true // Make sure this matches the DB
+            nullable: true 
         },
         wo: {
             type: "int",
             name: "WO"
         },
-        assignedTo: { // <-- This is the new field
+        assignedTo: { 
             type: "smallint",
             name: "ASSIGNED_TO",
             nullable: true,
         },
-        estimatedLaborHours: { // <-- This is the new field
+        estimatedLaborHours: { 
             type: "decimal",
             precision: 10,
             scale: 2,
             name: "ESTIMATED_LABOR_HOURS",
             nullable: true,
         },
-        correctiveAction: { // <-- This is the new field
+        correctiveAction: { 
             type: "nvarchar",
             length: "max",
             name: "CORRECTIVE_ACTION",
             nullable: true,
         },
-        materialsUsed: { // <-- This is the new field
+        materialsUsed: { 
             type: "nvarchar",
             length: "max",
             name: "MATERIALS_USED",
@@ -125,7 +126,7 @@ module.exports = new EntitySchema({
                 name: "MANUFACTURING_NONCONFORMANCE",
             }
         },
-        laborDepartment: { // <-- This is the new relation
+        laborDepartment: { 
             target: "LaborDepartment",
             type: "many-to-one",
             joinColumn: {
@@ -153,7 +154,7 @@ module.exports = new EntitySchema({
                 name: "WO",
             }
         },
-        assignedTo: { // <-- This is the new relation
+        assignedTo: { 
             target: "User",
             type: "many-to-one",
             joinColumn: {

@@ -12,7 +12,7 @@ import { Skeleton } from "../../components/ui/skeleton";
 // import ChecklistComponent from "./checklist";
 import { Button } from "../../components/ui/button";
 import FileForm from "../../components/FileForm";
-import TicketList from "../../components/TicketList";
+import { TicketList } from "../../components/TicketList";
 
 
 //Quality top view ticket progress and ticket creation to make them easily
