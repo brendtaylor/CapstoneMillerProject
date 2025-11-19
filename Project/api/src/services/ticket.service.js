@@ -174,4 +174,4 @@ async function getArchivedTicketByID(id) {
     });
 }
 
-module.exports = { getAllTickets, createTicket, getTicketByID, updateTicket, archiveTicket };
+module.exports = { getAllTickets, createTicket, getTicketByID, updateTicket, archiveTicket, getAllArchivedTickets, getArchivedTicketByID };
