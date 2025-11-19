@@ -20,7 +20,7 @@ async function createTicket(req, res) {
         // req.body contains the JSON data sent by the client
         const newTicket = await ticketService.createTicket(req.body);
         res.status(201).json(newTicket);
-        const makeRs = emitToMake('ticket.create', { ticket: newTicket });
+        const makeRs = await emitToMake('ticket.create', { ticket: newTicket });
 
         if (makeRs?.status === 'success') {
             // code if make succeeds
@@ -70,7 +70,7 @@ async function updateTicket(req, res) {
 
         if (updatedTicket) {
             res.json(updatedTicket);                                                                //sending back the updated ticket
-            const makeRs = emitToMake('ticket.update', { ticket: updatedTicket });
+            const makeRs = await emitToMake('ticket.update', { ticket: updatedTicket });
 
             if (makeRs?.status === 'success') {
                 // code if make succeeds
