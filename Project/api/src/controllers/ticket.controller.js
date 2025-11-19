@@ -20,7 +20,13 @@ async function createTicket(req, res) {
         // req.body contains the JSON data sent by the client
         const newTicket = await ticketService.createTicket(req.body);
         res.status(201).json(newTicket);
-        emitToMake('ticket.create', { ticket: newTicket });
+        const makeRs = emitToMake('ticket.create', { ticket: newTicket });
+
+        if (makeRs?.status === 'success') {
+            // code if make succeeds
+        } else {
+            // code if make fails
+        }
     } catch (error) {
         console.error("Error creating ticket:", error);
         
@@ -64,7 +70,13 @@ async function updateTicket(req, res) {
 
         if (updatedTicket) {
             res.json(updatedTicket);                                                                //sending back the updated ticket
-            emitToMake('ticket.update', { ticket: updatedTicket });
+            const makeRs = emitToMake('ticket.update', { ticket: updatedTicket });
+
+            if (makeRs?.status === 'success') {
+                // code if make succeeds
+            } else {
+                // code if make fails
+            }
         } else {
             res.status(404).json({ message: "Ticket not found" });
         }
