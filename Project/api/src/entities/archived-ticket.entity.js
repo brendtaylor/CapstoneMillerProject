@@ -62,4 +62,70 @@ module.exports = new EntitySchema({
             nullable: true,
         },
     },
+
+    relations: {
+        status: {
+            target: "Status",
+            type: "many-to-one",
+            joinColumn: {
+                name: "STATUS",
+            },
+        },
+        initiator: {
+            target: "User",
+            type: "many-to-one",
+            joinColumn: {
+                name: "INITIATOR",
+            },
+        },
+        division: {
+            target: "Division",
+            type: "many-to-one",
+            joinColumn: {
+                name: "DIVISION",
+            },
+        },
+        drawingNum: {
+            target: "DrawingNum",
+            type: "many-to-one",
+            joinColumn: {
+                name: "DRAWING_NUM",
+            }
+        },
+        manNonCon: {
+            target: "ManNonCon",
+            type: "many-to-one",
+            joinColumn: {
+                name: "MANUFACTURING_NONCONFORMANCE",
+            }
+        },
+        partNum: {
+            target: "PartNum",
+            type: "many-to-one",
+            joinColumn: {
+                name: "PART_NUM",
+            }
+        },
+        sequence: {
+            target: "Sequence",
+            type: "many-to-one",
+            joinColumn: {
+                name: "SEQUENCE",
+            }
+        },
+        unit: {
+            target: "Unit",
+            type: "many-to-one",
+            joinColumn: {
+                name: "UNIT",
+            }
+        },
+        wo: {
+            target: "WorkOrder",
+            type: "many-to-one",
+            joinColumn: {
+                name: "WO",
+            }
+        }
+    },
 });
