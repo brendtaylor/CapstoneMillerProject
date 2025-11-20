@@ -2,7 +2,9 @@ const { Router } = require("express");
 const router = Router();
 const {
     getAllTickets,
-    getTicketById,
+    getTicketByID,
+    getAllArchivedTickets,
+    getArchivedTicketByID,
     createTicket,
     updateTicket,
     deleteTicket,
@@ -17,7 +19,12 @@ router.get("/events", connectSSE);
 // GET /api/tickets - Get all tickets
 router.get("/", getAllTickets);
 
-// --- Dynamic :id routes come AFTER ---
+//GET /api/tickets/archived - Get all archived tickets
+router.get("/archived", getAllArchivedTickets);
+
+//GET /api/tickets/archived/:id - Get a single archived ticket by its ID
+router.get("/archived/:id", getArchivedTicketByID);
+
 // GET /api/tickets/:id - Get a single ticket by its ID
 router.get("/:id", getTicketById);
 

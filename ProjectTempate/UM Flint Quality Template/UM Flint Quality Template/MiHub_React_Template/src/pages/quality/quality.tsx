@@ -6,13 +6,10 @@ import { useAuth } from "../../components/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, } from "../../components/ui/dialog"
-import { api } from "../../api";
-import { Ticket } from "../../types";
-import { Skeleton } from "../../components/ui/skeleton";
 // import ChecklistComponent from "./checklist";
 import { Button } from "../../components/ui/button";
 import FileForm from "../../components/FileForm";
-import { TicketList } from "../../components/TicketList";
+import TicketList from "../../components/TicketList";
 
 
 //Quality top view ticket progress and ticket creation to make them easily
@@ -54,7 +51,7 @@ const Quality: React.FC = () => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setDropdownOpen(true)}
-              className="text-sm text-white flex items-center gap-1 border border-black rounded-md px-3 py-1 bg-blue-500 hover:bg-blue-600 transition"
+              className="text-sm text-white flex items-center gap-1 border border-black rounded-md px-3 py-1 bg-blue-700 hover:bg-blue-600 transition"
             >
               Menu <span className="text-lg">▾</span>
             </button>
@@ -149,27 +146,6 @@ const Quality: React.FC = () => {
       );
     }
 
-  // This is the new logic to fetch tickets
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchTickets = async () => {
-      setIsLoading(true);
-      try {
-        // This fetches all tickets.
-        // We can filter this later if this is the "Closed" page.
-        const response = await api.get("/tickets");
-        setTickets(response.data);
-      } catch (error) {
-        console.error("Error fetching tickets:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTickets();
-  }, []);
 
   return (
     <Tabs defaultValue="tickets" className="min-h-screen bg-gray-100">
@@ -199,15 +175,7 @@ const Quality: React.FC = () => {
                 </CardHeader>
 
                 <CardContent>
-                  {isLoading ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-10 w-full" />
-                      <Skeleton className="h-10 w-full" />
-                      <Skeleton className="h-10 w-full" />
-                    </div>
-                  ) : (
-                    <TicketList tickets={tickets} />
-                  )}
+                  <TicketList />
                 </CardContent>
               
             </Card>

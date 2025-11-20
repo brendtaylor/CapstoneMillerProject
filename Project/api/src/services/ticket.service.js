@@ -165,4 +165,17 @@ class TicketService {
     }
 }
 
-module.exports = new TicketService();
+//fetch all archived tickets
+async function getAllArchivedTickets() {
+    return archivedTicketRepository.find({ relations: ticketRelations });
+}
+
+//fetch a specific archived ticket by its ID
+async function getArchivedTicketByID(id) {
+    return archivedTicketRepository.findOne({
+        where: { ticketId: parseInt(id) },
+        relations: ticketRelations,
+    });
+}
+
+module.exports = { getAllTickets, createTicket, getTicketByID, updateTicket, archiveTicket, getAllArchivedTickets, getArchivedTicketByID };
