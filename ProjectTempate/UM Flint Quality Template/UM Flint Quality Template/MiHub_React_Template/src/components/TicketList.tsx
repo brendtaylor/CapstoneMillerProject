@@ -480,6 +480,15 @@ const handleSaveEdit = async () => {
                                             </Button>
                                         </div>
                                     )}
+
+                                            <Button
+                                                variant="default"
+                                                onClick={() => navigate(`/tickets/${ticket.ticketId}`)}
+                                                className="mt-2"
+                                            >
+                                                View Details
+                                            </Button>
+
                                     
                                     <div className="space-y-4 py-4 text-sm">
                                         <div className="grid grid-cols-[1fr_3fr] items-center gap-4">
