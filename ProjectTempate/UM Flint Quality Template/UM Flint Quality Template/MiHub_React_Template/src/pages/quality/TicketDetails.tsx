@@ -21,6 +21,7 @@ interface Note {
 
 interface Ticket {
   ticketId: number;
+  qualityTicketId?: string;
   description: string;
   openDate: string;
   status: { statusDescription: string };
@@ -150,7 +151,7 @@ const TicketDetails: React.FC = () => {
       {/* Ticket Info */}
       <Card>
         <CardHeader>
-          <CardTitle>Ticket #{ticket.ticketId}</CardTitle>
+          <CardTitle>Ticket {ticket.qualityTicketId || `#${ticket.ticketId}`}</CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-2">

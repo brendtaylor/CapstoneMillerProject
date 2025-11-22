@@ -94,7 +94,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [showPostCreate, setShowPostCreate] = useState(false);
-    const [createdTicketId, setCreatedTicketId] = useState<number | null>(null);
+    const [createdTicketId, setCreatedTicketId] = useState<string | null>(null);
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
     // --- Load Draft ---
@@ -277,10 +277,10 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                 throw new Error(errorData.message || 'Failed to create ticket.');
             }
             const newTicket = await response.json();
-            toast({ title: "Success!", description: `Ticket #${newTicket.ticketId} has been created.` });
+            toast({ title: "Success!", description: `Ticket ${newTicket.qualityTicketId} has been created.` });
             
             handleDelete(); // Clear form
-            setCreatedTicketId(newTicket.ticketId);
+            setCreatedTicketId(newTicket.qualityTicketId);
             setShowPostCreate(true);
 
             window.dispatchEvent(new CustomEvent('ticketCreated'));
@@ -551,7 +551,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
                         <h3 className="text-lg font-semibold mb-2">Ticket Created</h3>
-                        <p className="text-sm text-gray-700 mb-4">Ticket #{createdTicketId} has been created successfully. What would you like to do next?</p>
+                        <p className="text-sm text-gray-700 mb-4">Ticket {createdTicketId} has been created successfully. What would you like to do next?</p>
                         <div className="flex justify-end space-x-3">
                             <button 
                                 onClick={() => { 

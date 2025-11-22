@@ -304,7 +304,7 @@ const TicketList: React.FC = () => {
       let responseData: any = null;
       try { responseData = await response.json(); } catch {}
 
-      if (response.ok || response.status === 204 || (responseData && responseData.ticketId)) {
+      if (response.ok || response.status === 204 || (responseData && (responseData.ticketId || responseData.qualityTicketId))) {
         success = true;
       }
 
@@ -530,7 +530,7 @@ const TicketList: React.FC = () => {
             ✕
         </button>
 
-        <h2 className="text-xl font-semibold mb-4">Edit Ticket #{editingTicket?.ticketId || ''} </h2>
+        <h2 className="text-xl font-semibold mb-4">Edit Ticket {editingTicket?.qualityTicketId || ''} </h2>
         <p className="text-sm text-gray-500 italic mb-4">Fields marked with an asterisk (*) are required.</p>
 
         <div className="space-y-6">
@@ -754,7 +754,7 @@ const TicketList: React.FC = () => {
             <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
                 <h3 className="text-lg font-semibold mb-2">Archive Ticket</h3>
                 <p className="text-sm text-gray-700 mb-4">
-                    Are you sure you want to archive Ticket #{ticketToArchive}? This action cannot be undone.
+                    Are you sure you want to archive this ticket? This action cannot be undone.
                 </p>
                 <div className="flex justify-end space-x-3">
                     <button
