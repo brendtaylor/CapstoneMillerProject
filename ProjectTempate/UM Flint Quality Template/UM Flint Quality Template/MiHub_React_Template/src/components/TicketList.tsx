@@ -205,6 +205,10 @@ const TicketList: React.FC = () => {
   // --- ACTIONS (Archive, Edit, Search) ---
 
   const handleArchive = async (ticketId: number) => {
+    // Find the ticket to get its qualityTicketId for the success message
+    const ticket = tickets.find(t => t.ticketId === ticketId);
+    const qualityTicketId = ticket?.qualityTicketId || `ID ${ticketId}`;
+
     try {
       const response = await fetch(`http://localhost:3000/api/tickets/${ticketId}`, { method: 'DELETE' });
       if (!response.ok) {
@@ -212,7 +216,7 @@ const TicketList: React.FC = () => {
         try { const errorData = await response.json(); errorMessage = errorData.message || errorMessage; } catch (e) { /* Ignore */ }
         throw new Error(errorMessage);
       }
-      toast({ title: "Success", description: `Ticket #${ticketId} has been archived.` });
+      toast({ title: "Success", description: `Ticket ${qualityTicketId} has been archived.` });
       fetchTickets();
     } catch (err: any) {
       console.error("Archive error:", err);
@@ -310,7 +314,7 @@ const TicketList: React.FC = () => {
 
       if (!success) throw new Error(`Failed to update ticket. Status: ${response.status}`);
 
-      toast({ title: "Success", description: `Ticket #${editingTicket.ticketId} has been updated.` });
+      toast({ title: "Success", description: `Ticket ${editingTicket.qualityTicketId} has been updated.` });
       fetchTickets();
       setIsEditing(false);
       setEditingTicket(null);
