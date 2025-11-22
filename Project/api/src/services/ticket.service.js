@@ -1,6 +1,6 @@
 const { AppDataSource } = require("../data-source");
-const { emitToMake } = require("../utils/makeEmitter"); // <-- 1. Import emitToMake correctly
-const { EventEmitter } = require("events"); // <-- 2. Import Node's built-in EventEmitter
+const { emitToMake } = require("../utils/makeEmitter"); 
+const { EventEmitter } = require("events"); // Node's built-in EventEmitter
 const logger = require("../../logger");
 
 class TicketService {
@@ -8,18 +8,21 @@ class TicketService {
         this.ticketRepository = AppDataSource.getRepository("Ticket");
         this.archivedRepository = AppDataSource.getRepository("ArchivedTicket");
         this.workOrderRepository = AppDataSource.getRepository("WorkOrder"); 
-        this.sseEmitter = new EventEmitter(); // <-- 3. Create a REAL event emitter
+        this.sseEmitter = new EventEmitter(); 
         logger.info("TicketService initialized");
+    
+        // Define standard relations
+        this.relations = [
+            "status", "initiator", "division", 
+            "manNonCon", "laborDepartment", 
+            "sequence", "unit", "wo", "assignedTo"
+        ];
     }
 
     async getAllTickets() {
         logger.info("Fetching all tickets");
         return await this.ticketRepository.find({
-            relations: [
-                "status", "initiator", "division", 
-                "manNonCon", "laborDepartment", 
-                "sequence", "unit", "wo", "assignedTo"
-            ]
+            relations: this.relations
         });
     }
 
@@ -27,11 +30,7 @@ class TicketService {
         logger.info(`Fetching ticket by ID: ${id}`);
         const ticket = await this.ticketRepository.findOne({ 
             where: { ticketId: id },
-            relations: [
-                "status", "initiator", "division", 
-                "manNonCon", "laborDepartment", 
-                "sequence", "unit", "wo", "assignedTo"
-            ]
+            relations: this.relations
         });
         if (!ticket) {
             logger.warn(`Ticket ID ${id} not found`);
@@ -46,6 +45,7 @@ class TicketService {
         await queryRunner.startTransaction();
 
         try {
+            //Get WO number for Quality Ticket ID generation
             const workOrder = await queryRunner.manager.findOne("WorkOrder", {
                 where: { woId: ticketData.wo }
             });
@@ -54,6 +54,7 @@ class TicketService {
             }
             const woNumber = workOrder.wo;
 
+            //Generate Quality Ticket ID
             const ticketCount = await queryRunner.manager.count("Ticket", {
                 where: { wo: ticketData.wo }
             });
@@ -62,6 +63,7 @@ class TicketService {
             const qualityTicketId = `${woNumber}-${newTicketNum}`;
             logger.info(`Generated new Quality Ticket ID: ${qualityTicketId}`);
 
+            //Create Ticket
             const newTicket = queryRunner.manager.create("Ticket", {
                 ...ticketData,
                 qualityTicketId: qualityTicketId,
@@ -72,7 +74,7 @@ class TicketService {
             const savedTicket = await queryRunner.manager.save("Ticket", newTicket);
             await queryRunner.commitTransaction();
 
-            // --- 4. Call BOTH emitters ---
+            // Emit Events
             this.sseEmitter.emit('new-ticket', savedTicket); // For frontend SSE
             await emitToMake('new-ticket', savedTicket); // For Make.com webhook
             
@@ -92,7 +94,7 @@ class TicketService {
         logger.info(`Updating ticket ID: ${id}`);
         const updatePayload = { ...ticketData };
 
-        if (updatePayload.status === 1) { // 1 = 'Closed'
+        if (updatePayload.status === 1) {                                                   // 1 = 'Closed'
             updatePayload.closeDate = new Date();
             logger.info(`Ticket ${id} is being closed.`);
         }
@@ -100,9 +102,8 @@ class TicketService {
         await this.ticketRepository.update(id, updatePayload);
         const updatedTicket = await this.getTicketById(id);
         
-        // --- Call BOTH emitters ---
+        // Emit Events
         this.sseEmitter.emit('update-ticket', updatedTicket); // For frontend SSE
-        await emitToMake('update-ticket', updatedTicket); // For Make.com webhook
         
         logger.info(`Ticket ${id} updated`);
         return updatedTicket;
@@ -127,15 +128,28 @@ class TicketService {
 
         await this.ticketRepository.delete(id);
         
-        // --- Call BOTH emitters ---
+        // Emit events
         this.sseEmitter.emit('delete-ticket', { id: id }); // For frontend SSE
-        await emitToMake('delete-ticket', { id: id }); // For Make.com webhook
         
         logger.info(`Ticket ${id} archived and deleted`);
         return { id: id, message: "Ticket archived successfully" };
     }
+    async getAllArchivedTickets() {
+        logger.info("Fetching all archived tickets");
+        return await this.archivedRepository.find({
+            relations: this.relations
+        });
+    }
 
-    // This SSE connect function is now correct, as this.sseEmitter is a real EventEmitter
+    async getArchivedTicketById(id) {
+        logger.info(`Fetching archived ticket by ID: ${id}`);
+        return await this.archivedRepository.findOne({
+            where: { ticketId: parseInt(id) },
+            relations: this.relations
+        });
+    }
+
+    // SSE functions
     async connectSSE(req, res) {
         logger.info("SSE client connected");
         res.setHeader('Content-Type', 'text/event-stream');
@@ -165,17 +179,5 @@ class TicketService {
     }
 }
 
-//fetch all archived tickets
-async function getAllArchivedTickets() {
-    return archivedTicketRepository.find({ relations: ticketRelations });
-}
 
-//fetch a specific archived ticket by its ID
-async function getArchivedTicketByID(id) {
-    return archivedTicketRepository.findOne({
-        where: { ticketId: parseInt(id) },
-        relations: ticketRelations,
-    });
-}
-
-module.exports = { getAllTickets, createTicket, getTicketByID, updateTicket, archiveTicket, getAllArchivedTickets, getArchivedTicketByID };
+module.exports = new TicketService();

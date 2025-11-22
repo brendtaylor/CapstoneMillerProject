@@ -24,7 +24,7 @@ module.exports = new EntitySchema({
             },
         },
         nonconformance: {
-            target: "ManNonCon", // Matches the name in manufact_noncon.entity.js
+            target: "ManNonCon", 
             type: "many-to-one",
             joinColumn: {
                 name: "NONCON_ID",

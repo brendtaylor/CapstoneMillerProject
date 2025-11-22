@@ -61,7 +61,7 @@ module.exports = new EntitySchema({
         sequence: {
             type: "smallint",
             name: "SEQUENCE",
-            nullable: true // <-- ADDED THIS
+            nullable: true 
         },
         unit: {
             type: "smallint",

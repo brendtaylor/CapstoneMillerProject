@@ -2,7 +2,7 @@ const { Router } = require("express");
 const router = Router();
 const {
     getAllTickets,
-    getTicketByID,
+    getTicketById,
     getAllArchivedTickets,
     getArchivedTicketByID,
     createTicket,
