@@ -8,42 +8,13 @@ module.exports = new EntitySchema({
             primary: true,
             type: "int",
             name: "TICKETID",
-            generated: false, // Not auto-generated in the archive table
+            generated: false, // Keep as false for archive
         },
         qualityTicketId: {
             type: "nvarchar",
             length: 100,
             nullable: true,
             name: "QUALITY_TICKET_ID",
-        },
-        status: {
-            type: "tinyint",
-            name: "STATUS",
-        },
-        initiator: {
-            type: "smallint",
-            name: "INITIATOR",
-        },
-        wo: {
-            type: "int",
-            name: "WO",
-        },
-        unit: {
-            type: "smallint",
-            name: "UNIT",
-            nullable: true, 
-        },
-        sequence: {
-            type: "smallint",
-            name: "SEQUENCE",
-        },
-        division: {
-            type: "smallint",
-            name: "DIVISION",
-        },
-        laborDepartment: { 
-            type: "smallint",
-            name: "LABOR_DEPARTMENT"
         },
         openDate: {
             type: "datetime",
@@ -54,28 +25,20 @@ module.exports = new EntitySchema({
             name: "CLOSE_DATE",
             nullable: true,
         },
-        manNonCon: {
-            type: "tinyint",
-            name: "MANUFACTURING_NONCONFORMANCE",
-        },
-        drawingNum: {
-            type: "nvarchar", 
-            length: 55,       
-            nullable: true,   
-            name: "DRAWING_NUM"
-        },
         description: {
             type: "nvarchar",
             length: "max",
             name: "DESCRIPTION",
             nullable: true,
         },
-        assignedTo: { 
-            type: "smallint",
-            name: "ASSIGNED_TO",
+        
+        drawingNum: {
+            type: "nvarchar",
+            length: 55,
             nullable: true,
+            name: "DRAWING_NUM"
         },
-        estimatedLaborHours: { 
+        estimatedLaborHours: {
             type: "decimal",
             precision: 10,
             scale: 2,
@@ -88,14 +51,13 @@ module.exports = new EntitySchema({
             name: "CORRECTIVE_ACTION",
             nullable: true,
         },
-        materialsUsed: { 
+        materialsUsed: {
             type: "nvarchar",
             length: "max",
             name: "MATERIALS_USED",
             nullable: true,
         }
     },
-
     relations: {
         status: {
             target: "Status",
@@ -115,7 +77,7 @@ module.exports = new EntitySchema({
         manNonCon: {
             target: "ManNonCon",
             type: "many-to-one",
-            joinColumn: { name: "MANUFACTURING_NONCONFORMANCE" }
+            joinColumn: { name: "MANUFACTURING_NONCONFORMANCE" },
         },
         laborDepartment: {
             target: "LaborDepartment",
@@ -125,22 +87,22 @@ module.exports = new EntitySchema({
         sequence: {
             target: "Sequence",
             type: "many-to-one",
-            joinColumn: { name: "SEQUENCE" }
+            joinColumn: { name: "SEQUENCE" },
         },
         unit: {
             target: "Unit",
             type: "many-to-one",
-            joinColumn: { name: "UNIT" }
+            joinColumn: { name: "UNIT" },
         },
         wo: {
             target: "WorkOrder",
             type: "many-to-one",
-            joinColumn: { name: "WO" }
+            joinColumn: { name: "WO" },
         },
         assignedTo: {
             target: "User",
             type: "many-to-one",
-            joinColumn: { name: "ASSIGNED_TO" }
+            joinColumn: { name: "ASSIGNED_TO" },
         }
     },
 });
