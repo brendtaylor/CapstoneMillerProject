@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './components/AuthContext';
 import axios from 'axios';
 import { Toaster } from "./components/ui/toaster"
 import { AnimatePresence, motion } from "framer-motion";
+import TicketDetails from './pages/quality/TicketDetails';
 
 //Page Imports
 import Quality from './pages/quality/quality';
@@ -48,6 +49,7 @@ const AppContent: React.FC = () => {
               <Route path="/documents" element={<Documents />} />
               <Route path="/purchasing" element={<Purchasing />} />
               <Route path="/schedule" element={<Schedule />} />
+              <Route path="/tickets/:id" element={<TicketDetails />} />
             </Routes>
           </motion.div>
       </div>
