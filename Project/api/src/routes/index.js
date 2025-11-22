@@ -12,8 +12,8 @@ router.use("/", workOrderRoutes);
 const Division = require('../entities/division.entity');
 const User = require('../entities/user.entity');
 const Status = require('../entities/status.entity');
-const LaborDepartment = require('../entities/labor-department.entity'); // Added
-const WorkOrder = require('../entities/wo.entity'); // Added back
+const LaborDepartment = require('../entities/labor-department.entity'); 
+const WorkOrder = require('../entities/wo.entity'); 
 
 // --- Creating all SIMPLE endpoints dynamically ---
 const divisionController = createGenericController(Division, 'divisionName');
@@ -28,8 +28,7 @@ router.get('/statuses', statusController.getAll);
 const ldController = createGenericController(LaborDepartment, 'departmentName'); 
 router.get('/labor-departments', ldController.getAll);
 
-const woController = createGenericController(WorkOrder, 'wo'); // Added back
-router.get('/work-orders', woController.getAll); // Added back
-
+const woController = createGenericController(WorkOrder, 'wo'); 
+router.get('/work-orders', woController.getAll); 
 
 module.exports = router;

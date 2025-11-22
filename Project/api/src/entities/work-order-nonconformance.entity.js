@@ -9,7 +9,7 @@ module.exports = new EntitySchema({
             type: "int",
             name: "WO_ID",
         },
-        nonconId: {
+        nonConId: {
             primary: true,
             type: "tinyint",
             name: "NONCON_ID",
