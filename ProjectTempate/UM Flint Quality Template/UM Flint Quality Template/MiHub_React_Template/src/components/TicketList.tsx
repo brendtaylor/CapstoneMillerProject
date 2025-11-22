@@ -242,7 +242,7 @@ const TicketList: React.FC = () => {
       divisionId: ticket.division?.divisionId?.toString() || '',
       workOrderId: ticket.wo?.woId?.toString() || '',
       laborDeptId: ticket.laborDepartment?.departmentId?.toString() || '',
-      manNonConId: ticket.manNonCon?.nonconId?.toString() || '',
+      manNonConId: ticket.manNonCon?.nonConId?.toString() || '',
       unitId: ticket.unit?.unitId?.toString() || '',
       sequenceId: ticket.sequence?.sequenceId?.toString() || '',
       drawingNum: ticket.drawingNum || '', // Text input

@@ -40,8 +40,8 @@ export interface Sequence {
 }
 
 export interface Nonconformance {
-  nonconId: number;
-  noncon: string;
+  nonConId: number;
+  nonCon: string;
 }
 
 
