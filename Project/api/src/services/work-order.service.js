@@ -26,7 +26,7 @@ class WorkOrderService {
                 .addSelect("COUNT(t.ticketId)", "open_ticket_count") // Count *only* open tickets
                 .groupBy("wo.woId, wo.wo")
                 .orderBy("wo.wo", "ASC")
-                .getRawMany(); // getRawMany is best for aggregate data
+                .getRawMany(); 
 
             return summary;
         } catch (error) {

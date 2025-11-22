@@ -31,7 +31,7 @@ module.exports = new EntitySchema({
         unit: {
             type: "smallint",
             name: "UNIT",
-            nullable: true, // Matched from main ticket entity
+            nullable: true, 
         },
         sequence: {
             type: "smallint",
@@ -41,7 +41,7 @@ module.exports = new EntitySchema({
             type: "smallint",
             name: "DIVISION",
         },
-        laborDepartment: { // Added
+        laborDepartment: { 
             type: "smallint",
             name: "LABOR_DEPARTMENT"
         },
@@ -59,9 +59,9 @@ module.exports = new EntitySchema({
             name: "MANUFACTURING_NONCONFORMANCE",
         },
         drawingNum: {
-            type: "nvarchar", // Changed from int
-            length: 55,       // Added length
-            nullable: true,   // Now nullable
+            type: "nvarchar", 
+            length: 55,       
+            nullable: true,   
             name: "DRAWING_NUM"
         },
         description: {
@@ -70,25 +70,25 @@ module.exports = new EntitySchema({
             name: "DESCRIPTION",
             nullable: true,
         },
-        assignedTo: { // Added
+        assignedTo: { 
             type: "smallint",
             name: "ASSIGNED_TO",
             nullable: true,
         },
-        estimatedLaborHours: { // Added
+        estimatedLaborHours: { 
             type: "decimal",
             precision: 10,
             scale: 2,
             name: "ESTIMATED_LABOR_HOURS",
             nullable: true,
         },
-        correctiveAction: { // Added
+        correctiveAction: {
             type: "nvarchar",
             length: "max",
             name: "CORRECTIVE_ACTION",
             nullable: true,
         },
-        materialsUsed: { // Added
+        materialsUsed: { 
             type: "nvarchar",
             length: "max",
             name: "MATERIALS_USED",
@@ -100,131 +100,47 @@ module.exports = new EntitySchema({
         status: {
             target: "Status",
             type: "many-to-one",
-            joinColumn: {
-                name: "STATUS",
-            },
+            joinColumn: { name: "STATUS" },
         },
         initiator: {                      
             target: "User",
             type: "many-to-one",
-            joinColumn: {
-                name: "INITIATOR",
-            },
+            joinColumn: { name: "INITIATOR" },
         }, 
         division: {
             target: "Division",
             type: "many-to-one",
-            joinColumn: {
-                name: "DIVISION",
-            },
+            joinColumn: { name: "DIVISION" },
         },
         manNonCon: {
             target: "ManNonCon",
             type: "many-to-one",
-            joinColumn: {
-                name: "MANUFACTURING_NONCONFORMANCE",
-            }
+            joinColumn: { name: "MANUFACTURING_NONCONFORMANCE" }
         },
-        laborDepartment: { // Added
+        laborDepartment: {
             target: "LaborDepartment",
             type: "many-to-one",
-            joinColumn: {
-                name: "LABOR_DEPARTMENT",
-            },
+            joinColumn: { name: "LABOR_DEPARTMENT" },
         },
         sequence: {
             target: "Sequence",
             type: "many-to-one",
-            joinColumn: {
-                name: "SEQUENCE",
-            }
+            joinColumn: { name: "SEQUENCE" }
         },
         unit: {
             target: "Unit",
             type: "many-to-one",
-            joinColumn: {
-                name: "UNIT",
-            }
+            joinColumn: { name: "UNIT" }
         },
         wo: {
             target: "WorkOrder",
             type: "many-to-one",
-            joinColumn: {
-                name: "WO",
-            }
+            joinColumn: { name: "WO" }
         },
-        assignedTo: { // Added
+        assignedTo: {
             target: "User",
             type: "many-to-one",
-            joinColumn: {
-                name: "ASSIGNED_TO",
-            }
-        }
-    },
-
-    relations: {
-        status: {
-            target: "Status",
-            type: "many-to-one",
-            joinColumn: {
-                name: "STATUS",
-            },
-        },
-        initiator: {
-            target: "User",
-            type: "many-to-one",
-            joinColumn: {
-                name: "INITIATOR",
-            },
-        },
-        division: {
-            target: "Division",
-            type: "many-to-one",
-            joinColumn: {
-                name: "DIVISION",
-            },
-        },
-        drawingNum: {
-            target: "DrawingNum",
-            type: "many-to-one",
-            joinColumn: {
-                name: "DRAWING_NUM",
-            }
-        },
-        manNonCon: {
-            target: "ManNonCon",
-            type: "many-to-one",
-            joinColumn: {
-                name: "MANUFACTURING_NONCONFORMANCE",
-            }
-        },
-        partNum: {
-            target: "PartNum",
-            type: "many-to-one",
-            joinColumn: {
-                name: "PART_NUM",
-            }
-        },
-        sequence: {
-            target: "Sequence",
-            type: "many-to-one",
-            joinColumn: {
-                name: "SEQUENCE",
-            }
-        },
-        unit: {
-            target: "Unit",
-            type: "many-to-one",
-            joinColumn: {
-                name: "UNIT",
-            }
-        },
-        wo: {
-            target: "WorkOrder",
-            type: "many-to-one",
-            joinColumn: {
-                name: "WO",
-            }
+            joinColumn: { name: "ASSIGNED_TO" }
         }
     },
 });
