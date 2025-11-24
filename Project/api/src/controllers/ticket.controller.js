@@ -16,6 +16,15 @@ async function createTicket(req, res) {
     try {
         const newTicket = await ticketService.createTicket(req.body);
         res.status(201).json(newTicket);
+        const makeRs = await emitToMake('ticket.create', { ticket: newTicket });
+
+        if (makeRs?.status === 'success') {
+            console.log(`Email sent successfully for ${makeRs.event}`);
+            // code if make succeeds
+        } else {
+            console.log(`Email failed to send for ${makeRs.event}. Error: ${makeRs.error}`);
+            // code if make fails
+        }
     } catch (error) {
         console.error("Error creating ticket:", error);
         
@@ -48,7 +57,16 @@ async function updateTicket(req, res) {
     try {
         const updatedTicket = await ticketService.updateTicket(req.params.id, req.body);
         if (updatedTicket) {
-            res.json(updatedTicket);
+            res.json(updatedTicket);                                                                //sending back the updated ticket
+            const makeRs = await emitToMake('ticket.update', { ticket: updatedTicket });
+
+            if (makeRs?.status === 'success') {
+                console.log(`Email sent successfully for ${makeRs.event}`);
+                // code if make succeeds
+            } else {
+                console.log(`Email failed to send for ${makeRs.event}. Error: ${makeRs.error}`);
+                // code if make fails
+            }
         } else {
             res.status(404).json({ message: "Ticket not found" });
         }
