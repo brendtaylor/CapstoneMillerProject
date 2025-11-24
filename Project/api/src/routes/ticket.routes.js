@@ -1,19 +1,32 @@
-const express = require("express");
+const { Router } = require("express");
+const router = Router();
 const {
     getAllTickets,
-    getTicketByID,
+    getTicketById,
+    getAllArchivedTickets,
+    getArchivedTicketByID,
     createTicket,
     updateTicket,
-    archiveTicket
+    deleteTicket,
+    connectSSE 
 } = require("../controllers/ticket.controller");
 
-const router = express.Router();
 
-/// GET /api/tickets - Get all tickets
+// --- Static routes must come BEFORE dynamic routes ---
+// This route is for the Server-Sent Events stream
+router.get("/events", connectSSE);
+
+// GET /api/tickets - Get all tickets
 router.get("/", getAllTickets);
 
+//GET /api/tickets/archived - Get all archived tickets
+router.get("/archived", getAllArchivedTickets);
+
+//GET /api/tickets/archived/:id - Get a single archived ticket by its ID
+router.get("/archived/:id", getArchivedTicketByID);
+
 // GET /api/tickets/:id - Get a single ticket by its ID
-router.get("/:id", getTicketByID);
+router.get("/:id", getTicketById);
 
 // POST /api/tickets - Create a new ticket
 router.post("/", createTicket);
@@ -22,6 +35,6 @@ router.post("/", createTicket);
 router.put("/:id", updateTicket);
 
 // DELETE /api/tickets/:id - Delete (archive) a ticket
-router.delete("/:id", archiveTicket);
+router.delete("/:id", deleteTicket);
 
 module.exports = router;

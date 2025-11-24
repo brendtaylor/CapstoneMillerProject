@@ -5,14 +5,16 @@ const Ticket = require("./entities/ticket.entity");
 const User = require("./entities/user.entity");
 const Status = require("./entities/status.entity");
 const Division = require("./entities/division.entity");
-const DrawingNum = require("./entities/drawing.entity");
 const ManNonCon = require("./entities/manufact_noncon.entity");
-const PartNum = require("./entities/part.entity");
 const Sequence = require("./entities/sequence.entity");
 const Unit = require("./entities/unit.entity");
 const WorkOrder = require("./entities/wo.entity");
 const ArchivedTicket = require("./entities/archived-ticket.entity");
-
+const LaborDepartment = require ("./entities/labor-department.entity");
+const WorkOrderLaborDepartment = require ("./entities/work-order-labor-department.entity");
+const WorkOrderNonconformance = require ("./entities/work-order-nonconformance.entity");
+const WorkOrderSequence = require ("./entities/work-order-sequence.entity");
+const WorkOrderUnit = require ("./entities/work-order-unit.entity");
 
 const AppDataSource = new DataSource({
     type: "mssql",
@@ -28,13 +30,16 @@ const AppDataSource = new DataSource({
         User,
         Status,
         Division,
-        DrawingNum,
         ManNonCon,
-        PartNum,
         Sequence,
         Unit,
         WorkOrder,
-        ArchivedTicket
+        ArchivedTicket,
+        LaborDepartment,
+        WorkOrderLaborDepartment,
+        WorkOrderNonconformance,
+        WorkOrderSequence,
+        WorkOrderUnit
     ],
     
     synchronize: false, 

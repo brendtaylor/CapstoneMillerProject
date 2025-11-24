@@ -1,7 +1,3 @@
-//Description: These are the object-oriented representations of the tables in the database. 
-//Entity files define the structure of the data and the relationships between tables
-//These are the ingredients in our analogy
-
 const { EntitySchema } = require("typeorm");
 
 module.exports = new EntitySchema({
@@ -9,10 +5,16 @@ module.exports = new EntitySchema({
     tableName: "MiHubWeb_Quality_Tickets", 
     columns: {
         ticketId: {
-            primary: true,      //primary key
+            primary: true,
             type: "int",
-            generated: true,      //auto-generate ticketId number
+            generated: true,
             name: "TICKETID",          
+        },
+        qualityTicketId: {
+            type: "nvarchar",
+            length: 100,
+            nullable: true,
+            name: "QUALITY_TICKET_ID",
         },
         openDate: {
             type: "datetime",
@@ -30,107 +32,77 @@ module.exports = new EntitySchema({
             length: "max",
             nullable: true,
         },
-        status: {
-            type: "tinyint",
-            name: "STATUS"
-        },
-        initiator: {
-            type: "smallint",
-            name: "INITIATOR"
-        }, 
-        division: {
-            type: "smallint",
-            name: "DIVISION"
-        },
         drawingNum: {
-            type: "int",
+            type: "nvarchar",
+            length: 55,
+            nullable: true,
             name: "DRAWING_NUM"
         },
-        manNonCon: {
-            type: "tinyint",
-            name: "MANUFACTURING_NONCONFORMANCE"
+        estimatedLaborHours: {
+            type: "decimal",
+            precision: 10,
+            scale: 2,
+            name: "ESTIMATED_LABOR_HOURS",
+            nullable: true,
         },
-        partNum: {
-            type: "int",
-            name: "PART_NUM"
+        correctiveAction: {
+            type: "nvarchar",
+            length: "max",
+            name: "CORRECTIVE_ACTION",
+            nullable: true,
         },
-        sequence: {
-            type: "smallint",
-            name: "SEQUENCE"
-        },
-        unit: {
-            type: "smallint",
-            name: "UNIT"
-        },
-        wo: {
-            type: "int",
-            name: "WO"
+        materialsUsed: {
+            type: "nvarchar",
+            length: "max",
+            name: "MATERIALS_USED",
+            nullable: true,
         }
     },
-
     relations: {
         status: {
-            target: "Status", // This will be the 'name' in ticket-status.entity.js
+            target: "Status",
             type: "many-to-one",
-            joinColumn: {
-                name: "STATUS", // The foreign key column in this table
-            },
+            joinColumn: { name: "STATUS" },
         },
         initiator: {                      
-            target: "User", // The 'name' in user.entity.js
+            target: "User",
             type: "many-to-one",
-            joinColumn: {
-                name: "INITIATOR",
-            },
+            joinColumn: { name: "INITIATOR" },
         }, 
         division: {
             target: "Division",
             type: "many-to-one",
-            joinColumn: {
-                name: "DIVISION",
-            },
-        },
-        drawingNum: {
-            target: "DrawingNum",
-            type: "many-to-one",
-            joinColumn: {
-                name: "DRAWING_NUM",
-            }
+            joinColumn: { name: "DIVISION" },
         },
         manNonCon: {
             target: "ManNonCon",
             type: "many-to-one",
-            joinColumn: {
-                name: "MANUFACTURING_NONCONFORMANCE",
-            }
+            joinColumn: { name: "MANUFACTURING_NONCONFORMANCE" },
         },
-        partNum: {
-            target: "PartNum",
+        laborDepartment: {
+            target: "LaborDepartment",
             type: "many-to-one",
-            joinColumn: {
-                name: "PART_NUM",
-            }
+            joinColumn: { name: "LABOR_DEPARTMENT" },
         },
         sequence: {
             target: "Sequence",
             type: "many-to-one",
-            joinColumn: {
-                name: "SEQUENCE",
-            }
+            joinColumn: { name: "SEQUENCE" },
         },
         unit: {
             target: "Unit",
             type: "many-to-one",
-            joinColumn: {
-                name: "UNIT",
-            }
+            joinColumn: { name: "UNIT" },
         },
         wo: {
             target: "WorkOrder",
             type: "many-to-one",
-            joinColumn: {
-                name: "WO",
-            }
+            joinColumn: { name: "WO" },
+        },
+        assignedTo: {
+            target: "User",
+            type: "many-to-one",
+            joinColumn: { name: "ASSIGNED_TO" },
         }
     },
 });

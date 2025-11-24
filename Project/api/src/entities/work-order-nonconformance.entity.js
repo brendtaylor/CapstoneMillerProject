@@ -1,0 +1,34 @@
+const { EntitySchema } = require("typeorm");
+
+module.exports = new EntitySchema({
+    name: "WorkOrderNonconformance",
+    tableName: "WorkOrder_Nonconformances",
+    columns: {
+        woId: {
+            primary: true,
+            type: "int",
+            name: "WO_ID",
+        },
+        nonConId: {
+            primary: true,
+            type: "tinyint",
+            name: "NONCON_ID",
+        },
+    },
+    relations: {
+        workOrder: {
+            target: "WorkOrder",
+            type: "many-to-one",
+            joinColumn: {
+                name: "WO_ID",
+            },
+        },
+        nonconformance: {
+            target: "ManNonCon", 
+            type: "many-to-one",
+            joinColumn: {
+                name: "NONCON_ID",
+            },
+        },
+    },
+});
