@@ -474,7 +474,7 @@ const TicketList: React.FC = () => {
                             </div>
 
                             {/* Full Ticket Details */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="space-y-6">
                                 <div className="lg:col-span-3 space-y-2">
                                 <h4 className="text-sm font-bold text-gray-900">Description</h4>
                                 <div className="p-3 bg-gray-50 rounded border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap break-words">
@@ -482,43 +482,45 @@ const TicketList: React.FC = () => {
                                         ? (
                                             <>
                                                 {`${ticket.description.substring(0, 300)}...`}
-                                                <span className="block mt-2 text-xs text-gray-500 italic">
-                                                    For the full description, tap "View Details".
-                                                </span>
+                                                <span className="block mt-2 text-xs text-gray-500 italic">For the full description, tap "View Details"</span>
                                             </>
                                         )
                                         : (ticket.description || "No description provided.")
                                     }
                                 </div>
-                                </div>                                
-                                <div className="bg-gray-50 p-3 rounded border border-gray-100">
-                                    <div className="space-y-3">
-                                        <h4 className="text-sm font-bold text-gray-900 border-b pb-1">Context</h4>
-                                        <DetailRow label="Division" value={ticket.division?.divisionName} />
-                                        <DetailRow label="Labor Dept" value={ticket.laborDepartment?.departmentName} />
-                                        <DetailRow label="Sequence" value={ticket.sequence ? ticket.sequence.sequenceName : 'N/A'} />
-                                        <DetailRow label="Unit" value={ticket.unit?.unitName} />
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div className="bg-gray-50 p-3 rounded border border-gray-100">
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-bold text-gray-900 border-b pb-1">Context</h4>
+                                            <DetailRow label="Division" value={ticket.division?.divisionName} />
+                                            <DetailRow label="Labor Dept" value={ticket.laborDepartment?.departmentName} />
+                                            <DetailRow label="Sequence" value={ticket.sequence ? ticket.sequence.sequenceName : 'N/A'} />
+                                            <DetailRow label="Unit" value={ticket.unit?.unitName} />
+                                        </div>
                                     </div>
-                                </div>                                
-                                <div className="bg-gray-50 p-3 rounded border border-gray-100">
-                                    <div className="space-y-3">
-                                        <h4 className="text-sm font-bold text-gray-900 border-b pb-1">Classification</h4>
-                                        <DetailRow label="Non-Conformance" value={(ticket.manNonCon as any)?.nonCon} />
-                                        <DetailRow label="Drawing #" value={ticket.drawingNum} />
-                                        <DetailRow label="Assigned To" value={ticket.assignedTo?.name || "Unassigned"} />
+                                    <div className="bg-gray-50 p-3 rounded border border-gray-100">
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-bold text-gray-900 border-b pb-1">Classification</h4>
+                                            <DetailRow label="Non-Conformance" value={(ticket.manNonCon as any)?.nonCon} />
+                                            <DetailRow label="Drawing #" value={ticket.drawingNum} />
+                                            <DetailRow label="Assigned To" value={ticket.assignedTo?.name || "Unassigned"} />
+                                        </div>
                                     </div>
                                 </div>
                                 {ticket.status?.statusId === 1 && (
-                                <div className="space-y-3 bg-blue-50 p-3 rounded border border-blue-100">
-                                    <h4 className="text-sm font-bold text-blue-900 border-b border-blue-200 pb-1">Resolution</h4>
-                                    <DetailRow label="Closed Date" value={ticket.closeDate ? new Date(ticket.closeDate).toLocaleDateString() : 'N/A'} />
-                                    <DetailRow label="Est. Hours Lost" value={ticket.estimatedLaborHours?.toString()} />
-                                    <DetailRow label="Materials" value={ticket.materialsUsed} />
-                                    <div className="pt-2 border-t border-blue-200 mt-2">
-                                    <span className="text-blue-900 text-xs uppercase tracking-wider font-semibold block mb-1">Corrective Action</span>
-                                    <p className="text-sm text-gray-800">{ticket.correctiveAction || "N/A"}</p>
+                                    <div className="bg-blue-50 p-3 rounded border border-blue-100">
+                                        <h4 className="text-sm font-bold text-blue-900 border-b border-blue-200 pb-1">Resolution</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3 mt-2 mb-4">
+                                            <DetailRow label="Closed Date" value={ticket.closeDate ? new Date(ticket.closeDate).toLocaleDateString() : 'N/A'} />
+                                            <DetailRow label="Est. Hours Lost" value={ticket.estimatedLaborHours?.toString()} />
+                                            <DetailRow label="Materials" value={ticket.materialsUsed} />
+                                        </div>
+                                        <div className="pt-3 border-t border-blue-200">
+                                            <span className="text-blue-900 text-xs uppercase tracking-wider font-semibold block mb-1">Corrective Action</span>
+                                            <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{ticket.correctiveAction || "N/A"}</p>
+                                        </div>
                                     </div>
-                                </div>
                                 )}
                             </div>
                             </AccordionContent>
