@@ -306,6 +306,28 @@ CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets_Archive](
 ) ON [PRIMARY]
 GO
 
+/****** Object:  Table [dbo].[MiHubWeb_Quality_Tickets_Closed] ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets_Closed](
+	[TICKETID] [int] NOT NULL,
+	[STATUS] [tinyint] NOT NULL,
+	[INITIATOR] [smallint] NOT NULL,
+	[WO] [int] NOT NULL,
+	[UNIT] [smallint] NULL,
+	[SEQUENCE] [smallint] NOT NULL,
+	[DIVISION] [smallint] NOT NULL,
+	[OPEN_DATE] [datetime] NOT NULL,
+	[CLOSE_DATE] [datetime] NULL,
+	[MANUFACTURING_NONCONFORMANCE] [tinyint] NOT NULL,
+	[DRAWING_NUM] [int] NOT NULL,
+	[PART_NUM] [int] NOT NULL,
+	[DESCRIPTION] [nvarchar](max) NULL,
+) ON [PRIMARY]
+GO
+
 /****** Object:  Table [dbo].[MiHub_Quality_Images]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
