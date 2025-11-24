@@ -326,6 +326,7 @@ const TicketList: React.FC = () => {
 
   // Search Logic
   useEffect(() => {
+    // Debounce search to avoid excessive API calls
     const timerId = setTimeout(() => handleSearch(searchTerm), 500);
     return () => clearTimeout(timerId);
   }, [searchTerm, tickets]);
@@ -333,31 +334,27 @@ const TicketList: React.FC = () => {
   const handleSearch = async (currentSearchTerm: string) => {
     if (!currentSearchTerm) {
       setSearchResult(null);
+      setIsSearching(false);
       return;
     }
 
-    if (/^\d+$/.test(currentSearchTerm)) {
-      setIsSearching(true);
-      try {
-        const response = await fetch(`http://localhost:3000/api/tickets/${currentSearchTerm}`);
-        if (response.ok) {
-          const ticket = await response.json();
-          setSearchResult([ticket]);
-        } else if (response.status === 404) {
-          setSearchResult([]);
-        } else {
-          throw new Error('Search failed');
-        }
-      } catch (e) {
-        setSearchResult([]);
-      } finally {
-        setIsSearching(false);
-      }
-    } else {
-      const filtered = tickets.filter(ticket =>
-        ticket.description?.toLowerCase().includes(currentSearchTerm.toLowerCase())
-      );
+    setIsSearching(true);
+    try {
+      // 1. Fetch work orders matching the search term
+      const response = await fetch(`http://localhost:3000/api/work-orders?search=${encodeURIComponent(currentSearchTerm)}`);
+      if (!response.ok) throw new Error('Failed to fetch work orders');
+      
+      const matchingWorkOrders: WorkOrder[] = await response.json();
+      const matchingWoIds = new Set(matchingWorkOrders.map(wo => wo.woId));
+
+      // 2. Filter local tickets based on the fetched work order IDs
+      const filtered = tickets.filter(ticket => ticket.wo && matchingWoIds.has(ticket.wo.woId));
       setSearchResult(filtered);
+    } catch (error) {
+      console.error("Search failed:", error);
+      setSearchResult([]); // Show no results on error
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -385,7 +382,7 @@ const TicketList: React.FC = () => {
       <div className="flex items-center gap-4 mb-6">
         <Input
           type="text"
-          placeholder="Search by Ticket ID or Description..."
+          placeholder="Search by Work Order..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm bg-white"
@@ -396,7 +393,7 @@ const TicketList: React.FC = () => {
       <div className="space-y-4">
         {(displayedTickets.length === 0 && !loading) ? (
              <div className="text-center p-8 text-gray-500 bg-white rounded shadow-sm">
-                {searchTerm ? 'No tickets found matching your search.' : 'No tickets found.'}
+                {searchTerm ? 'No work orders found matching your search.' : 'No work orders found.'}
              </div>
         ) : (
         /* --- OUTER ACCORDION: WORK ORDERS --- */
