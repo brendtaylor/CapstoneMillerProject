@@ -5,7 +5,7 @@ import { Button } from "../../components/ui/button";
 import { useToast } from "../../hooks/use-toast";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import { Textarea } from "../../components/ui/textarea";
-import FileList from "../../components/FileList";
+//import FileList from "../../components/FileList"; commented out temporarily to make react compile
 
 interface Note {
   noteId: number;
