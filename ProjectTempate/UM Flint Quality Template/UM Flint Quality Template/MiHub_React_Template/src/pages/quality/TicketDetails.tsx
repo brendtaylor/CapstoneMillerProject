@@ -5,9 +5,7 @@ import { Button } from "../../components/ui/button";
 import { useToast } from "../../hooks/use-toast";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import { Textarea } from "../../components/ui/textarea";
-
-
-
+import FileList from "../../components/FileList";
 
 interface Note {
   noteId: number;
@@ -166,6 +164,17 @@ const TicketDetails: React.FC = () => {
           <p><b>Nonconformance:</b> {ticket.manNonCon?.nonCon}</p>
           <p><b>Opened:</b> {new Date(ticket.openDate).toLocaleString()}</p>
           <p><b>Initiator:</b> {ticket.initiator?.name}</p>
+        </CardContent>
+      </Card>
+      
+      {/* Files */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Uploaded Files</CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          {/* <FileList /> */}
         </CardContent>
       </Card>
 

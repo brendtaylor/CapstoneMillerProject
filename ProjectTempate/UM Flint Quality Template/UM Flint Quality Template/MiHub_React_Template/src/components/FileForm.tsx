@@ -37,10 +37,10 @@ interface LaborDepartment {
     departmentName: string;
 }
 
-interface SavedImage {
+interface SavedFile {
     name: string;
     data: string; // Base64 string
-    isImage: boolean;
+    isFile: boolean;
 }
 
 const STORAGE_KEY = "ticketDraft";
@@ -62,7 +62,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     const [sequenceId, setSequenceId] = useState('');
     const [drawingNum, setDrawingNum] = useState(''); // Changed to string input
     const [description, setDescription] = useState('');
-    const [images, setImages] = useState<SavedImage[]>([]);
+    const [files, setfiles] = useState<SavedFile[]>([]); //Files
 
     // --- Search State (Only for Global/Large lists) ---
     const [divisionSearch, setDivisionSearch] = useState('');
@@ -111,7 +111,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                 setSequenceId(parsed.sequenceId || '');
                 setDrawingNum(parsed.drawingNum || '');
                 setDescription(parsed.description || '');
-                setImages(parsed.images || []);
+                setfiles(parsed.files || []);
                 
                 // Restore search/text terms
                 setDivisionSearch(parsed.divisionSearch || '');
@@ -131,12 +131,12 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     useEffect(() => {
         if (loading) return;
         const data = { 
-            divisionId, workOrderId, laborDeptId, manNonConId, unitId, sequenceId, drawingNum, description, images,
+            divisionId, workOrderId, laborDeptId, manNonConId, unitId, sequenceId, drawingNum, description, files,
             divisionSearch, workOrderSearch, laborDeptText, manNonConText, unitText, sequenceText
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }, [
-        divisionId, workOrderId, laborDeptId, manNonConId, unitId, sequenceId, drawingNum, description, images,
+        divisionId, workOrderId, laborDeptId, manNonConId, unitId, sequenceId, drawingNum, description, files,
         divisionSearch, workOrderSearch, laborDeptText, manNonConText, unitText, sequenceText, loading
     ]);
 
@@ -206,10 +206,10 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     // Limit amount of files to upload
     const MAX_FILES = 10;
 
-    // Handles Images and Files
+    // Handles files and Files
     const handleFileUpload = (fileArray: File[]) => {
         // Check if adding these files would exceed the limit
-        if (images.length + fileArray.length > MAX_FILES) {
+        if (files.length + fileArray.length > MAX_FILES) {
             toast({
             title: "Upload Limit Reached",
             description: `You can only upload up to ${MAX_FILES} files.`,
@@ -231,13 +231,13 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             
             const reader = new FileReader();
             reader.onloadend = () => {
-            const isImage = file.type.startsWith("image/");
-            setImages(prev => [
+            const isFile = file.type.startsWith("File/");
+            setfiles(prev => [
                 ...prev,
-                { name: file.name, data: reader.result as string, isImage }
+                { name: file.name, data: reader.result as string, isFile }
             ]);
             };
-            reader.readAsDataURL(file); // works for images and other files
+            reader.readAsDataURL(file); // works for files and other files
         });
     };
 
@@ -305,7 +305,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         setSequenceId('');
         setDrawingNum('');
         setDescription('');
-        setImages([]);
+        setfiles([]);
         
         setDivisionSearch('');
         setWorkOrderSearch('');
@@ -315,8 +315,8 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         setSequenceText('');
 
         localStorage.removeItem(STORAGE_KEY);
-        const imageInput = document.getElementById('imageUpload') as HTMLInputElement;
-        if (imageInput) imageInput.value = '';
+        const FileInput = document.getElementById('FileUpload') as HTMLInputElement;
+        if (FileInput) FileInput.value = '';
     };
 
     if (loading) {
@@ -477,7 +477,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                 />
             </div>
 
-            {/* 9. Image Upload */}
+            {/* 9. File Upload */}
             <div
                 className="flex flex-col items-center justify-center space-y-2 mt-6 border-2 border-dashed border-gray-300 p-6 rounded cursor-pointer"
                 onDragOver={(e) => e.preventDefault()}
@@ -487,22 +487,22 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     handleFileUpload(files);
                 }}
             >
-                <label htmlFor="imageUpload" className="cursor-pointer flex flex-col items-center">
+                <label htmlFor="FileUpload" className="cursor-pointer flex flex-col items-center">
                     <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-65 h-56 mb-2"/>
                     <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload or Drag Files</span>
                 </label>
                 <input
-                    id="imageUpload"
+                    id="FileUpload"
                     type="file"
                     multiple
                     onChange={(e) => e.target.files && handleFileUpload(Array.from(e.target.files))}
                     className="hidden"
                 />
-                {images.length > 0 && (
+                {files.length > 0 && (
                     <ul className="mt-2 space-y-2 text-sm text-gray-700 w-full">
-                        {images.map((file, i) => (
+                        {files.map((file, i) => (
                             <li key={i} className="flex items-center bg-gray-100 p-2 rounded">
-                                {file.isImage ? (
+                                {file.isFile ? (
                                     <img src={file.data} alt={file.name} className="w-16 h-14 object-cover rounded mr-2"/>
                                 ) : (
                                     <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded mr-2">
@@ -511,7 +511,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                                 )}
                                 <span className="flex-1">{file.name}</span>
                                 <button
-                                    onClick={() => setImages(prev => prev.filter((_, index) => index !== i))}
+                                    onClick={() => setfiles(prev => prev.filter((_, index) => index !== i))}
                                     className="text-red-500 hover:text-red-700"
                                 >
                                     Remove
