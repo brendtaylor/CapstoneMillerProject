@@ -23,8 +23,10 @@ async function createTicket(req, res) {
         const makeRs = await emitToMake('ticket.create', { ticket: newTicket });
 
         if (makeRs?.status === 'success') {
+            console.log(`Email sent successfully for ${makeRs.event}`);
             // code if make succeeds
         } else {
+            console.log(`Email failed to send for ${makeRs.event}. Error: ${makeRs.error}`);
             // code if make fails
         }
     } catch (error) {
@@ -73,8 +75,10 @@ async function updateTicket(req, res) {
             const makeRs = await emitToMake('ticket.update', { ticket: updatedTicket });
 
             if (makeRs?.status === 'success') {
+                console.log(`Email sent successfully for ${makeRs.event}`);
                 // code if make succeeds
             } else {
+                console.log(`Email failed to send for ${makeRs.event}. Error: ${makeRs.error}`);
                 // code if make fails
             }
         } else {
