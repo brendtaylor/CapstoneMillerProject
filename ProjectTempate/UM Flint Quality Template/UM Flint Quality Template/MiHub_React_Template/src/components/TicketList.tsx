@@ -37,6 +37,22 @@ const DetailRow = ({ label, value }: { label: string; value?: string | number | 
   </div>
 );
 
+// Helper function to determine badge color based on status ID
+const getStatusBadgeStyle = (statusId?: number): string => {
+  switch (statusId) {
+    case 0: // Open
+      return "bg-red-100 text-red-800";
+    case 1: // Closed
+      return "bg-green-100 text-green-800";
+    case 2: // In Progress
+      return "bg-yellow-100 text-yellow-800";
+    default:
+      // Default/unknown status style
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
+
 const TicketList: React.FC = () => {
   // --- STATE MANAGEMENT ---
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -283,7 +299,18 @@ const TicketList: React.FC = () => {
     if (!editFields.description) { toast({ variant: "destructive", title: "Validation Error", description: "Description is a required field." }); return; }
 
     try {
-      const statusValue = editFields.status === "Closed" ? 1 : 0;
+      let statusValue: number;
+      switch (editFields.status) {
+        case "Closed":
+          statusValue = 1;
+          break;
+        case "In Progress":
+          statusValue = 2;
+          break;
+        default: // Open
+          statusValue = 0;
+          break;
+      }
 
       const payload = {
         status: statusValue,
@@ -398,17 +425,22 @@ const TicketList: React.FC = () => {
         ) : (
         /* --- OUTER ACCORDION: WORK ORDERS --- */
         <Accordion type="multiple" className="w-full space-y-2">
-            {sortedWOs.map((woNum) => (
-            <AccordionItem 
+            {sortedWOs.map((woNum) => {
+                const activeTickets = ticketsByWO[woNum].filter(
+                    (ticket) => ticket.status?.statusId === 0 || ticket.status?.statusId === 2 // Open or In Progress
+                );
+                const activeTicketCount = activeTickets.length;
+
+                return (
+                <AccordionItem 
                 key={woNum} 
                 value={woNum} 
                 className="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden"
-            >
+                >
                 <AccordionTrigger className="px-6 py-4 hover:bg-gray-50 hover:no-underline transition-colors">
                 <div className="flex items-center gap-4">
-                    <span className="text-lg font-bold text-gray-800">Work Order: {woNum}</span>
-                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    {ticketsByWO[woNum].length} Ticket{ticketsByWO[woNum].length !== 1 && 's'}
+                    <span className="text-lg font-bold text-gray-800">{woNum}</span>
+                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{activeTicketCount} Ticket{activeTicketCount !== 1 && 's'}
                     </span>
                 </div>
                 </AccordionTrigger>
@@ -416,7 +448,6 @@ const TicketList: React.FC = () => {
                 <AccordionContent className="px-6 pb-6 pt-2 bg-gray-50/50">
                 <Accordion type="single" collapsible className="w-full space-y-2">
                     {ticketsByWO[woNum].map((ticket) => {
-                        const badgeStyle = ticket.status?.statusId === 0 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
                         return (
                         <AccordionItem 
                             id={`ticket-${ticket.ticketId}`}
@@ -442,7 +473,7 @@ const TicketList: React.FC = () => {
                             >
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full text-left pr-4 items-center">
                                 <span className="font-bold text-blue-600">{ticket.qualityTicketId || ticket.ticketId}</span>
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium w-fit ${badgeStyle}`}>
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium w-fit ${getStatusBadgeStyle(ticket.status?.statusId)}`}>
                                 {ticket.status?.statusDescription}
                                 </span>
                                 <span className="text-sm text-gray-600 truncate">
@@ -529,8 +560,8 @@ const TicketList: React.FC = () => {
                     })}
                 </Accordion>
                 </AccordionContent>
-            </AccordionItem>
-            ))}
+                </AccordionItem>
+            )})}
         </Accordion>
         )}
       </div>
@@ -562,6 +593,7 @@ const TicketList: React.FC = () => {
             >
                 <option value="Open">Open</option>
                 <option value="Closed">Closed</option>
+                <option value="In Progress">In Progress</option>
             </select>
             </div>
 
