@@ -1,6 +1,6 @@
 const { AppDataSource } = require("../data-source");
 const { emitToMake } = require("../utils/makeEmitter"); 
-const { EventEmitter } = require("events"); // Node's built-in EventEmitter
+const { EventEmitter } = require("events"); 
 const logger = require("../../logger");
 
 class TicketService {
@@ -11,7 +11,6 @@ class TicketService {
         this.sseEmitter = new EventEmitter(); 
         logger.info("TicketService initialized");
     
-        // Define standard relations
         this.relations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
@@ -45,7 +44,6 @@ class TicketService {
         await queryRunner.startTransaction();
 
         try {
-            //Get WO number for Quality Ticket ID generation
             const workOrder = await queryRunner.manager.findOne("WorkOrder", {
                 where: { woId: ticketData.wo }
             });
@@ -54,7 +52,6 @@ class TicketService {
             }
             const woNumber = workOrder.wo;
 
-            //Generate Quality Ticket ID
             const ticketCount = await queryRunner.manager.count("Ticket", {
                 where: { wo: ticketData.wo }
             });
@@ -63,7 +60,6 @@ class TicketService {
             const qualityTicketId = `${woNumber}-${newTicketNum}`;
             logger.info(`Generated new Quality Ticket ID: ${qualityTicketId}`);
 
-            //Create Ticket
             const newTicket = queryRunner.manager.create("Ticket", {
                 ...ticketData,
                 qualityTicketId: qualityTicketId,
@@ -74,11 +70,16 @@ class TicketService {
             const savedTicket = await queryRunner.manager.save("Ticket", newTicket);
             await queryRunner.commitTransaction();
 
-            // Emit Events
-            this.sseEmitter.emit('new-ticket', savedTicket); // For frontend SSE
-            await emitToMake('new-ticket', savedTicket); // For Make.com webhook
+            // Emit Events (Both SSE and Webhook are handled here)
+            this.sseEmitter.emit('new-ticket', savedTicket); 
             
-            logger.info(`Ticket created with ID: ${savedTicket.ticketId} and Quality ID: ${qualityTicketId}`);
+            try {
+                await emitToMake('new-ticket', savedTicket); 
+            } catch (err) {
+                logger.error(`Failed to emit new-ticket webhook: ${err.message}`);
+            }
+            
+            logger.info(`Ticket created with ID: ${savedTicket.ticketId}`);
             return savedTicket;
 
         } catch (error) {
@@ -94,7 +95,7 @@ class TicketService {
         logger.info(`Updating ticket ID: ${id}`);
         const updatePayload = { ...ticketData };
 
-        if (updatePayload.status === 2) {                                                   // 2 = 'Closed'
+        if (updatePayload.status === 2) { 
             updatePayload.closeDate = new Date();
             logger.info(`Ticket ${id} is being closed.`);
         }
@@ -103,8 +104,14 @@ class TicketService {
         const updatedTicket = await this.getTicketById(id);
         
         // Emit Events
-        this.sseEmitter.emit('update-ticket', updatedTicket); // For frontend SSE
+        this.sseEmitter.emit('update-ticket', updatedTicket);
         
+        try {
+            await emitToMake('update-ticket', updatedTicket); 
+        } catch (err) {
+            logger.error(`Failed to emit update-ticket webhook: ${err.message}`);
+        }
+
         logger.info(`Ticket ${id} updated`);
         return updatedTicket;
     }
@@ -128,12 +135,12 @@ class TicketService {
 
         await this.ticketRepository.delete(id);
         
-        // Emit events
-        this.sseEmitter.emit('delete-ticket', { id: id }); // For frontend SSE
+        this.sseEmitter.emit('delete-ticket', { id: id }); 
         
         logger.info(`Ticket ${id} archived and deleted`);
         return { id: id, message: "Ticket archived successfully" };
     }
+
     async getAllArchivedTickets() {
         logger.info("Fetching all archived tickets");
         return await this.archivedRepository.find({
@@ -149,7 +156,6 @@ class TicketService {
         });
     }
 
-    // SSE functions
     async connectSSE(req, res) {
         logger.info("SSE client connected");
         res.setHeader('Content-Type', 'text/event-stream');
@@ -178,6 +184,5 @@ class TicketService {
         });
     }
 }
-
 
 module.exports = new TicketService();

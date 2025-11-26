@@ -16,15 +16,6 @@ async function createTicket(req, res) {
     try {
         const newTicket = await ticketService.createTicket(req.body);
         res.status(201).json(newTicket);
-        const makeRs = await emitToMake('ticket.create', { ticket: newTicket });
-
-        if (makeRs?.status === 'success') {
-            console.log(`Email sent successfully for ${makeRs.event}`);
-            // code if make succeeds
-        } else {
-            console.log(`Email failed to send for ${makeRs.event}. Error: ${makeRs.error}`);
-            // code if make fails
-        }
     } catch (error) {
         console.error("Error creating ticket:", error);
         
@@ -57,16 +48,7 @@ async function updateTicket(req, res) {
     try {
         const updatedTicket = await ticketService.updateTicket(req.params.id, req.body);
         if (updatedTicket) {
-            res.json(updatedTicket);                                                                //sending back the updated ticket
-            const makeRs = await emitToMake('ticket.update', { ticket: updatedTicket });
-
-            if (makeRs?.status === 'success') {
-                console.log(`Email sent successfully for ${makeRs.event}`);
-                // code if make succeeds
-            } else {
-                console.log(`Email failed to send for ${makeRs.event}. Error: ${makeRs.error}`);
-                // code if make fails
-            }
+            res.json(updatedTicket);
         } else {
             res.status(404).json({ message: "Ticket not found" });
         }
@@ -87,7 +69,7 @@ async function updateTicket(req, res) {
 }
 
 //Controller for deleting (archiving) a ticket
-async function deleteTicket(req, res) { // Renamed to match service
+async function deleteTicket(req, res) { 
     try {
         const result = await ticketService.deleteTicket(req.params.id);
         res.status(200).json(result);
@@ -96,7 +78,6 @@ async function deleteTicket(req, res) { // Renamed to match service
         res.status(500).json({ message: "Internal Server Error" });
     }
 }
-
 
 // Controller for handling Server-Sent Events (SSE)
 async function connectSSE(req, res) {
