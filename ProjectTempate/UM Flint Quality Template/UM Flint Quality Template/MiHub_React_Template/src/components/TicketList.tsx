@@ -68,6 +68,101 @@ const TicketList: React.FC = () => {
 
   // Track scroll position
   const [lastScrollPosition, setLastScrollPosition] = useState<number | null>(null);
+  const [mobileDetailTicket, setMobileDetailTicket] = useState<Ticket | null>(null);
+  const openMobileTicketDetail = (ticket: Ticket) => setMobileDetailTicket(ticket);
+  const closeMobileTicketDetail = () => setMobileDetailTicket(null);
+
+  const renderTicketDetailBody = (ticket: Ticket) => (
+    <>
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-3 mb-6 border-b border-gray-100 pb-4">
+        <Button
+          variant="default"
+          onClick={() => {
+            closeMobileTicketDetail();
+            navigate(`/tickets/${ticket.ticketId}`);
+          }}
+          className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
+        >
+          View Details
+        </Button>
+        {userRole === 'admin' && (
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                closeMobileTicketDetail();
+                handleEdit(ticket.ticketId);
+              }}
+              className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
+            >
+              Edit Ticket
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                closeMobileTicketDetail();
+                confirmAndArchive(ticket.ticketId);
+              }}
+              className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
+            >
+              Archive Ticket
+            </Button>
+          </>
+        )}
+      </div>
+
+      {/* Full Ticket Details */}
+      <div className="space-y-6">
+        <div className="lg:col-span-3 space-y-2">
+          <h4 className="text-sm font-bold text-gray-900">Description</h4>
+          <div className="p-3 bg-gray-50 rounded border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap break-words">
+            {ticket.description && ticket.description.length > 300 ? (
+              <>
+                {`${ticket.description.substring(0, 300)}...`}
+                <span className="block mt-2 text-xs text-gray-500 italic">For the full description, tap "View Details"</span>
+              </>
+            ) : (
+              ticket.description || "No description provided."
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-gray-50 p-3 rounded border border-gray-100">
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold text-gray-900 border-b pb-1">Context</h4>
+              <DetailRow label="Division" value={ticket.division?.divisionName} />
+              <DetailRow label="Labor Dept" value={ticket.laborDepartment?.departmentName} />
+              <DetailRow label="Sequence" value={ticket.sequence ? ticket.sequence.sequenceName : 'N/A'} />
+              <DetailRow label="Unit" value={ticket.unit?.unitName} />
+            </div>
+          </div>
+          <div className="bg-gray-50 p-3 rounded border border-gray-100">
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold text-gray-900 border-b pb-1">Classification</h4>
+              <DetailRow label="Non-Conformance" value={(ticket.manNonCon as any)?.nonCon} />
+              <DetailRow label="Drawing #" value={ticket.drawingNum} />
+              <DetailRow label="Assigned To" value={ticket.assignedTo?.name || "Unassigned"} />
+            </div>
+          </div>
+        </div>
+        {ticket.status?.statusId === 1 && (
+          <div className="bg-blue-50 p-3 rounded border border-blue-100">
+            <h4 className="text-sm font-bold text-blue-900 border-b border-blue-200 pb-1">Resolution</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3 mt-2 mb-4">
+              <DetailRow label="Closed Date" value={ticket.closeDate ? new Date(ticket.closeDate).toLocaleDateString() : 'N/A'} />
+              <DetailRow label="Est. Hours Lost" value={ticket.estimatedLaborHours?.toString()} />
+              <DetailRow label="Materials" value={ticket.materialsUsed} />
+            </div>
+            <div className="pt-3 border-t border-blue-200">
+              <span className="text-blue-900 text-xs uppercase tracking-wider font-semibold block mb-1">Corrective Action</span>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{ticket.correctiveAction || "N/A"}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
   
   // Archive Modal State
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
@@ -280,9 +375,9 @@ const TicketList: React.FC = () => {
 
   // Prevent background scroll on modal
   useEffect(() => {
-    document.body.style.overflow = isEditing ? 'hidden' : '';
+    document.body.style.overflow = (isEditing || mobileDetailTicket) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [isEditing]);
+  }, [isEditing, mobileDetailTicket]);
 
   const handleSaveEdit = async () => {
     if (!editingTicket) return;
@@ -458,6 +553,12 @@ const TicketList: React.FC = () => {
                             <AccordionTrigger 
                                 className="px-4 py-3 hover:bg-gray-50 hover:no-underline"
                                 onClick={(e) => {
+                                    if (isMobile) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        openMobileTicketDetail(ticket);
+                                        return;
+                                    }
                                     const isClosing = (e.currentTarget.closest('[data-state]')?.getAttribute('data-state') === 'open');
                                     if (isClosing && lastScrollPosition !== null) {
                                         window.scrollTo({ top: lastScrollPosition, behavior: 'smooth' });
@@ -487,73 +588,7 @@ const TicketList: React.FC = () => {
                             </AccordionTrigger>
                             
                             <AccordionContent className="px-4 py-4 border-t border-gray-100">
-                            {/* Action Buttons */}
-                            <div className="flex flex-wrap gap-3 mb-6 border-b border-gray-100 pb-4">
-                                 <Button
-                                    variant="default"
-                                    onClick={() => navigate(`/tickets/${ticket.ticketId}`)}
-                                    className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
-                                >
-                                    View Details
-                                </Button>
-                                {userRole === 'admin' && (
-                                    <>
-                                        <Button variant="secondary" onClick={() => handleEdit(ticket.ticketId)} className="flex-1 md:flex-none md:w-auto md:min-w-[120px]">Edit Ticket</Button>
-                                        <Button variant="destructive" onClick={() => confirmAndArchive(ticket.ticketId)} className="flex-1 md:flex-none md:w-auto md:min-w-[120px]">Archive Ticket</Button>
-                                    </>
-                                )}
-                            </div>
-
-                            {/* Full Ticket Details */}
-                            <div className="space-y-6">
-                                <div className="lg:col-span-3 space-y-2">
-                                <h4 className="text-sm font-bold text-gray-900">Description</h4>
-                                <div className="p-3 bg-gray-50 rounded border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                                    {ticket.description && ticket.description.length > 300
-                                        ? (
-                                            <>
-                                                {`${ticket.description.substring(0, 300)}...`}
-                                                <span className="block mt-2 text-xs text-gray-500 italic">For the full description, tap "View Details"</span>
-                                            </>
-                                        )
-                                        : (ticket.description || "No description provided.")
-                                    }
-                                </div>
-                                </div>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <div className="bg-gray-50 p-3 rounded border border-gray-100">
-                                        <div className="space-y-3">
-                                            <h4 className="text-sm font-bold text-gray-900 border-b pb-1">Context</h4>
-                                            <DetailRow label="Division" value={ticket.division?.divisionName} />
-                                            <DetailRow label="Labor Dept" value={ticket.laborDepartment?.departmentName} />
-                                            <DetailRow label="Sequence" value={ticket.sequence ? ticket.sequence.sequenceName : 'N/A'} />
-                                            <DetailRow label="Unit" value={ticket.unit?.unitName} />
-                                        </div>
-                                    </div>
-                                    <div className="bg-gray-50 p-3 rounded border border-gray-100">
-                                        <div className="space-y-3">
-                                            <h4 className="text-sm font-bold text-gray-900 border-b pb-1">Classification</h4>
-                                            <DetailRow label="Non-Conformance" value={(ticket.manNonCon as any)?.nonCon} />
-                                            <DetailRow label="Drawing #" value={ticket.drawingNum} />
-                                            <DetailRow label="Assigned To" value={ticket.assignedTo?.name || "Unassigned"} />
-                                        </div>
-                                    </div>
-                                </div>
-                                {ticket.status?.statusId === 1 && (
-                                    <div className="bg-blue-50 p-3 rounded border border-blue-100">
-                                        <h4 className="text-sm font-bold text-blue-900 border-b border-blue-200 pb-1">Resolution</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3 mt-2 mb-4">
-                                            <DetailRow label="Closed Date" value={ticket.closeDate ? new Date(ticket.closeDate).toLocaleDateString() : 'N/A'} />
-                                            <DetailRow label="Est. Hours Lost" value={ticket.estimatedLaborHours?.toString()} />
-                                            <DetailRow label="Materials" value={ticket.materialsUsed} />
-                                        </div>
-                                        <div className="pt-3 border-t border-blue-200">
-                                            <span className="text-blue-900 text-xs uppercase tracking-wider font-semibold block mb-1">Corrective Action</span>
-                                            <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{ticket.correctiveAction || "N/A"}</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                              {renderTicketDetailBody(ticket)}
                             </AccordionContent>
                         </AccordionItem>
                         );
@@ -565,6 +600,36 @@ const TicketList: React.FC = () => {
         </Accordion>
         )}
       </div>
+
+      {/* --- MOBILE DETAIL OVERLAY --- */}
+      {isMobile && mobileDetailTicket && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 p-4"
+          onClick={closeMobileTicketDetail}
+        >
+          <div
+            className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl max-h-full overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeMobileTicketDetail}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-gray-100 text-gray-800 text-lg font-semibold flex items-center justify-center hover:bg-gray-200"
+              aria-label="Close ticket details"
+            >
+              X
+            </button>
+            <div className="px-4 py-6 space-y-4">
+              <div>
+                <p className="text-xs uppercase text-gray-500 tracking-wide">Ticket</p>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {mobileDetailTicket.qualityTicketId || mobileDetailTicket.ticketId}
+                </h3>
+              </div>
+              {renderTicketDetailBody(mobileDetailTicket)}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- EDIT MODAL --- */}
       {isEditing && (
