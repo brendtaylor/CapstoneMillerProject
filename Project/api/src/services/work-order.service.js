@@ -42,7 +42,9 @@ class WorkOrderService {
     async getTicketsByWorkOrder(woId) {
         logger.info(`Fetching tickets for WO ID: ${woId}`);
         return await ticketRepository.find({
-            where: { wo: woId },
+            where: { 
+                wo: { woId: parseInt(woId) }
+                 },
             relations: [
                 "status",
                 "initiator",
