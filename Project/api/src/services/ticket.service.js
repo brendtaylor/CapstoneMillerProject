@@ -94,7 +94,7 @@ class TicketService {
         logger.info(`Updating ticket ID: ${id}`);
         const updatePayload = { ...ticketData };
 
-        if (updatePayload.status === 1) {                                                   // 1 = 'Closed'
+        if (updatePayload.status === 2) {                                                   // 2 = 'Closed'
             updatePayload.closeDate = new Date();
             logger.info(`Ticket ${id} is being closed.`);
         }

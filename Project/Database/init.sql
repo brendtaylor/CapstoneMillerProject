@@ -409,7 +409,8 @@ GO
 INSERT INTO dbo.MiHub_Quality_Ticket_Status (STATUS_ID, STATUS_DESCRIPTION)
 VALUES 
     (0, 'Open'),
-    (1, 'Closed');
+	(1, 'In Progress'),
+    (2, 'Closed');
 GO
 
 -- Populate Divisions Table

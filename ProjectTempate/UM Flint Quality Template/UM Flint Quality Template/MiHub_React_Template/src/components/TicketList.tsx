@@ -42,9 +42,9 @@ const getStatusBadgeStyle = (statusId?: number): string => {
   switch (statusId) {
     case 0: // Open
       return "bg-red-100 text-red-800";
-    case 1: // Closed
+    case 2: // Closed
       return "bg-green-100 text-green-800";
-    case 2: // In Progress
+    case 1: // In Progress
       return "bg-yellow-100 text-yellow-800";
     default:
       // Default/unknown status style
@@ -397,10 +397,10 @@ const TicketList: React.FC = () => {
       let statusValue: number;
       switch (editFields.status) {
         case "Closed":
-          statusValue = 1;
+          statusValue = 2;
           break;
         case "In Progress":
-          statusValue = 2;
+          statusValue = 1;
           break;
         default: // Open
           statusValue = 0;
@@ -522,7 +522,7 @@ const TicketList: React.FC = () => {
         <Accordion type="multiple" className="w-full space-y-2">
             {sortedWOs.map((woNum) => {
                 const activeTickets = ticketsByWO[woNum].filter(
-                    (ticket) => ticket.status?.statusId === 0 || ticket.status?.statusId === 2 // Open or In Progress
+                    (ticket) => ticket.status?.statusId === 0 || ticket.status?.statusId === 1 // Open or In Progress
                 );
                 const activeTicketCount = activeTickets.length;
 

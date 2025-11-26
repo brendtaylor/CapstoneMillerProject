@@ -1,7 +1,8 @@
 const { Router } = require("express");
 const router = Router();
 const {
-    getAllTickets,
+    getAllOpenTickets,
+    getAllClosedTickets,
     getTicketById,
     getAllArchivedTickets,
     getArchivedTicketByID,
@@ -16,8 +17,11 @@ const {
 // This route is for the Server-Sent Events stream
 router.get("/events", connectSSE);
 
-// GET /api/tickets - Get all tickets
-router.get("/", getAllTickets);
+// GET /api/tickets/open - Get all active tickets (Status 0 & 1)
+router.get("/open", getAllOpenTickets);
+
+// GET /api/tickets/closed - Get all closed tickets (Status 2)
+router.get("/closed", getAllClosedTickets);
 
 //GET /api/tickets/archived - Get all archived tickets
 router.get("/archived", getAllArchivedTickets);

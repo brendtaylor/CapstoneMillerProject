@@ -38,11 +38,26 @@ class WorkOrderService {
     /**
      * Gets all tickets for a single, specific Work Order ID.
      * Used when a user expands a WO on the dashboard.
+     * includes a filter for the status column to return Open/In progress Tickets or Closed Tickets
+     * Get all tickets: GET /api/work-orders/{wo_id}/tickets
+     * Get all OPEN/IN-Progress tickets: GET /api/work-orders/{wo_id}/tickets?status=0
+     * Get all CLOSED tickets: GET /api/work-orders/{wo_id}/tickets?status=2
      */
-    async getTicketsByWorkOrder(woId) {
-        logger.info(`Fetching tickets for WO ID: ${woId}`);
+async getTicketsByWorkOrder(woId, statusFilter = null) {
+        logger.info(`Fetching tickets for WO ID: ${woId} with status: ${statusFilter ?? 'ALL'}`)
+
+        const whereClause = {
+            wo: { woId: parseInt(woId) }
+        };
+
+        // If a status filter is provided, add it to the WHERE clause
+        // Checks for null/undefined so that status "0" (Open) is still valid
+        if (statusFilter !== null && statusFilter !== undefined) {
+            whereClause.status = { statusId: parseInt(statusFilter) };
+        }
+
         return await ticketRepository.find({
-            where: { wo: woId },
+            where: whereClause,
             relations: [
                 "status",
                 "initiator",
