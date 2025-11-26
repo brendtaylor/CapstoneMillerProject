@@ -9,6 +9,7 @@ import { Ticket } from "../../types";
 import { Skeleton } from "../../components/ui/skeleton";
 import FileForm from "../../components/FileForm";
 import TicketList from "../../components/TicketList";
+import AuditLog from "../../components/AuditLog";
 
 const Quality: React.FC = () => {
     const isMobile = useIsMobile();
@@ -49,6 +50,7 @@ const Quality: React.FC = () => {
               <TabsList className="flex flex-col gap-4 mt-16 bg-gray-800">
                 <TabsTrigger value="tickets" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => setDropdownOpen(false)}>Tickets</TabsTrigger>
                 <TabsTrigger value="checklist" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => setDropdownOpen(false)}>Checklist</TabsTrigger>
+                <TabsTrigger value="auditlog" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => setDropdownOpen(false)}>Audit Log</TabsTrigger>
               </TabsList>
             </div>
           )}
@@ -112,7 +114,9 @@ const Quality: React.FC = () => {
           <TabsContent value="auditlog" className="my-2">
             <Card>
               <CardHeader className="flex flex-row"><CardTitle>Audit Log<p className="text-sm font-normal mt-1">Edited Tickets</p></CardTitle></CardHeader>
-              <CardContent><div>Placeholder for Audit log stuff</div></CardContent>
+              <CardContent>
+                <AuditLog />
+              </CardContent>
             </Card>
           </TabsContent>
         </div>

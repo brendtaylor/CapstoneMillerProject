@@ -13,6 +13,7 @@ import { useToast } from '../hooks/use-toast';
 import { useDebounce } from '../hooks/use-debounce';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useNavigate } from "react-router-dom";
+import { logAudit } from "./utils/auditLogger";
 
 import { 
   Ticket, 
@@ -22,6 +23,7 @@ import {
   Sequence, 
   LaborDepartment
 } from "../types"; 
+
 
 // Local interfaces to match the specific API responses expected by the Form logic
 interface ManNonCon {
@@ -240,9 +242,10 @@ const TicketList: React.FC = () => {
     }
   };
 
-  const confirmAndArchive = (ticketId: number) => {
+  const confirmAndArchive = async (ticketId: number) => {
     setTicketToArchive(ticketId);
     setShowArchiveConfirm(true);
+    //await logAudit("archive", ticketId);
   };
 
   const handleEdit = (ticketId: number) => {
@@ -251,6 +254,7 @@ const TicketList: React.FC = () => {
     
     setEditingTicket(ticket);
     setIsEditing(true);
+    
 
     // Map properties
     setEditFields({
@@ -290,6 +294,7 @@ const TicketList: React.FC = () => {
         toast({ variant: "destructive", title: "Authentication Error", description: "User could not be identified. Please log in again." });
         return;
     }
+
     
     // Validation (Matching FileForm logic)
     if (!editFields.divisionId) { toast({ variant: "destructive", title: "Validation Error", description: "'Division' field is empty." }); return; }
@@ -342,6 +347,12 @@ const TicketList: React.FC = () => {
       if (!success) throw new Error(`Failed to update ticket. Status: ${response.status}`);
 
       toast({ title: "Success", description: `Ticket ${editingTicket.qualityTicketId} has been updated.` });
+      
+
+      //const numericTicketId = Number(editingTicket.qualityTicketId);
+
+      //await logAudit("edit", numericTicketId);
+
       fetchTickets();
       setIsEditing(false);
       setEditingTicket(null);
@@ -349,6 +360,7 @@ const TicketList: React.FC = () => {
       console.error("Update error:", err);
       toast({ variant: "destructive", title: "Update Failed", description: err.message });
     }
+    
   };
 
   // Search Logic

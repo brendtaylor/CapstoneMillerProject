@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from '../hooks/use-toast';
 import { useDebounce } from '../hooks/use-debounce';
+import { FileImage, FileText, FileArchive, FileType } from "lucide-react";
+import { logAudit } from './utils/auditLogger';
 
 // --- Interfaces ---
 
@@ -39,9 +41,13 @@ interface LaborDepartment {
 
 interface SavedFile {
     name: string;
-    data: string; // Base64 string
+    data: string; // Base64 string for preview
     isFile: boolean;
+    file: File;
+    uploaded?: boolean; // Flag to track upload status
+    previewType: "image" | "pdf" | "doc" | "zip" | "video" | "other";
 }
+
 
 const STORAGE_KEY = "ticketDraft";
 
@@ -62,7 +68,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     const [sequenceId, setSequenceId] = useState('');
     const [drawingNum, setDrawingNum] = useState(''); // Changed to string input
     const [description, setDescription] = useState('');
-    const [files, setfiles] = useState<SavedFile[]>([]); //Files
+    const [files, setFiles] = useState<SavedFile[]>([]); //Files
 
     // --- Search State (Only for Global/Large lists) ---
     const [divisionSearch, setDivisionSearch] = useState('');
@@ -111,7 +117,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                 setSequenceId(parsed.sequenceId || '');
                 setDrawingNum(parsed.drawingNum || '');
                 setDescription(parsed.description || '');
-                setfiles(parsed.files || []);
+                setFiles(parsed.files || []);
                 
                 // Restore search/text terms
                 setDivisionSearch(parsed.divisionSearch || '');
@@ -207,38 +213,55 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     const MAX_FILES = 10;
 
     // Handles files and Files
-    const handleFileUpload = (fileArray: File[]) => {
+    const handleFileUpload = async (fileArray: File[]) => {
         // Check if adding these files would exceed the limit
         if (files.length + fileArray.length > MAX_FILES) {
             toast({
-            title: "Upload Limit Reached",
-            description: `You can only upload up to ${MAX_FILES} files.`,
-            variant: "destructive"
+                title: "Upload Limit Reached",
+                description: `You can only upload up to ${MAX_FILES} files.`,
+                variant: "destructive"
             });
             return;
         }
 
-        fileArray.forEach((file) => {
-            // Block video files
+        for (const file of fileArray) {
+            //Prevent Video Files
             if (file.type.startsWith("video/")) {
-            toast({
-                title: "Unsupported File Type",
-                description: "Video files are not allowed.",
-                variant: "destructive"
-            });
-            return; // skip this file
+                toast({
+                    title: "Unsupported File Type",
+                    description: "Video files are not allowed.",
+                    variant: "destructive"
+                });
+                continue;
             }
-            
+
+            // File Preview
             const reader = new FileReader();
             reader.onloadend = () => {
-            const isFile = file.type.startsWith("File/");
-            setfiles(prev => [
-                ...prev,
-                { name: file.name, data: reader.result as string, isFile }
-            ]);
+                let previewType: "image" | "pdf" | "doc" | "zip" | "video" | "other" = "other";
+
+                //Sets icon to preview types that break
+                if (file.type.startsWith("image/")) previewType = "image";
+                else if (file.type === "application/pdf") previewType = "pdf";
+                else if (file.type.includes("word") || file.name.endsWith(".docx")) previewType = "doc";
+                else if (file.type.includes("zip") || file.name.endsWith(".zip")) previewType = "zip";
+                else if (file.type.startsWith("video/")) previewType = "video";
+                
+
+                setFiles(prev => [
+                    ...prev,
+                    { 
+                        name: file.name, 
+                        data: reader.result as string, 
+                        isFile: true,
+                        file,
+                        uploaded: false,
+                        previewType
+                    }
+                ]);
             };
             reader.readAsDataURL(file); // works for files and other files
-        });
+        }
     };
 
     const handleSave = async () => {
@@ -267,22 +290,57 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         };
 
         try {
+            // Create the Ticket
             const response = await fetch('http://localhost:3000/api/tickets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(ticketPayload),
             });
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Failed to create ticket.');
             }
+
             const newTicket = await response.json();
             toast({ title: "Success!", description: `Ticket ${newTicket.qualityTicketId} has been created.` });
-            
-            handleDelete(); // Clear form
+
+            // Log the Ticket creation
+            await logAudit("create", newTicket.qualityTicketId);
+
+            {/*
+            // Upload Files
+            for (const f of files) {
+                if (f.uploaded) continue; // skip already uploaded
+
+                const formData = new FormData();
+                formData.append("ticketId", newTicket.qualityTicketId.toString());
+                formData.append("imageKey", f.name);
+                formData.append("imageFile", f.file);
+
+                const res = await fetch("http://localhost:3000/api/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || "File upload failed");
+
+                toast({ title: "File Uploaded", description: `${f.name} uploaded.` });
+
+                setFiles(prev =>
+                    prev.map(file =>
+                    file.name === f.name ? { ...file, uploaded: true } : file
+                    )
+                );
+            }
+
+            */}
+
+            // Reset Form
+            handleDelete();
             setCreatedTicketId(newTicket.qualityTicketId);
             setShowPostCreate(true);
-
             window.dispatchEvent(new CustomEvent('ticketCreated'));
         } catch (error: any) {
             toast({ variant: "destructive", title: "Save Failed", description: error.message });
@@ -305,7 +363,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         setSequenceId('');
         setDrawingNum('');
         setDescription('');
-        setfiles([]);
+        setFiles([]);
         
         setDivisionSearch('');
         setWorkOrderSearch('');
@@ -502,22 +560,32 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     <ul className="mt-2 space-y-2 text-sm text-gray-700 w-full">
                         {files.map((file, i) => (
                             <li key={i} className="flex items-center bg-gray-100 p-2 rounded">
-                                {file.isFile ? (
-                                    <img src={file.data} alt={file.name} className="w-16 h-14 object-cover rounded mr-2"/>
+                                {file.previewType === "image" ? (
+                                <img
+                                    src={file.data}
+                                    alt={file.name}
+                                    className="w-16 h-14 object-cover rounded mr-2"
+                                />
                                 ) : (
-                                    <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded mr-2">
-                                    📄
-                                    </div>
+                                <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded mr-2">
+                                    {file.previewType === "pdf" && <FileText className="w-6 h-6 text-red-500" />}
+                                    {file.previewType === "doc" && <FileType className="w-6 h-6 text-indigo-500" />}
+                                    {file.previewType === "zip" && <FileArchive className="w-6 h-6 text-yellow-600" />}
+                                    {/*{file.previewType === "video" && <FileVideo className="w-6 h-6 text-blue-500" />}*/}
+                                    {file.previewType === "other" && <FileText className="w-6 h-6 text-gray-500" />}
+                                </div>
                                 )}
+
                                 <span className="flex-1">{file.name}</span>
                                 <button
-                                    onClick={() => setfiles(prev => prev.filter((_, index) => index !== i))}
-                                    className="text-red-500 hover:text-red-700"
+                                onClick={() => setFiles(prev => prev.filter((_, index) => index !== i))}
+                                className="text-red-500 hover:text-red-700"
                                 >
-                                    Remove
+                                Remove
                                 </button>
                             </li>
-                        ))}
+                            ))}
+
                     </ul>
                 )}
             </div>

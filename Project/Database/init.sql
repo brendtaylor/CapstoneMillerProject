@@ -224,7 +224,6 @@ ALTER TABLE [dbo].[WorkOrder_Nonconformances]  WITH CHECK ADD FOREIGN KEY([NONCO
 REFERENCES [dbo].[MiHub_Manufact_Noncon] ([NONCON_ID])
 GO
 
-
 -- ######################################################################
 -- #
 -- # TRANSACTION TABLES
@@ -342,6 +341,39 @@ PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
+
+/****** Object:  Table [dbo].[AuditLogs]    Script Date: 11/25/2025 8:10:00 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[AuditLogs](
+    [LOG_ID] INT IDENTITY(1,1) NOT NULL,
+    [USER_ID] SMALLINT NOT NULL,        -- FK to MiHub_Quality_Users.ID
+    [TICKET_ID] INT NOT NULL,           -- FK to MiHubWeb_Quality_Tickets.TICKETID
+    [ACTION] NVARCHAR(50) NOT NULL,
+    [TIMESTAMP] DATETIME2 NOT NULL,
+    [WO_ID] INT NULL,                   -- allow NULLs here
+    CONSTRAINT [PK_AuditLogs] PRIMARY KEY CLUSTERED ([LOG_ID] ASC)
+) ON [PRIMARY];
+GO
+
+-- Add foreign key constraints
+ALTER TABLE [dbo].[AuditLogs]  WITH CHECK ADD CONSTRAINT [FK_AuditLogs_Users]
+FOREIGN KEY([USER_ID]) REFERENCES [dbo].[MiHub_Quality_Users] ([ID]);
+GO
+
+ALTER TABLE [dbo].[AuditLogs]  WITH CHECK ADD CONSTRAINT [FK_AuditLogs_Tickets]
+FOREIGN KEY([TICKET_ID]) REFERENCES [dbo].[MiHubWeb_Quality_Tickets] ([TICKETID]);
+GO
+
+ALTER TABLE [dbo].[AuditLogs]  WITH CHECK ADD CONSTRAINT [FK_AuditLogs_WorkOrders]
+FOREIGN KEY([WO_ID]) REFERENCES [dbo].[MiHub_WO] ([WO_ID]);
+GO
+
+ALTER TABLE [dbo].[AuditLogs]
+ALTER COLUMN [WO_ID] INT NULL;
 
 -- ######################################################################
 -- #
