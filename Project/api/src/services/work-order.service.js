@@ -19,12 +19,15 @@ class WorkOrderService {
     async getWorkOrderSummary() {
         logger.info("Fetching work order summary");
         try {
-            // Use QueryBuilder for this complex aggregate query
             const summary = await workOrderRepository.createQueryBuilder("wo")
-                // Count *both* 0 (Open) and 1 (In Progress)
-                .leftJoin("Ticket", "t", "t.wo = wo.woId AND t.status IN (:...statuses)", { statuses: [0, 1] }) 
-                .select("wo.woId", "wo_id") // Select the WO ID
-                .addSelect("wo.wo", "wo_number") // Select the WO Number
+                // 1. Inner Join: Only includes WOs that have matches in the Ticket table
+                .innerJoin("Ticket", "t", "t.wo = wo.woId") 
+                
+                // 2. Where: Filters those tickets to only be Status 0 or 1
+                .where("t.status IN (:...statuses)", { statuses: [0, 1] }) 
+                
+                .select("wo.woId", "wo_id") 
+                .addSelect("wo.wo", "wo_number") 
                 .addSelect("COUNT(t.ticketId)", "open_ticket_count") 
                 .groupBy("wo.woId, wo.wo")
                 .orderBy("wo.wo", "ASC")

@@ -69,7 +69,7 @@ async function updateTicket(req, res) {
 }
 
 //Controller for deleting (archiving) a ticket
-async function deleteTicket(req, res) { 
+async function deleteTicket(req, res) { // Renamed to match service
     try {
         const result = await ticketService.deleteTicket(req.params.id);
         res.status(200).json(result);
@@ -78,6 +78,7 @@ async function deleteTicket(req, res) {
         res.status(500).json({ message: "Internal Server Error" });
     }
 }
+
 
 // Controller for handling Server-Sent Events (SSE)
 async function connectSSE(req, res) {

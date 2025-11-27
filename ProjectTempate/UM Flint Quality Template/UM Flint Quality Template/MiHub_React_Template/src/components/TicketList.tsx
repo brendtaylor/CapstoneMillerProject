@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import { useAuth } from './AuthContext';
 import {
@@ -53,6 +53,14 @@ const TicketList: React.FC = () => {
   
   // 2. Ticket Cache: Key = WorkOrder ID, Value = Array of Tickets
   const [ticketsCache, setTicketsCache] = useState<Record<number, Ticket[]>>({});
+  
+  // Ref to track which WOs are cached (for SSE to know what to refresh without breaking closures)
+  const ticketsCacheRef = useRef<Set<number>>(new Set());
+
+  // Update ref whenever cache changes
+  useEffect(() => {
+    ticketsCacheRef.current = new Set(Object.keys(ticketsCache).map(Number));
+  }, [ticketsCache]);
   
   // 3. Loading States
   const [loadingSummaries, setLoadingSummaries] = useState<boolean>(true);
@@ -201,8 +209,9 @@ const TicketList: React.FC = () => {
 
   // 1. Initial Load: Get Summary (with counts)
   const fetchWOSummaries = async () => {
-    setLoadingSummaries(true);
-    setError(null);
+    // Only set loading on initial fetch if dashboard is empty, to avoid flashing on updates
+    if (dashboardData.length === 0) setLoadingSummaries(true);
+    
     try {
       const response = await fetch('http://localhost:3000/api/work-orders-summary', {
         headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
@@ -212,7 +221,7 @@ const TicketList: React.FC = () => {
       setDashboardData(data);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch dashboard data.");
+      if (dashboardData.length === 0) setError("Failed to fetch dashboard data.");
     } finally {
       setLoadingSummaries(false);
     }
@@ -220,7 +229,7 @@ const TicketList: React.FC = () => {
 
   useEffect(() => { fetchWOSummaries(); }, []);
 
-  // 2. Search Handler: Search WorkOrders -> Map to Summary Format
+  // 2. Search Handler
   useEffect(() => {
     const performSearch = async () => {
         if (!debouncedSearchTerm) {
@@ -234,13 +243,12 @@ const TicketList: React.FC = () => {
             const response = await fetch(`http://localhost:3000/api/work-orders?search=${encodeURIComponent(debouncedSearchTerm)}`);
             if (!response.ok) throw new Error("Search failed");
             
-            // Search returns generic WorkOrder objects (woId, wo)
             const results: WorkOrder[] = await response.json();
             
             const mappedResults: WorkOrderSummary[] = results.map(wo => ({
                 wo_id: wo.woId,
                 wo_number: wo.wo,
-                open_ticket_count: 0 // Band-aid temporary value 
+                open_ticket_count: 0 // Placeholder
             }));
             
             setSearchResults(mappedResults);
@@ -254,13 +262,12 @@ const TicketList: React.FC = () => {
     performSearch();
   }, [debouncedSearchTerm]);
 
-  // 3. Lazy Load Tickets: Get tickets using ID (wo_id)
+  // 3. Lazy Load Tickets
   const fetchTicketsForWO = async (woId: number, forceRefresh = false) => {
     if (!forceRefresh && ticketsCache[woId]) return;
 
     setLoadingWOs(prev => ({ ...prev, [woId]: true }));
     try {
-      // Using the ID in the URL is correct per your instruction
       const response = await fetch(`http://localhost:3000/api/work-orders/${woId}/tickets`, {
         headers: { 'Cache-Control': 'no-cache' }
       });
@@ -278,11 +285,56 @@ const TicketList: React.FC = () => {
     }
   };
 
-  // Event listener for updates
+  // 4. SSE REAL-TIME UPDATES
   useEffect(() => {
-    const handleTicketCreated = () => { fetchWOSummaries(); };
-    window.addEventListener('ticketCreated', handleTicketCreated);
-    return () => window.removeEventListener('ticketCreated', handleTicketCreated);
+    const eventSource = new EventSource('http://localhost:3000/api/tickets/events');
+    
+    eventSource.onopen = () => console.log("SSE Connected");
+
+    const handleCreateOrUpdate = (e: MessageEvent) => {
+        const ticket = JSON.parse(e.data);
+        console.log("SSE Event:", e.type);
+
+        // A. Always refresh the summaries to update counts
+        fetchWOSummaries();
+
+        // B. If this ticket's WO is currently expanded (cached), refresh the tickets list
+        const woId = ticket.wo?.woId;
+        if (woId && ticketsCacheRef.current.has(woId)) {
+            fetchTicketsForWO(woId, true); // Force refresh
+        }
+    };
+
+    const handleDelete = (e: MessageEvent) => {
+        const { id } = JSON.parse(e.data);
+        
+        // A. Refresh Summaries
+        fetchWOSummaries();
+
+        // B. Manually remove from cache if present (since we don't have WO ID easily in event)
+        setTicketsCache(prev => {
+            const newCache = { ...prev };
+            let found = false;
+            for (const woIdStr of Object.keys(newCache)) {
+                const woId = Number(woIdStr);
+                const list = newCache[woId];
+                if (list.some(t => t.ticketId === id)) {
+                    newCache[woId] = list.filter(t => t.ticketId !== id);
+                    found = true;
+                }
+            }
+            return found ? newCache : prev;
+        });
+    };
+
+    eventSource.addEventListener('new-ticket', handleCreateOrUpdate);
+    eventSource.addEventListener('update-ticket', handleCreateOrUpdate);
+    eventSource.addEventListener('delete-ticket', handleDelete);
+
+    return () => {
+        console.log("Closing SSE");
+        eventSource.close();
+    };
   }, []);
 
   // Scroll margin logic
@@ -349,13 +401,7 @@ const TicketList: React.FC = () => {
       const response = await fetch(`http://localhost:3000/api/tickets/${ticketId}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(`Status: ${response.status}`);
       toast({ title: "Success", description: `Ticket has been archived.` });
-      
-      if (woId && ticketsCache[woId]) {
-          setTicketsCache(prev => ({ ...prev, [woId]: prev[woId].filter(t => t.ticketId !== ticketId) }));
-          fetchWOSummaries(); 
-      } else {
-          fetchWOSummaries();
-      }
+      // SSE will handle updates
     } catch (err: any) {
       toast({ variant: "destructive", title: "Archive Failed", description: err.message });
     }
@@ -427,9 +473,7 @@ const TicketList: React.FC = () => {
       if (!response.ok) throw new Error(`Failed to update ticket.`);
 
       toast({ title: "Success", description: `Ticket updated.` });
-      // Clear the cache to ensure all data is fresh on next load
-      setTicketsCache({});
-      fetchWOSummaries();
+      // SSE will handle updates
       setIsEditing(false);
       setEditingTicket(null);
     } catch (err: any) {
@@ -476,13 +520,11 @@ const TicketList: React.FC = () => {
                     className="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden"
                 >
                 <AccordionTrigger 
-                    // Correctly uses wo_id (e.g. 2) to fetch tickets
                     onClick={() => fetchTicketsForWO(woSummary.wo_id)}
                     className="px-6 py-4 hover:bg-gray-50 hover:no-underline transition-colors"
                 >
                 <div className="flex items-center gap-4">
                     <span className="text-lg font-bold text-gray-800">{woSummary.wo_number}</span>
-                    {/* Only show badge if count is provided (Dashboard mode) */}
                     {count !== undefined && (
                         <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
                             {count} Ticket{count !== 1 && 's'}
