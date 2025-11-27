@@ -179,13 +179,13 @@ const TicketDetails: React.FC = () => {
       
         {requiresAssignedUser(ticket) && (
           <p className="text-red-600">
-            This ticket is In Progress but has no assigned user
+            This ticket is In Progress but has no assigned user.
           </p>
       )}
       
       <AssignUser
-        tickerId={ticket.ticketId}
-        currentAssigned={ticket.initiator? .name}
+        ticketId={ticket.ticketId}
+        currentAssigned={ticket.initiator?.name}
       />
       
       </CardContent>
