@@ -169,6 +169,28 @@ const TicketDetails: React.FC = () => {
         </CardContent>
       </Card>
       
+      {/* Assignment */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Assignment</CardTitle>
+        </CardHeader>
+      
+      <CardContent className="space-y-3">
+      
+        {requiresAssignedUser(ticket) && (
+          <p className="text-red-600">
+            This ticket is In Progress but has no assigned user
+          </p>
+      )}
+      
+      <AssignUser
+        tickerId={ticket.ticketId}
+        currentAssigned={ticket.initiator? .name}
+      />
+      
+      </CardContent>
+    </Card>
+      
       {/* Files */}
       <Card>
         <CardHeader>
