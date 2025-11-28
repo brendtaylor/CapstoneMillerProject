@@ -7,6 +7,7 @@ import ScaleLoader from "react-spinners/ScaleLoader";
 import { Textarea } from "../../components/ui/textarea";
 import AssignUser from "../../components/AssignUser";
 import { isEditable, requiresAssignedUser } from "../../lib/ticketRules";
+import type { Ticket as TicketType } from "../../types";
 //import FileList from "../../components/FileList"; commented out temporarily to make react compile
 
 interface Note {
@@ -19,29 +20,14 @@ interface Note {
   };
 }
 
-interface Ticket {
-  ticketId: number;
-  qualityTicketId?: string;
-  description: string;
-  openDate: string;
-  status: { statusDescription: string };
-  initiator: { name: string };
-
-  division?: { divisionName: string };
-  partNum?: { partNum: string };
-  drawingNum?: { drawing_num: string };
-  wo?: { wo: string };
-  unit?: { unitName: string };
-  sequence?: { seqName: string };
-  manNonCon?: { nonCon: string };
-}
+type TicketDetailsTicket = TicketType & { partNum?: { partNum: string } };
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [ticket, setTicket] = useState<TicketDetailsTicket | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [noteText, setNoteText] = useState("");
@@ -51,7 +37,7 @@ const TicketDetails: React.FC = () => {
   const fetchTicket = async () => {
     try {
       const response = await fetch(`http://localhost:3000/api/tickets/${id}`);
-      const data = await response.json();
+      const data: TicketDetailsTicket = await response.json();
       setTicket(data);
       setStatus(data.status?.statusDescription || "Open");
     } catch {
@@ -160,9 +146,9 @@ const TicketDetails: React.FC = () => {
           <p><b>Work Order:</b> {ticket.wo?.wo}</p>
           <p><b>Division:</b> {ticket.division?.divisionName}</p>
           <p><b>Part #:</b> {ticket.partNum?.partNum}</p>
-          <p><b>Drawing #:</b> {ticket.drawingNum?.drawing_num}</p>
+          <p><b>Drawing #:</b> {ticket.drawingNum}</p>
           <p><b>Unit:</b> {ticket.unit?.unitName}</p>
-          <p><b>Sequence:</b> {ticket.sequence?.seqName}</p>
+          <p><b>Sequence:</b> {ticket.sequence?.sequenceName}</p>
           <p><b>Nonconformance:</b> {ticket.manNonCon?.nonCon}</p>
           <p><b>Opened:</b> {new Date(ticket.openDate).toLocaleString()}</p>
           <p><b>Initiator:</b> {ticket.initiator?.name}</p>

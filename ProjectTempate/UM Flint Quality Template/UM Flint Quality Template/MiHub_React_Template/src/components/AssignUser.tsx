@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiPut, apiGet } from "../lib/api";
+import { api } from "../api";
 
 interface Props {
   ticketId: number;
@@ -12,7 +12,7 @@ export default function AssignUser({ ticketId, currentAssigned }: Props) {
 
   useEffect(() => {
     async function fetchUsers() {
-      const data = await apiGet<string[]>("/users");
+      const { data } = await api.get<string[]>("/users");
       setUsers(data);
     }
     fetchUsers();
@@ -24,7 +24,7 @@ export default function AssignUser({ ticketId, currentAssigned }: Props) {
       return;
     }
 
-    await apiPut(`/tickets/${ticketId}/assign`, {
+    await api.put(`/tickets/${ticketId}/assign`, {
       assignedTo: selectedUser,
     });
 

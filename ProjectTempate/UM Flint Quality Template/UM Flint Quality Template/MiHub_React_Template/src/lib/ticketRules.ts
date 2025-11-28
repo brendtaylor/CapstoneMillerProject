@@ -1,4 +1,4 @@
-import { Ticket } from "../types/ticket";
+import { Ticket } from "../types";
 
 export function getStatus(ticket: Ticket): string {
   // Normalize your status format for easier comparisons
