@@ -243,18 +243,12 @@ const TicketList: React.FC = () => {
 
         setIsSearching(true);
         try {
-            const response = await fetch(`http://localhost:3000/api/work-orders?search=${encodeURIComponent(debouncedSearchTerm)}`);
+            const response = await fetch(`http://localhost:3000/api/work-orders-summary?search=${encodeURIComponent(debouncedSearchTerm)}`);
             if (!response.ok) throw new Error("Search failed");
             
-            const results: WorkOrder[] = await response.json();
+            const results: WorkOrderSummary[] = await response.json();
+            setSearchResults(results);
             
-            const mappedResults: WorkOrderSummary[] = results.map(wo => ({
-                wo_id: wo.woId,
-                wo_number: wo.wo,
-                open_ticket_count: 0 // Placeholder
-            }));
-            
-            setSearchResults(mappedResults);
         } catch (e) {
             console.error(e);
             setSearchResults([]);
