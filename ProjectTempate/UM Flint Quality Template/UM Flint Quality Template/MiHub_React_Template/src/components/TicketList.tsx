@@ -71,6 +71,9 @@ const TicketList: React.FC = () => {
   // 4. UI State
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms delay
+  // State to control open accordions
+  const [openWorkOrders, setOpenWorkOrders] = useState<string[]>([]);
+  const [openTickets, setOpenTickets] = useState<Record<string, string>>({}); // { [wo_number]: ticketId }
   
   const { userRole, userId } = useAuth();
   const { toast } = useToast();
@@ -472,7 +475,7 @@ const TicketList: React.FC = () => {
 
       if (!response.ok) throw new Error(`Failed to update ticket.`);
 
-      toast({ title: "Success", description: `Ticket updated.` });
+      toast({ title: "Success", description: `Ticket ${editingTicket.qualityTicketId} has been updated.` });     
       // SSE will handle updates
       setIsEditing(false);
       setEditingTicket(null);
@@ -510,7 +513,12 @@ const TicketList: React.FC = () => {
                 {searchTerm ? 'No work orders found matching your search.' : 'No active work orders.'}
              </div>
         ) : (
-        <Accordion type="multiple" className="w-full space-y-2">
+        <Accordion 
+            type="multiple" 
+            className="w-full space-y-2"
+            value={openWorkOrders}
+            onValueChange={setOpenWorkOrders}
+        >
             {sortedWOs.map((woSummary) => {
                 const count = woSummary.open_ticket_count;
                 return (
@@ -539,7 +547,13 @@ const TicketList: React.FC = () => {
                     ) : !ticketsCache[woSummary.wo_id] || ticketsCache[woSummary.wo_id].length === 0 ? (
                          <div className="text-center text-gray-500 italic p-2">No tickets found for this Work Order.</div>
                     ) : (
-                        <Accordion type="single" collapsible className="w-full space-y-2">
+                        <Accordion 
+                            type="single" 
+                            collapsible 
+                            className="w-full space-y-2"
+                            value={openTickets[woSummary.wo_number] || ''}
+                            onValueChange={(value) => setOpenTickets(prev => ({ ...prev, [woSummary.wo_number]: value }))}
+                        >
                             {ticketsCache[woSummary.wo_id].map((ticket) => {
                                 return (
                                 <AccordionItem 
@@ -550,7 +564,7 @@ const TicketList: React.FC = () => {
                                 >
                                     <AccordionTrigger 
                                         className="px-4 py-3 hover:bg-gray-50 hover:no-underline"
-                                        onClick={(e) => {
+                                        onMouseDown={(e) => { // Use onMouseDown to prevent focus race conditions
                                             if (isMobile) {
                                                 e.preventDefault(); e.stopPropagation();
                                                 openMobileTicketDetail(ticket); return;
@@ -563,7 +577,7 @@ const TicketList: React.FC = () => {
                                                 setLastScrollPosition(window.scrollY);
                                                 setTimeout(() => {
                                                     const el = document.getElementById(`ticket-${ticket.ticketId}`);
-                                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                                                 }, 150);
                                             }
                                         }}
