@@ -55,11 +55,20 @@ class TicketService {
             const woNumber = workOrder.wo;
 
             // Generate Quality Ticket ID
-            const ticketCount = await queryRunner.manager.count("Ticket", {
+            // Count Active Tickets for this WO
+            const activeCount = await queryRunner.manager.count("Ticket", {
                 where: { wo: { woId: ticketData.wo } } 
             });
 
-            const newTicketNum = (ticketCount + 1).toString().padStart(3, '0');
+            // Count Archived Tickets for this WO
+            const archivedCount = await queryRunner.manager.count("ArchivedTicket", {
+                where: { wo: { woId: ticketData.wo } } 
+            });
+
+            // Add them together so archiving doesn't reset the sequence
+            const totalCount = activeCount + archivedCount;
+            const newTicketNum = (totalCount + 1).toString().padStart(3, '0');
+            
             const qualityTicketId = `${woNumber}-${newTicketNum}`;
             logger.info(`Generated new Quality Ticket ID: ${qualityTicketId}`);
 

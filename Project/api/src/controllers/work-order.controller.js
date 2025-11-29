@@ -7,8 +7,11 @@ const getWorkOrderSummary = async (req, res) => {
         // Capture the optional 'search' query param
         const searchTerm = req.query.search;
 
+        // optional status query parameter ("0,1" or "2")
+        const statusString = req.query.status;
+
         // Pass it to the service
-        const data = await workOrderService.getWorkOrderSummary(searchTerm);
+       const data = await workOrderService.getWorkOrderSummary(searchTerm, statusString);
         res.json(data);
     } catch (error) {
         logger.error(`Error in getWorkOrderSummary controller: ${error.message}`);
@@ -20,7 +23,11 @@ const getWorkOrderSummary = async (req, res) => {
 const getTicketsByWorkOrder = async (req, res) => {
     try {
         const woId = req.params.wo_id;
-        const data = await workOrderService.getTicketsByWorkOrder(woId);
+
+        // Capture the optional 'status' query param
+        const statusString = req.query.status;
+
+        const data = await workOrderService.getTicketsByWorkOrder(woId, statusString);
         res.json(data);
     } catch (error) {
         logger.error(`Error in getTicketsByWorkOrder controller: ${error.message}`);

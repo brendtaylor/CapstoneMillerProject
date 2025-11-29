@@ -1,4 +1,5 @@
 const { AppDataSource } = require("../data-source");
+const { In } = require("typeorm"); 
 const logger = require("../../logger");
 
 // Repositories for all our new entities
@@ -12,17 +13,23 @@ const nonconformanceLinkRepository = AppDataSource.getRepository("WorkOrderNonco
 class WorkOrderService {
 
     /**
-     * Gets the list of Work Orders that have at least one active ticket.
-     * Accepts an optional searchTerm to filter by WO Number.
+     * Gets the list of Work Orders, filtering by Search Term and Status.
+     * statusString: "0,1" (Active) or "2" (Closed). Defaults to Active (0,1).
      */
-    async getWorkOrderSummary(searchTerm = null) {
-        logger.info(`Fetching work order summary. Search: ${searchTerm || 'None'}`);
+    async getWorkOrderSummary(searchTerm = null, statusString = null) {
+        // Default to [0, 1] (Open & In-Progress) if no status is provided
+        const statuses = statusString 
+            ? statusString.split(',').map(Number) 
+            : [0, 1];
+
+        logger.info(`Fetching work order summary. Search: ${searchTerm || 'None'}, Statuses: ${statuses}`);
+
         try {
             const query = workOrderRepository.createQueryBuilder("wo")
-                // 1. Inner Join to get only WOs with active tickets
+                // 1. Inner Join to get only WOs that have tickets matching our status
                 .innerJoin("Ticket", "t", "t.wo = wo.woId") 
-                // 2. Filter for Open/In-Progress tickets
-                .where("t.status IN (:...statuses)", { statuses: [0, 1] });
+                // 2. Filter tickets by the requested statuses
+                .where("t.status IN (:...statuses)", { statuses });
 
             // 3. Apply Search Filter if provided
             if (searchTerm) {
@@ -45,38 +52,28 @@ class WorkOrderService {
     }
 
     /**
-     * Gets tickets for a single, specific Work Order ID.
-     * UPDATED: Accepts an optional statusFilter (0, 1, or 2).
+     * Gets tickets for a specific Work Order, filtered by status.
      */
-    async getTicketsByWorkOrder(woId, statusFilter = null) {
-        logger.info(`Fetching tickets for WO ID: ${woId} with status: ${statusFilter ?? 'ALL'}`);
-        
-        // 1. Initialize the WHERE clause with the Work Order ID
-        const whereClause = {
-            wo: { woId: parseInt(woId) }
-        };
+    async getTicketsByWorkOrder(woId, statusString = null) {
+        // Default to [0, 1] (Open & In-Progress) if no status is provided
+        const statuses = statusString 
+            ? statusString.split(',').map(Number) 
+            : [0, 1];
 
-        // 2. If a status filter is provided, add it to the WHERE clause
-        // Checks for null/undefined so that status "0" (Open) is still valid
-        if (statusFilter !== null && statusFilter !== undefined) {
-            whereClause.status = { statusId: parseInt(statusFilter) };
-        }
+        logger.info(`Fetching tickets for WO ID: ${woId}, Statuses: ${statuses}`);
 
         return await ticketRepository.find({
-            where: whereClause,
+            // NEW CODE: Define the 'where' object directly. No 'whereClause' variable used.
+            where: { 
+                wo: { woId: parseInt(woId) },
+                status: { statusId: In(statuses) } 
+            },
             relations: [
-                "status",
-                "initiator",
-                "division",
-                "manNonCon",
-                "laborDepartment",
-                "sequence",
-                "unit",
-                "wo",
-                "assignedTo"
+                "status", "initiator", "division", "manNonCon",
+                "laborDepartment", "sequence", "unit", "wo", "assignedTo"
             ],
             order: {
-                openDate: "DESC" // Show newest first
+                openDate: "DESC" 
             }
         });
     }
@@ -90,7 +87,6 @@ class WorkOrderService {
             where: { woId: woId },
             relations: ["unit"]
         });
-        // Return only the unit objects themselves for the dropdown
         return results.map(r => r.unit);
     }
 
