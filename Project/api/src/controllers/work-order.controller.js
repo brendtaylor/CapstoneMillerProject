@@ -4,7 +4,11 @@ const logger = require("../../logger");
 // Controller for the new WO Dashboard Summary
 const getWorkOrderSummary = async (req, res) => {
     try {
-        const data = await workOrderService.getWorkOrderSummary();
+        // Capture the optional 'search' query param
+        const searchTerm = req.query.search;
+
+        // Pass it to the service
+        const data = await workOrderService.getWorkOrderSummary(searchTerm);
         res.json(data);
     } catch (error) {
         logger.error(`Error in getWorkOrderSummary controller: ${error.message}`);

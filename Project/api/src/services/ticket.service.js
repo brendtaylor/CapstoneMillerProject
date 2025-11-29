@@ -75,9 +75,8 @@ class TicketService {
             const savedTicket = await queryRunner.manager.save("Ticket", newTicket);
             await queryRunner.commitTransaction();
 
-            // 2. FETCH COMPLETE TICKET (The Fix)
+            // 2. FETCH COMPLETE TICKET 
             // fetch the full entity with relations so the UI receives { wo: { woId: ... } }
-            // instead of just { wo: 1 }
             const completeTicket = await this.getTicketById(savedTicket.ticketId);
 
             // 3. Emit Events using the COMPLETE ticket
@@ -105,7 +104,7 @@ class TicketService {
         logger.info(`Updating ticket ID: ${id}`);
         const updatePayload = { ...ticketData };
 
-        if (updatePayload.status === 1) {                                                   // 1 = 'Closed'
+        if (updatePayload.status === 2) {                                                   // 2 = 'Closed'
             updatePayload.closeDate = new Date();
             logger.info(`Ticket ${id} is being closed.`);
         }

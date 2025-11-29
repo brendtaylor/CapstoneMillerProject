@@ -12,20 +12,24 @@ const nonconformanceLinkRepository = AppDataSource.getRepository("WorkOrderNonco
 class WorkOrderService {
 
     /**
-     * Gets the list of all Work Orders, including a count of *open* tickets
-     * for the new dashboard.
-     * UPDATED: Counts Status 0 (Open) and 1 (In Progress) as "Open".
+     * Gets the list of Work Orders that have at least one active ticket.
+     * Accepts an optional searchTerm to filter by WO Number.
      */
-    async getWorkOrderSummary() {
-        logger.info("Fetching work order summary");
+    async getWorkOrderSummary(searchTerm = null) {
+        logger.info(`Fetching work order summary. Search: ${searchTerm || 'None'}`);
         try {
-            const summary = await workOrderRepository.createQueryBuilder("wo")
-                // 1. Inner Join: Only includes WOs that have matches in the Ticket table
+            const query = workOrderRepository.createQueryBuilder("wo")
+                // 1. Inner Join to get only WOs with active tickets
                 .innerJoin("Ticket", "t", "t.wo = wo.woId") 
-                
-                // 2. Where: Filters those tickets to only be Status 0 or 1
-                .where("t.status IN (:...statuses)", { statuses: [0, 1] }) 
-                
+                // 2. Filter for Open/In-Progress tickets
+                .where("t.status IN (:...statuses)", { statuses: [0, 1] });
+
+            // 3. Apply Search Filter if provided
+            if (searchTerm) {
+                query.andWhere("wo.wo LIKE :search", { search: `%${searchTerm}%` });
+            }
+
+            const summary = await query
                 .select("wo.woId", "wo_id") 
                 .addSelect("wo.wo", "wo_number") 
                 .addSelect("COUNT(t.ticketId)", "open_ticket_count") 
