@@ -77,6 +77,7 @@ export interface Ticket {
 
   // Closing fields
   estimatedLaborHours?: number | null;
+  laborCost?: number | null;
   correctiveAction?: string | null;
   materialsUsed?: string |null;
 }

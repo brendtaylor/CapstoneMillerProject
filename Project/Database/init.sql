@@ -270,6 +270,7 @@ CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets](
 	[DESCRIPTION] [nvarchar](max) NULL,
 	[ASSIGNED_TO] [smallint] NULL,
 	[ESTIMATED_LABOR_HOURS] [decimal](10, 2) NULL,
+	[LABOR_COST] [decimal](10, 2) NULL,
 	[CORRECTIVE_ACTION] [nvarchar](max) NULL,
 	[MATERIALS_USED] [nvarchar](max) NULL,
 PRIMARY KEY CLUSTERED 
@@ -301,6 +302,7 @@ CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets_Archive](
 	[DESCRIPTION] [nvarchar](max) NULL,
 	[ASSIGNED_TO] [smallint] NULL,
 	[ESTIMATED_LABOR_HOURS] [decimal](10, 2) NULL,
+	[LABOR_COST] [decimal](10, 2) NULL,
 	[CORRECTIVE_ACTION] [nvarchar](max) NULL,
 	[MATERIALS_USED] [nvarchar](max) NULL,
 ) ON [PRIMARY]

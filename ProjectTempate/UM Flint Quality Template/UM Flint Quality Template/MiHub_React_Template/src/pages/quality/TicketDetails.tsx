@@ -152,6 +152,19 @@ const TicketDetails: React.FC = () => {
           <p><b>Nonconformance:</b> {ticket.manNonCon?.nonCon}</p>
           <p><b>Opened:</b> {new Date(ticket.openDate).toLocaleString()}</p>
           <p><b>Initiator:</b> {ticket.initiator?.name}</p>
+          {(
+            ticket.estimatedLaborHours !== undefined && ticket.estimatedLaborHours !== null ||
+            ticket.laborCost !== undefined && ticket.laborCost !== null ||
+            ticket.materialsUsed ||
+            ticket.correctiveAction
+          ) && (
+            <>
+              <p><b>Hours:</b> {ticket.estimatedLaborHours ?? "N/A"}</p>
+              <p><b>Labor:</b> {ticket.laborCost ?? "N/A"}</p>
+              <p><b>Materials:</b> {ticket.materialsUsed || "N/A"}</p>
+              <p><b>Corrective Action:</b> {ticket.correctiveAction || "N/A"}</p>
+            </>
+          )}
         </CardContent>
       </Card>
       

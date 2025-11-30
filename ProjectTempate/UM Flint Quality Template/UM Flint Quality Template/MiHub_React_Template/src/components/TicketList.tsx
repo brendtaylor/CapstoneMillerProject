@@ -102,7 +102,7 @@ const TicketList: React.FC = () => {
               variant="destructive"
               onClick={() => {
                 closeMobileTicketDetail();
-                confirmAndArchive(ticket.ticketId);
+                confirmAndArchive(ticket);
               }}
               className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
             >
@@ -152,6 +152,7 @@ const TicketList: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3 mt-2 mb-4">
               <DetailRow label="Closed Date" value={ticket.closeDate ? new Date(ticket.closeDate).toLocaleDateString() : 'N/A'} />
               <DetailRow label="Est. Hours Lost" value={ticket.estimatedLaborHours?.toString()} />
+              <DetailRow label="Labor" value={ticket.laborCost?.toString()} />
               <DetailRow label="Materials" value={ticket.materialsUsed} />
             </div>
             <div className="pt-3 border-t border-blue-200">
@@ -166,7 +167,14 @@ const TicketList: React.FC = () => {
   
   // Archive Modal State
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
-  const [ticketToArchive, setTicketToArchive] = useState<number | null>(null);
+  const [ticketToArchive, setTicketToArchive] = useState<Ticket | null>(null);
+  const [archiveFields, setArchiveFields] = useState({
+    hours: '',
+    labor: '',
+    materials: '',
+    correctiveAction: '',
+  });
+  const archiveNumberOptions = ["0", "0.5", "1", "2", "4", "8"];
 
   // Edit Modal State
   const [isEditing, setIsEditing] = useState(false);
@@ -315,13 +323,42 @@ const TicketList: React.FC = () => {
 
   // --- ACTIONS (Archive, Edit, Search) ---
 
-  const handleArchive = async (ticketId: number) => {
-    // Find the ticket to get its qualityTicketId for the success message
-    const ticket = tickets.find(t => t.ticketId === ticketId);
-    const qualityTicketId = ticket?.qualityTicketId || `ID ${ticketId}`;
+  const parseNumberField = (value: string, label: string) => {
+    if (!value.trim()) return null;
+    const parsed = parseFloat(value);
+    if (Number.isNaN(parsed)) {
+      throw new Error(`${label} must be a valid number.`);
+    }
+    return parsed;
+  };
+
+  const handleArchive = async () => {
+    if (!ticketToArchive) return;
+    const qualityTicketId = ticketToArchive.qualityTicketId || `ID ${ticketToArchive.ticketId}`;
+
+    let hoursVal: number | null;
+    let laborVal: number | null;
+    try {
+      hoursVal = parseNumberField(archiveFields.hours, "Hours");
+      laborVal = parseNumberField(archiveFields.labor, "Labor");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Invalid Input", description: err.message });
+      return;
+    }
+
+    const payload = {
+      hours: hoursVal,
+      labor: laborVal,
+      materials: archiveFields.materials.trim() || null,
+      correctiveAction: archiveFields.correctiveAction.trim() || null,
+    };
 
     try {
-      const response = await fetch(`http://localhost:3000/api/tickets/${ticketId}`, { method: 'DELETE' });
+      const response = await fetch(`http://localhost:3000/api/tickets/${ticketToArchive.ticketId}`, { 
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
       if (!response.ok) {
         let errorMessage = `Failed to archive ticket. Status: ${response.status}`;
         try { const errorData = await response.json(); errorMessage = errorData.message || errorMessage; } catch (e) { /* Ignore */ }
@@ -329,14 +366,23 @@ const TicketList: React.FC = () => {
       }
       toast({ title: "Success", description: `Ticket ${qualityTicketId} has been archived.` });
       fetchTickets();
+      setShowArchiveConfirm(false);
+      setTicketToArchive(null);
+      setArchiveFields({ hours: '', labor: '', materials: '', correctiveAction: '' });
     } catch (err: any) {
       console.error("Archive error:", err);
       toast({ variant: "destructive", title: "Archive Failed", description: err.message || "An unexpected error occurred." });
     }
   };
 
-  const confirmAndArchive = (ticketId: number) => {
-    setTicketToArchive(ticketId);
+  const confirmAndArchive = (ticket: Ticket) => {
+    setTicketToArchive(ticket);
+    setArchiveFields({
+      hours: ticket.estimatedLaborHours?.toString() || '',
+      labor: ticket.laborCost !== undefined && ticket.laborCost !== null ? String(ticket.laborCost) : '',
+      materials: ticket.materialsUsed || '',
+      correctiveAction: ticket.correctiveAction || '',
+    });
     setShowArchiveConfirm(true);
   };
 
@@ -375,9 +421,9 @@ const TicketList: React.FC = () => {
 
   // Prevent background scroll on modal
   useEffect(() => {
-    document.body.style.overflow = (isEditing || mobileDetailTicket) ? 'hidden' : '';
+    document.body.style.overflow = (isEditing || mobileDetailTicket || showArchiveConfirm) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [isEditing, mobileDetailTicket]);
+  }, [isEditing, mobileDetailTicket, showArchiveConfirm]);
 
   const handleSaveEdit = async () => {
     if (!editingTicket) return;
@@ -865,29 +911,86 @@ const TicketList: React.FC = () => {
       {/* --- ARCHIVE CONFIRMATION MODAL --- */}
       {showArchiveConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
-                <h3 className="text-lg font-semibold mb-2">Archive Ticket</h3>
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xl mx-4">
+                <h3 className="text-lg font-semibold mb-1">Archive Ticket {ticketToArchive?.qualityTicketId || ticketToArchive?.ticketId}</h3>
                 <p className="text-sm text-gray-700 mb-4">
-                    Are you sure you want to archive this ticket? This action cannot be undone.
+                    Capture the final details before archiving this ticket.
                 </p>
-                <div className="flex justify-end space-x-3">
+
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Hours</label>
+                            <input
+                                type="number"
+                                step="0.25"
+                                list="archive-hours-options"
+                                value={archiveFields.hours}
+                                onChange={(e) => setArchiveFields({ ...archiveFields, hours: e.target.value })}
+                                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                                placeholder="Enter or select hours"
+                            />
+                            <datalist id="archive-hours-options">
+                                {archiveNumberOptions.map((opt) => (
+                                    <option key={`hours-${opt}`} value={opt} />
+                                ))}
+                            </datalist>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Labor</label>
+                            <input
+                                type="number"
+                                step="0.25"
+                                list="archive-labor-options"
+                                value={archiveFields.labor}
+                                onChange={(e) => setArchiveFields({ ...archiveFields, labor: e.target.value })}
+                                className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                                placeholder="Enter or select labor"
+                            />
+                            <datalist id="archive-labor-options">
+                                {archiveNumberOptions.map((opt) => (
+                                    <option key={`labor-${opt}`} value={opt} />
+                                ))}
+                            </datalist>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Materials</label>
+                        <textarea
+                            value={archiveFields.materials}
+                            onChange={(e) => setArchiveFields({ ...archiveFields, materials: e.target.value })}
+                            rows={3}
+                            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                            placeholder="Add any materials used"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Corrective Action</label>
+                        <textarea
+                            value={archiveFields.correctiveAction}
+                            onChange={(e) => setArchiveFields({ ...archiveFields, correctiveAction: e.target.value })}
+                            rows={3}
+                            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                            placeholder="Document the corrective action taken"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6">
                     <button
                         onClick={() => {
                             setShowArchiveConfirm(false);
                             setTicketToArchive(null);
+                            setArchiveFields({ hours: '', labor: '', materials: '', correctiveAction: '' });
                         }}
-                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                        className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
                     >
                         Cancel
                     </button>
                     <button
-                        onClick={() => {
-                            if (ticketToArchive) {
-                                handleArchive(ticketToArchive);
-                                setShowArchiveConfirm(false);
-                                setTicketToArchive(null);
-                            }
-                        }}
+                        onClick={handleArchive}
                         className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                     >
                         Archive

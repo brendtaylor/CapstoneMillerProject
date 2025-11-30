@@ -89,10 +89,14 @@ async function updateTicket(req, res) {
 //Controller for deleting (archiving) a ticket
 async function deleteTicket(req, res) { // Renamed to match service
     try {
-        const result = await ticketService.deleteTicket(req.params.id);
+        const archiveData = req.body || {};
+        const result = await ticketService.deleteTicket(req.params.id, archiveData);
         res.status(200).json(result);
     } catch (error) {
         console.error("Error archiving ticket:", error);
+        if (error.message && error.message.startsWith("Validation Error:")) {
+            return res.status(400).json({ message: error.message.replace("Validation Error: ", "") });
+        }
         res.status(500).json({ message: "Internal Server Error" });
     }
 }

@@ -45,6 +45,13 @@ module.exports = new EntitySchema({
             name: "ESTIMATED_LABOR_HOURS",
             nullable: true,
         },
+        laborCost: {
+            type: "decimal",
+            precision: 10,
+            scale: 2,
+            name: "LABOR_COST",
+            nullable: true,
+        },
         correctiveAction: {
             type: "nvarchar",
             length: "max",

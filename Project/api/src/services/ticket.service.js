@@ -19,6 +19,16 @@ class TicketService {
         ];
     }
 
+    parseNullableDecimal(value, fieldName) {
+        if (value === undefined) return undefined;
+        if (value === null || value === "") return null;
+        const parsed = typeof value === "number" ? value : parseFloat(value);
+        if (Number.isNaN(parsed)) {
+            throw new Error(`Validation Error: ${fieldName} must be a number.`);
+        }
+        return parsed;
+    }
+
     async getAllTickets() {
         logger.info("Fetching all tickets");
         return await this.ticketRepository.find({
@@ -109,7 +119,7 @@ class TicketService {
         return updatedTicket;
     }
 
-    async deleteTicket(id) {
+    async deleteTicket(id, archiveData = {}) {
         logger.info(`Archiving ticket ID: ${id}`);
         const ticketToArchive = await this.getTicketById(id);
         if (!ticketToArchive) {
@@ -117,7 +127,15 @@ class TicketService {
             throw new Error("Ticket not found");
         }
 
+        const laborHours = this.parseNullableDecimal(archiveData.hours, "Hours");
+        const laborCost = this.parseNullableDecimal(archiveData.labor, "Labor");
+
         const archivedTicket = this.archivedRepository.create(ticketToArchive);
+        if (laborHours !== undefined) archivedTicket.estimatedLaborHours = laborHours;
+        if (laborCost !== undefined) archivedTicket.laborCost = laborCost;
+        if (archiveData.materials !== undefined) archivedTicket.materialsUsed = archiveData.materials;
+        if (archiveData.correctiveAction !== undefined) archivedTicket.correctiveAction = archiveData.correctiveAction;
+        if (!archivedTicket.closeDate) archivedTicket.closeDate = new Date();
         
         try {
             await this.archivedRepository.save(archivedTicket);
