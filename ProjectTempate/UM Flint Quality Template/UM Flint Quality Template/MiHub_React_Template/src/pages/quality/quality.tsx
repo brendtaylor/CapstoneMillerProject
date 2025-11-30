@@ -49,6 +49,7 @@ const Quality: React.FC = () => {
               <TabsList className="flex flex-col gap-4 mt-16 bg-gray-800">
                 <TabsTrigger value="tickets" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => setDropdownOpen(false)}>Tickets</TabsTrigger>
                 <TabsTrigger value="checklist" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => setDropdownOpen(false)}>Checklist</TabsTrigger>
+                <TabsTrigger value="auditlog" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => setDropdownOpen(false)}>Audit Log</TabsTrigger>
               </TabsList>
             </div>
           )}

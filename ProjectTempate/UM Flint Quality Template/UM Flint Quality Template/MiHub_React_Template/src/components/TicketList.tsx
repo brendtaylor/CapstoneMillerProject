@@ -52,6 +52,24 @@ const getStatusBadgeStyle = (statusId?: number): string => {
   }
 };
 
+const ticketMatchesTag = (ticket: Ticket, tag: string): boolean => {
+  const t = tag.toLowerCase();
+
+  return (
+    ticket.ticketId?.toString().includes(t) ||
+    ticket.qualityTicketId?.toLowerCase().includes(t) ||
+    ticket.wo?.wo?.toLowerCase().includes(t) ||
+    ticket.division?.divisionName?.toLowerCase().includes(t) ||
+    ticket.laborDepartment?.departmentName?.toLowerCase().includes(t) ||
+    ticket.sequence?.sequenceName?.toLowerCase().includes(t) ||
+    ticket.unit?.unitName?.toLowerCase().includes(t) ||
+    ticket.manNonCon?.nonCon?.toLowerCase().includes(t) ||
+    ticket.drawingNum?.toLowerCase().includes(t) ||
+    ticket.description?.toLowerCase().includes(t) ||
+    ticket.initiator?.name?.toLowerCase().includes(t)
+  );
+};
+
 
 const TicketList: React.FC = () => {
   // --- STATE MANAGEMENT ---
@@ -62,6 +80,8 @@ const TicketList: React.FC = () => {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const { userRole, userId } = useAuth();
   const [searchResult, setSearchResult] = useState<Ticket[] | null>(null);
+  const [searchTags, setSearchTags] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed' | 'inprogress'>('all');
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -482,7 +502,28 @@ const TicketList: React.FC = () => {
 
   // --- RENDER PREPARATION ---
   
-  const displayedTickets = searchResult ?? tickets;
+  let displayedTickets = tickets;
+
+  // Apply tags as filter
+  if (searchTags.length > 0) {
+    displayedTickets = displayedTickets.filter(ticket => {
+      return searchTags.every(tag =>
+        ticketMatchesTag(ticket, tag)
+      );
+    });
+  }
+  // Apply status filter
+  if (statusFilter !== 'all') {
+    displayedTickets = displayedTickets.filter(ticket => {
+      const statusId = ticket.status?.statusId;
+
+      if (statusFilter === 'open') return statusId === 0;
+      if (statusFilter === 'closed') return statusId === 1;
+      if (statusFilter === 'inprogress') return statusId === 2;
+
+      return true;
+    });
+  }
 
   // Group tickets by Work Order Number
   const ticketsByWO = displayedTickets.reduce((acc, ticket) => {
@@ -502,17 +543,42 @@ const TicketList: React.FC = () => {
     <div>
       {/* --- SEARCH BAR --- */}
       <div className="flex items-center gap-4 mb-6">
-        <Input
-          type="text"
-          placeholder="Search by Work Order..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm bg-white"
-        />
-        {isSearching && <ScaleLoader color="#3b82f6" height={20} />}
-      </div>
+      <Input
+      type="text"
+      placeholder="Search tickets..."
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && searchTerm.trim() !== '') {
+          e.preventDefault();
+          if (!searchTags.includes(searchTerm.trim())) {
+            setSearchTags([...searchTags, searchTerm.trim()]);
+          }
+          setSearchTerm('');
+        }
+      }}
+      className="max-w-sm bg-white"
+    />
 
-      <div className="space-y-4">
+      {/* --- STATUS FILTER DROPDOWN --- */}
+      <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className="border border-gray-300 rounded-md p-2 bg-white text-sm">
+        <option value="all">All Tickets</option>
+        <option value="open">Open</option>
+        <option value="inprogress">In Progress</option>
+        <option value="closed">Closed</option>
+      </select>
+      {isSearching && <ScaleLoader color="#3b82f6" height={20} />}
+    </div>
+    {searchTags.length > 0 && (
+      <div className="flex flex-wrap gap-2 mb-4">
+        {searchTags.map((tag) => (
+          <div
+          key={tag}onClick={() => setSearchTags(searchTags.filter(t => t !== tag))} className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm cursor-pointer hover:bg-blue-200 active:bg-blue-300 transition-select-none"> <span>{tag}</span> <span className="ml-2 font-bold">×</span>
+          </div>
+          ))}
+      </div>
+    )}
+    <div className="space-y-4">
         {(displayedTickets.length === 0 && !loading) ? (
              <div className="text-center p-8 text-gray-500 bg-white rounded shadow-sm">
                 {searchTerm ? 'No work orders found matching your search.' : 'No work orders found.'}
