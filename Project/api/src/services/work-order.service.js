@@ -1,4 +1,5 @@
 const { AppDataSource } = require("../data-source");
+const { In } = require("typeorm"); 
 const logger = require("../../logger");
 
 // Repositories for all our new entities
@@ -12,18 +13,33 @@ const nonconformanceLinkRepository = AppDataSource.getRepository("WorkOrderNonco
 class WorkOrderService {
 
     /**
-     * Gets the list of all Work Orders, including a count of *open* tickets
-     * for the new dashboard.
+     * Gets the list of Work Orders, filtering by Search Term and Status.
+     * statusString: "0,1" (Active) or "2" (Closed). Defaults to Active (0,1).
      */
-    async getWorkOrderSummary() {
-        logger.info("Fetching work order summary");
+    async getWorkOrderSummary(searchTerm = null, statusString = null) {
+        // Default to [0, 1] (Open & In-Progress) if no status is provided
+        const statuses = statusString 
+            ? statusString.split(',').map(Number) 
+            : [0, 1];
+
+        logger.info(`Fetching work order summary. Search: ${searchTerm || 'None'}, Statuses: ${statuses}`);
+
         try {
-            // Use QueryBuilder for this complex aggregate query
-            const summary = await workOrderRepository.createQueryBuilder("wo")
-                .leftJoin("Ticket", "t", "t.wo = wo.woId AND t.status = :status", { status: 0 }) // 0 = 'Open'
-                .select("wo.woId", "wo_id") // Select the WO ID
-                .addSelect("wo.wo", "wo_number") // Select the WO Number
-                .addSelect("COUNT(t.ticketId)", "open_ticket_count") // Count *only* open tickets
+            const query = workOrderRepository.createQueryBuilder("wo")
+                // 1. Inner Join to get only WOs that have tickets matching our status
+                .innerJoin("Ticket", "t", "t.wo = wo.woId") 
+                // 2. Filter tickets by the requested statuses
+                .where("t.status IN (:...statuses)", { statuses });
+
+            // 3. Apply Search Filter if provided
+            if (searchTerm) {
+                query.andWhere("wo.wo LIKE :search", { search: `%${searchTerm}%` });
+            }
+
+            const summary = await query
+                .select("wo.woId", "wo_id") 
+                .addSelect("wo.wo", "wo_number") 
+                .addSelect("COUNT(t.ticketId)", "open_ticket_count") 
                 .groupBy("wo.woId, wo.wo")
                 .orderBy("wo.wo", "ASC")
                 .getRawMany(); 
@@ -36,26 +52,27 @@ class WorkOrderService {
     }
 
     /**
-     * Gets all tickets for a single, specific Work Order ID.
-     * Used when a user expands a WO on the dashboard.
+     * Gets tickets for a specific Work Order, filtered by status.
      */
-    async getTicketsByWorkOrder(woId) {
-        logger.info(`Fetching tickets for WO ID: ${woId}`);
+    async getTicketsByWorkOrder(woId, statusString = null) {
+        // Default to [0, 1] (Open & In-Progress) if no status is provided
+        const statuses = statusString 
+            ? statusString.split(',').map(Number) 
+            : [0, 1];
+
+        logger.info(`Fetching tickets for WO ID: ${woId}, Statuses: ${statuses}`);
+
         return await ticketRepository.find({
-            where: { wo: woId },
+            where: { 
+                wo: { woId: parseInt(woId) },
+                status: { statusId: In(statuses) } 
+            },
             relations: [
-                "status",
-                "initiator",
-                "division",
-                "manNonCon",
-                "laborDepartment",
-                "sequence",
-                "unit",
-                "wo",
-                "assignedTo"
+                "status", "initiator", "division", "manNonCon",
+                "laborDepartment", "sequence", "unit", "wo", "assignedTo", "images"
             ],
             order: {
-                openDate: "DESC" // Show newest first
+                openDate: "DESC" 
             }
         });
     }
@@ -69,7 +86,6 @@ class WorkOrderService {
             where: { woId: woId },
             relations: ["unit"]
         });
-        // Return only the unit objects themselves for the dropdown
         return results.map(r => r.unit);
     }
 

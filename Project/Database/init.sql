@@ -334,13 +334,29 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MiHub_Quality_Images](
-	[IMAGE_ID] [int] NOT NULL,
-	[TICKETID] [int] NULL,
-PRIMARY KEY CLUSTERED 
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[TICKETID] [int] NOT NULL,
+	[ImageKey] [nvarchar](255) NOT NULL,
+	[ImageData] [varbinary](max) NOT NULL,
+	[MimeType] [nvarchar](100) NOT NULL,
+ CONSTRAINT [PK_MiHub_Quality_Images] PRIMARY KEY CLUSTERED 
 (
-	[IMAGE_ID] ASC
+	[ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+ CONSTRAINT [UQ_MiHub_Quality_Images_ImageKey] UNIQUE NONCLUSTERED 
+(
+	[ImageKey] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+
+/****** Object:  Foreign Key [FK_Image_Ticket] ******/
+ALTER TABLE [dbo].[MiHub_Quality_Images]  WITH CHECK ADD  CONSTRAINT [FK_Image_Ticket] FOREIGN KEY([TICKETID])
+REFERENCES [dbo].[MiHubWeb_Quality_Tickets] ([TICKETID])
+ON DELETE CASCADE
+GO
+
+ALTER TABLE [dbo].[MiHub_Quality_Images] CHECK CONSTRAINT [FK_Image_Ticket]
 GO
 
 -- ######################################################################
@@ -350,9 +366,6 @@ GO
 -- ######################################################################
 
 ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets] ADD  DEFAULT (getdate()) FOR [OPEN_DATE]
-GO
-ALTER TABLE [dbo].[MiHub_Quality_Images]  WITH CHECK ADD FOREIGN KEY([TICKETID])
-REFERENCES [dbo].[MiHubWeb_Quality_Tickets] ([TICKETID])
 GO
 ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets]  WITH CHECK ADD FOREIGN KEY([DIVISION])
 REFERENCES [dbo].[MiHub_Divisions] ([DIVISION_ID])
@@ -409,7 +422,8 @@ GO
 INSERT INTO dbo.MiHub_Quality_Ticket_Status (STATUS_ID, STATUS_DESCRIPTION)
 VALUES 
     (0, 'Open'),
-    (1, 'Closed');
+	(1, 'In Progress'),
+    (2, 'Closed');
 GO
 
 -- Populate Divisions Table

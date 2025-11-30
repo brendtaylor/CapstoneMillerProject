@@ -20,7 +20,25 @@ interface Note {
   };
 }
 
-type TicketDetailsTicket = TicketType & { partNum?: { partNum: string } };
+interface Ticket {
+  ticketId: number;
+  qualityTicketId?: string;
+  description: string;
+  openDate: string;
+  status: {
+    statusId: number;
+    statusDescription: string;
+  };
+  initiator: { name: string };
+
+  division?: { divisionName: string };
+  partNum?: { partNum: string };
+  drawingNum?: { drawing_num: string };
+  wo?: { wo: string };
+  unit?: { unitName: string };
+  sequence?: { seqName: string };
+  manNonCon?: { nonCon: string };
+}
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams();
@@ -31,7 +49,7 @@ const TicketDetails: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [noteText, setNoteText] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("0"); // Default to 'Open' (0)
 
   // Load Ticket Info
   const fetchTicket = async () => {
@@ -39,7 +57,7 @@ const TicketDetails: React.FC = () => {
       const response = await fetch(`http://localhost:3000/api/tickets/${id}`);
       const data: TicketDetailsTicket = await response.json();
       setTicket(data);
-      setStatus(data.status?.statusDescription || "Open");
+      setStatus(data.status?.statusId?.toString() || "0");
     } catch {
       toast({
         variant: "destructive",
@@ -104,7 +122,7 @@ const TicketDetails: React.FC = () => {
       await fetch(`http://localhost:3000/api/tickets/${id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: parseInt(status) }),
       });
 
       toast({ title: "Success", description: "Status updated." });
@@ -200,10 +218,9 @@ const TicketDetails: React.FC = () => {
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
-            <option>Open</option>
-            <option>In Progress</option>
-            <option>Closed</option>
-            <option>Archived</option>
+            <option value="0">Open</option>
+            <option value="1">In Progress</option>
+            <option value="2">Closed</option>
           </select>
 
           <Button onClick={handleStatusUpdate}>Update Status</Button>
