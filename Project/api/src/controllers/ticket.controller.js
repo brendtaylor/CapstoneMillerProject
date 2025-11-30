@@ -14,6 +14,7 @@ async function getAllTickets(req, res) {
 // Controller to handle creating a new ticket
 async function createTicket(req, res) {
     try {
+        // Service handles DB creation AND 'emitToMake' logic now
         const newTicket = await ticketService.createTicket(req.body);
         res.status(201).json(newTicket);
     } catch (error) {
@@ -46,6 +47,7 @@ async function getTicketById(req, res) {
 //Controller for updating a specific ticket
 async function updateTicket(req, res) {
     try {
+        // Service handles DB update AND 'emitToMake' logic now
         const updatedTicket = await ticketService.updateTicket(req.params.id, req.body);
         if (updatedTicket) {
             res.json(updatedTicket);
@@ -69,7 +71,7 @@ async function updateTicket(req, res) {
 }
 
 //Controller for deleting (archiving) a ticket
-async function deleteTicket(req, res) { // Renamed to match service
+async function deleteTicket(req, res) { 
     try {
         const result = await ticketService.deleteTicket(req.params.id);
         res.status(200).json(result);

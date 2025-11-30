@@ -63,14 +63,13 @@ class WorkOrderService {
         logger.info(`Fetching tickets for WO ID: ${woId}, Statuses: ${statuses}`);
 
         return await ticketRepository.find({
-            // NEW CODE: Define the 'where' object directly. No 'whereClause' variable used.
             where: { 
                 wo: { woId: parseInt(woId) },
                 status: { statusId: In(statuses) } 
             },
             relations: [
                 "status", "initiator", "division", "manNonCon",
-                "laborDepartment", "sequence", "unit", "wo", "assignedTo"
+                "laborDepartment", "sequence", "unit", "wo", "assignedTo", "images"
             ],
             order: {
                 openDate: "DESC" 

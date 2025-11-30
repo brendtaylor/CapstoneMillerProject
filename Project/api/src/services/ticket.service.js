@@ -15,7 +15,7 @@ class TicketService {
         this.relations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
-            "sequence", "unit", "wo", "assignedTo"
+            "sequence", "unit", "wo", "assignedTo", "images"
         ];
     }
 
@@ -92,12 +92,19 @@ class TicketService {
             this.sseEmitter.emit('new-ticket', completeTicket); 
             
             try {
-                await emitToMake('new-ticket', completeTicket); 
+                const makeRs = await emitToMake('ticket.create', { ticket: completeTicket });
+        
+                // Check for success signal from Make.com
+                if (makeRs?.status === 'success' || makeRs === 'Accepted') {
+                    logger.info(`Email sent successfully for ticket.create`);
+                } else {
+                    logger.warn(`Email webhook sent, but Make returned: ${JSON.stringify(makeRs)}`);
+                }
             } catch (err) {
                 logger.error(`Failed to emit new-ticket webhook: ${err.message}`);
             }
             
-            logger.info(`Ticket created with ID: ${savedTicket.ticketId}`);
+            logger.info(`Ticket created with ID: ${savedTicket.qualityTicketId}`);
             return completeTicket;
 
         } catch (error) {
@@ -123,6 +130,18 @@ class TicketService {
         
         // Emit Events
         this.sseEmitter.emit('update-ticket', updatedTicket); // For frontend SSE
+        
+        try {
+            const makeRs = await emitToMake('ticket.update', { ticket: updatedTicket });
+        
+            if (makeRs?.status === 'success' || makeRs === 'Accepted') {
+                logger.info(`Email sent successfully for ticket.update`);
+            } else {
+                logger.warn(`Email webhook sent, but Make returned: ${JSON.stringify(makeRs)}`);
+            }
+        } catch (err) {
+            logger.error(`Failed to emit update-ticket webhook: ${err.message}`);
+        }
         
         logger.info(`Ticket ${id} updated`);
         return updatedTicket;

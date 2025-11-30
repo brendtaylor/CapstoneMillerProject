@@ -15,6 +15,7 @@ const WorkOrderLaborDepartment = require ("./entities/work-order-labor-departmen
 const WorkOrderNonconformance = require ("./entities/work-order-nonconformance.entity");
 const WorkOrderSequence = require ("./entities/work-order-sequence.entity");
 const WorkOrderUnit = require ("./entities/work-order-unit.entity");
+const Image = require("./entities/image.entity");
 
 const AppDataSource = new DataSource({
     type: "mssql",
@@ -39,7 +40,8 @@ const AppDataSource = new DataSource({
         WorkOrderLaborDepartment,
         WorkOrderNonconformance,
         WorkOrderSequence,
-        WorkOrderUnit
+        WorkOrderUnit,
+        Image
     ],
     
     synchronize: false, 
