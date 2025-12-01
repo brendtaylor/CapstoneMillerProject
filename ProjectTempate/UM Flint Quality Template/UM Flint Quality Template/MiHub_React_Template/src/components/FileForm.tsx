@@ -4,40 +4,16 @@ import { useToast } from '../hooks/use-toast';
 import { useDebounce } from '../hooks/use-debounce';
 import { FileImage, FileText, FileArchive, FileType } from "lucide-react";
 import { logAudit } from './utils/auditLogger';
+import {
+    Division,
+    WorkOrder,
+    Unit,
+    Sequence,
+    Nonconformance,
+    LaborDepartment
+} from '../types';
 
 // --- Interfaces ---
-
-interface Division {
-    divisionId: number;
-    divisionName: string;
-}
-
-// Part interface removed
-
-interface WorkOrder {
-    woId: number;
-    wo: string; // Updated to string to match generic controller usually returning string/mixed
-}
-
-interface Unit {
-    unitId: number;
-    unitName: string;
-}
-
-interface Sequence {
-    sequenceId: number; // Updated from seqID to match backend entity standard usually
-    sequenceName: string; // Updated from seqName
-}
-
-interface ManNonCon {
-    nonConId: number;
-    nonCon: string;
-}
-
-interface LaborDepartment {
-    departmentId: number;
-    departmentName: string;
-}
 
 interface SavedFile {
     name: string;
@@ -93,7 +69,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     
     // These lists are filtered based on the selected Work Order
     const [laborDepts, setLaborDepts] = useState<LaborDepartment[]>([]);
-    const [manNonCons, setManNonCons] = useState<ManNonCon[]>([]);
+    const [manNonCons, setManNonCons] = useState<Nonconformance[]>([]);
     const [units, setUnits] = useState<Unit[]>([]);
     const [sequences, setSequences] = useState<Sequence[]>([]);
 
@@ -342,6 +318,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             setCreatedTicketId(newTicket.qualityTicketId);
             setShowPostCreate(true);
             window.dispatchEvent(new CustomEvent('ticketCreated'));
+
         } catch (error: any) {
             toast({ variant: "destructive", title: "Save Failed", description: error.message });
             console.error("Failed to save ticket:", error);

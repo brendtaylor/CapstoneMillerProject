@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "axios": "^1.12.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "multer": "^2.0.2"
   },
   "devDependencies": {
     "@types/axios": "^0.9.36"

@@ -15,7 +15,7 @@ class TicketService {
         this.relations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
-            "sequence", "unit", "wo", "assignedTo"
+            "sequence", "unit", "wo", "assignedTo", "images"
         ];
     }
 
@@ -45,7 +45,7 @@ class TicketService {
         await queryRunner.startTransaction();
 
         try {
-            //Get WO number for Quality Ticket ID generation
+            // Get WO number for Quality Ticket ID generation
             const workOrder = await queryRunner.manager.findOne("WorkOrder", {
                 where: { woId: ticketData.wo }
             });
@@ -54,16 +54,25 @@ class TicketService {
             }
             const woNumber = workOrder.wo;
 
-            //Generate Quality Ticket ID
-            const ticketCount = await queryRunner.manager.count("Ticket", {
-                where: { wo: ticketData.wo }
+            // Generate Quality Ticket ID
+            // Count Active Tickets for this WO
+            const activeCount = await queryRunner.manager.count("Ticket", {
+                where: { wo: { woId: ticketData.wo } } 
             });
 
-            const newTicketNum = (ticketCount + 1).toString().padStart(3, '0');
+            // Count Archived Tickets for this WO
+            const archivedCount = await queryRunner.manager.count("ArchivedTicket", {
+                where: { wo: { woId: ticketData.wo } } 
+            });
+
+            // Add them together so archiving doesn't reset the sequence
+            const totalCount = activeCount + archivedCount;
+            const newTicketNum = (totalCount + 1).toString().padStart(3, '0');
+            
             const qualityTicketId = `${woNumber}-${newTicketNum}`;
             logger.info(`Generated new Quality Ticket ID: ${qualityTicketId}`);
 
-            //Create Ticket
+            // Create Ticket
             const newTicket = queryRunner.manager.create("Ticket", {
                 ...ticketData,
                 qualityTicketId: qualityTicketId,
@@ -71,15 +80,32 @@ class TicketService {
                 status: 0,
             });
             
+            // 1. Save the raw ticket
             const savedTicket = await queryRunner.manager.save("Ticket", newTicket);
             await queryRunner.commitTransaction();
 
-            // Emit Events
-            this.sseEmitter.emit('new-ticket', savedTicket); // For frontend SSE
-            await emitToMake('new-ticket', savedTicket); // For Make.com webhook
+            // 2. FETCH COMPLETE TICKET 
+            // fetch the full entity with relations so the UI receives { wo: { woId: ... } }
+            const completeTicket = await this.getTicketById(savedTicket.ticketId);
+
+            // 3. Emit Events using the COMPLETE ticket
+            this.sseEmitter.emit('new-ticket', completeTicket); 
             
-            logger.info(`Ticket created with ID: ${savedTicket.ticketId} and Quality ID: ${qualityTicketId}`);
-            return savedTicket;
+            try {
+                const makeRs = await emitToMake('ticket.create', { ticket: completeTicket });
+        
+                // Check for success signal from Make.com
+                if (makeRs?.status === 'success' || makeRs === 'Accepted') {
+                    logger.info(`Email sent successfully for ticket.create`);
+                } else {
+                    logger.warn(`Email webhook sent, but Make returned: ${JSON.stringify(makeRs)}`);
+                }
+            } catch (err) {
+                logger.error(`Failed to emit new-ticket webhook: ${err.message}`);
+            }
+            
+            logger.info(`Ticket created with ID: ${savedTicket.qualityTicketId}`);
+            return completeTicket;
 
         } catch (error) {
             await queryRunner.rollbackTransaction();
@@ -94,7 +120,7 @@ class TicketService {
         logger.info(`Updating ticket ID: ${id}`);
         const updatePayload = { ...ticketData };
 
-        if (updatePayload.status === 1) {                                                   // 1 = 'Closed'
+        if (updatePayload.status === 2) {                                                   // 2 = 'Closed'
             updatePayload.closeDate = new Date();
             logger.info(`Ticket ${id} is being closed.`);
         }
@@ -104,6 +130,18 @@ class TicketService {
         
         // Emit Events
         this.sseEmitter.emit('update-ticket', updatedTicket); // For frontend SSE
+        
+        try {
+            const makeRs = await emitToMake('ticket.update', { ticket: updatedTicket });
+        
+            if (makeRs?.status === 'success' || makeRs === 'Accepted') {
+                logger.info(`Email sent successfully for ticket.update`);
+            } else {
+                logger.warn(`Email webhook sent, but Make returned: ${JSON.stringify(makeRs)}`);
+            }
+        } catch (err) {
+            logger.error(`Failed to emit update-ticket webhook: ${err.message}`);
+        }
         
         logger.info(`Ticket ${id} updated`);
         return updatedTicket;
