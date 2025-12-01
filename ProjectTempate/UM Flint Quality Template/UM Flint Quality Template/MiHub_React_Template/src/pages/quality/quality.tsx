@@ -9,6 +9,7 @@ import { Ticket } from "../../types";
 import { Skeleton } from "../../components/ui/skeleton";
 import FileForm from "../../components/FileForm";
 import TicketList from "../../components/TicketList";
+import AuditLog from "../../components/AuditLog";
 
 const Quality: React.FC = () => {
     const isMobile = useIsMobile();
@@ -113,7 +114,9 @@ const Quality: React.FC = () => {
           <TabsContent value="auditlog" className="my-2">
             <Card>
               <CardHeader className="flex flex-row"><CardTitle>Audit Log<p className="text-sm font-normal mt-1">Edited Tickets</p></CardTitle></CardHeader>
-              <CardContent><div>Placeholder for Audit log stuff</div></CardContent>
+              <CardContent>
+                <AuditLog />
+              </CardContent>
             </Card>
           </TabsContent>
         </div>

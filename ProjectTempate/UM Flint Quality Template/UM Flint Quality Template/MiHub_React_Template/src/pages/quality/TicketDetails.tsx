@@ -5,6 +5,8 @@ import { Button } from "../../components/ui/button";
 import { useToast } from "../../hooks/use-toast";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import { Textarea } from "../../components/ui/textarea";
+import UploadedFileList from "../../components/UploadedFileList";
+import { Files } from "lucide-react";
 import AssignUser from "../../components/AssignUser";
 import { isEditable, requiresAssignedUser } from "../../lib/ticketRules";
 import type {
@@ -31,6 +33,9 @@ const TicketDetails: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [noteText, setNoteText] = useState("");
+  const [status, setStatus] = useState("");
+  const [files, setFiles] = useState<{ name: string; key: string }[]>([]);
+
   const [status, setStatus] = useState("0"); // Default to 'Open' (0)
   const [showAssignmentPrompt, setShowAssignmentPrompt] = useState(false);
   const [showClosingPrompt, setShowClosingPrompt] = useState(false);
@@ -73,10 +78,28 @@ const TicketDetails: React.FC = () => {
     }
   };
 
+  // Load File List
+  const fetchFiles = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/tickets/${id}/files`);
+      if (!response.ok) throw new Error("Failed to load files");
+        const data = await response.json();
+        setFiles(data); // [{ name, key }, ...]
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load files.",
+      });
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
       await fetchTicket();
       await fetchNotes();
+      await fetchFiles();
       setLoading(false);
     };
     load();
@@ -302,7 +325,7 @@ const TicketDetails: React.FC = () => {
         </CardHeader>
 
         <CardContent>
-          {/* <FileList /> */}
+         <UploadedFileList files={files} />
         </CardContent>
       </Card>
 
