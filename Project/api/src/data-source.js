@@ -16,7 +16,6 @@ const WorkOrderNonconformance = require ("./entities/work-order-nonconformance.e
 const WorkOrderSequence = require ("./entities/work-order-sequence.entity");
 const WorkOrderUnit = require ("./entities/work-order-unit.entity");
 const AuditLog = require("./entities/audit-log.entity.js");
-const Image = require("./entities/image.entity");
 
 const AppDataSource = new DataSource({
     type: "mssql",
@@ -43,7 +42,6 @@ const AppDataSource = new DataSource({
         WorkOrderSequence,
         WorkOrderUnit,
         AuditLog
-        Image
     ],
     
     synchronize: false, 
@@ -55,6 +53,13 @@ const AppDataSource = new DataSource({
     },
 });
 
+AppDataSource.initialize()
+    .then(() => {
+        console.log("Data Source has been initialized!");
+    })
+    .catch((err) => {
+        console.error("Error during Data Source initialization:", err);
+    });
 
 module.exports = { AppDataSource };
 

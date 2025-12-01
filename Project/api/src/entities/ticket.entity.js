@@ -103,11 +103,6 @@ module.exports = new EntitySchema({
             target: "User",
             type: "many-to-one",
             joinColumn: { name: "ASSIGNED_TO" },
-        },
-        images: {
-            target: "Image",
-            type: "one-to-many",
-            inverseSide: "ticket", // This matches the relation name in image.entity.js
         }
     },
 });

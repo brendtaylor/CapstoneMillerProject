@@ -7,11 +7,6 @@ import ScaleLoader from "react-spinners/ScaleLoader";
 import { Textarea } from "../../components/ui/textarea";
 import UploadedFileList from "../../components/UploadedFileList";
 import { Files } from "lucide-react";
-import AssignUser from "../../components/AssignUser";
-import { isEditable, requiresAssignedUser } from "../../lib/ticketRules";
-import type {
-  Ticket
-} from "../../types";
 //import FileList from "../../components/FileList"; commented out temporarily to make react compile
 
 interface Note {
@@ -22,6 +17,23 @@ interface Note {
     userId: number;
     name: string;
   };
+}
+
+interface Ticket {
+  ticketId: number;
+  qualityTicketId?: string;
+  description: string;
+  openDate: string;
+  status: { statusDescription: string };
+  initiator: { name: string };
+
+  division?: { divisionName: string };
+  partNum?: { partNum: string };
+  drawingNum?: { drawing_num: string };
+  wo?: { wo: string };
+  unit?: { unitName: string };
+  sequence?: { seqName: string };
+  manNonCon?: { nonCon: string };
 }
 
 const TicketDetails: React.FC = () => {
@@ -36,28 +48,14 @@ const TicketDetails: React.FC = () => {
   const [status, setStatus] = useState("");
   const [files, setFiles] = useState<{ name: string; key: string }[]>([]);
 
-  const [status, setStatus] = useState("0"); // Default to 'Open' (0)
-  const [showAssignmentPrompt, setShowAssignmentPrompt] = useState(false);
-  const [showClosingPrompt, setShowClosingPrompt] = useState(false);
-  const [closingFields, setClosingFields] = useState({
-    correctiveAction: "",
-    materialsUsed: "",
-    estimatedLaborHours: "",
-  });
 
   // Load Ticket Info
   const fetchTicket = async () => {
     try {
       const response = await fetch(`http://localhost:3000/api/tickets/${id}`);
-      const data: Ticket = await response.json();
+      const data = await response.json();
       setTicket(data);
-      setStatus(data.status?.statusId?.toString() || "0");
-      // Pre-fill closing fields if they already exist
-      setClosingFields({
-        correctiveAction: data.correctiveAction || "",
-        materialsUsed: data.materialsUsed || "",
-        estimatedLaborHours: data.estimatedLaborHours?.toString() || "",
-      });
+      setStatus(data.status?.statusDescription || "Open");
     } catch {
       toast({
         variant: "destructive",
@@ -134,16 +132,13 @@ const TicketDetails: React.FC = () => {
     }
   };
 
-  // Update Status (can be called directly or after assignment)
-  const handleStatusUpdate = async (newStatus?: string, extraFields?: object) => {
-    const newStatusId = parseInt(status, 10);
-    const statusToUpdate = newStatus ? parseInt(newStatus, 10) : newStatusId;
-
+  // Update Status
+  const handleStatusUpdate = async () => {
     try {
-      await fetch(`http://localhost:3000/api/tickets/${id}`, { // change back to api/tickets/status later
+      await fetch(`http://localhost:3000/api/tickets/${id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: statusToUpdate, ...extraFields }),
+        body: JSON.stringify({ status }),
       });
 
       toast({ title: "Success", description: "Status updated." });
@@ -157,19 +152,6 @@ const TicketDetails: React.FC = () => {
     }
   };
 
-  // Handle status dropdown change
-  const handleStatusChange = (newStatusValue: string) => {
-    const newStatusId = parseInt(newStatusValue, 10);
-    setStatus(newStatusValue);
-
-    // If new status is "In Progress" (ID 1) and no user is assigned, show the prompt.
-    if (newStatusId === 1 && !ticket?.assignedTo) {
-      setShowAssignmentPrompt(true);
-    } else if (newStatusId === 2) { // If new status is "Closed" (ID 2), show closing prompt.
-      setShowClosingPrompt(true);
-    }
-  };
-
   if (loading || !ticket) {
     return (
       <div className="flex justify-center mt-10">
@@ -179,95 +161,6 @@ const TicketDetails: React.FC = () => {
   }
 
   return (
-    <>
-      {/* Assignment Prompt Overlay */}
-      {showAssignmentPrompt && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-2">Assignment Required</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              To set this ticket to 'In Progress', you must first assign it to a user.
-            </p>
-            <AssignUser
-              ticketId={ticket.ticketId}
-              currentAssigned={ticket.assignedTo?.name}
-              onAssignmentSuccess={() => {
-                setShowAssignmentPrompt(false); // Close overlay
-                fetchTicket(); // Refresh ticket to get new assignee
-                handleStatusUpdate("1"); // Now update status to "In Progress"
-              }}
-            />
-            <Button variant="outline" className="w-full mt-3" onClick={() => setShowAssignmentPrompt(false)}>Cancel</Button>
-          </div>
-        </div>
-      )}
-
-      {/* Closing Fields Prompt Overlay */}
-      {showClosingPrompt && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
-            <h3 className="text-lg font-semibold mb-2">Close Ticket</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Please provide the following details to close the ticket.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Corrective Action <span className="text-red-500">*</span>
-                </label>
-                <Textarea
-                  value={closingFields.correctiveAction}
-                  onChange={(e) => setClosingFields({ ...closingFields, correctiveAction: e.target.value })}
-                  placeholder="Describe the corrective action taken..."
-                  rows={4}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Materials Used <span className="text-red-500">*</span>
-                </label>
-                <Textarea
-                  value={closingFields.materialsUsed}
-                  onChange={(e) => setClosingFields({ ...closingFields, materialsUsed: e.target.value })}
-                  placeholder="List any materials used..."
-                  rows={2}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Estimated Labor Hours <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={closingFields.estimatedLaborHours}
-                  onChange={(e) => setClosingFields({ ...closingFields, estimatedLaborHours: e.target.value })}
-                  className="border rounded p-2 w-full"
-                  placeholder="e.g., 2.5"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="outline" onClick={() => setShowClosingPrompt(false)}>Cancel</Button>
-              <Button onClick={() => {
-                if (!closingFields.correctiveAction.trim() || !closingFields.materialsUsed.trim() || !closingFields.estimatedLaborHours) {
-                  return toast({
-                    variant: "destructive",
-                    title: "Required Fields Missing",
-                    description: "Please fill out all required fields to close the ticket.",
-                  });
-                }
-                const payload = {
-                  ...closingFields,
-                  estimatedLaborHours: closingFields.estimatedLaborHours ? parseFloat(closingFields.estimatedLaborHours) : null,
-                };
-                handleStatusUpdate("2", payload);
-                setShowClosingPrompt(false);
-              }}>Save & Close Ticket</Button>
-            </div>
-          </div>
-        </div>
-      )}
-
     <div className="max-w-3xl mx-auto mt-6 space-y-6">
 
       {/* Back Button */}
@@ -286,37 +179,15 @@ const TicketDetails: React.FC = () => {
           <p><b>Description:</b> {ticket.description}</p>
           <p><b>Work Order:</b> {ticket.wo?.wo}</p>
           <p><b>Division:</b> {ticket.division?.divisionName}</p>
-          <p><b>Drawing #:</b> {ticket.drawingNum}</p>
+          <p><b>Part #:</b> {ticket.partNum?.partNum}</p>
+          <p><b>Drawing #:</b> {ticket.drawingNum?.drawing_num}</p>
           <p><b>Unit:</b> {ticket.unit?.unitName}</p>
-          <p><b>Sequence:</b> {ticket.sequence?.sequenceName}</p>
+          <p><b>Sequence:</b> {ticket.sequence?.seqName}</p>
           <p><b>Nonconformance:</b> {ticket.manNonCon?.nonCon}</p>
           <p><b>Opened:</b> {new Date(ticket.openDate).toLocaleString()}</p>
           <p><b>Initiator:</b> {ticket.initiator?.name}</p>
         </CardContent>
       </Card>
-      
-      {/* Assignment */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Assignment</CardTitle>
-        </CardHeader>
-      
-      <CardContent className="space-y-3">
-      
-        {requiresAssignedUser(ticket) && (
-          <p className="text-red-600">
-            This ticket is In Progress but has no assigned user.
-          </p>
-      )}
-      
-      <AssignUser
-        ticketId={ticket.ticketId}
-        currentAssigned={ticket.assignedTo?.name}
-        onAssignmentSuccess={fetchTicket}
-      />
-      
-      </CardContent>
-    </Card>
       
       {/* Files */}
       <Card>
@@ -339,14 +210,15 @@ const TicketDetails: React.FC = () => {
           <select
             className="border rounded p-2 w-full"
             value={status}
-            onChange={(e) => handleStatusChange(e.target.value)}
+            onChange={(e) => setStatus(e.target.value)}
           >
-            <option value="0">Open</option>
-            <option value="1">In Progress</option>
-            <option value="2">Closed</option>
+            <option>Open</option>
+            <option>In Progress</option>
+            <option>Closed</option>
+            <option>Archived</option>
           </select>
 
-          <Button onClick={() => handleStatusUpdate()}>Update Status</Button>
+          <Button onClick={handleStatusUpdate}>Update Status</Button>
         </CardContent>
       </Card>
 
@@ -387,7 +259,6 @@ const TicketDetails: React.FC = () => {
       </Card>
 
     </div>
-    </>
   );
 };
 

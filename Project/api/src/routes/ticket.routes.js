@@ -15,7 +15,7 @@ const {
 // This route is for the Server-Sent Events stream
 router.get("/events", connectSSE);
 
-// GET /api/tickets/open - Get all tickets
+// GET /api/tickets - Get all tickets
 router.get("/", getAllTickets);
 
 //GET /api/tickets/archived - Get all archived tickets
