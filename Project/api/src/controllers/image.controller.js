@@ -1,4 +1,4 @@
-const { FileService } = require("../services/file.service");
+const { FileService } = require("../services/image.service");
 
 class FileController {
     /**
