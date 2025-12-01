@@ -1,47 +1,41 @@
 const { AppDataSource } = require("../data-source");
-const logger = require("../../logger");
+const File = require("../entities/image.entity"); 
+const { IsNull } = require("typeorm");
 
-class ImageService {
-    constructor() {
-        this.imageRepository = AppDataSource.getRepository("Image");
-        logger.info("ImageService initialized");
-    }
+const fileRepository = AppDataSource.getRepository(File); 
 
+class FileService {
     /**
-     * Finds a single image by its unique ImageKey.
+     * Finds a single File by its unique FileKey.
+     * @param {string} key - The File to search for.
      */
-    async findOneByKey(key) {
-        return await this.imageRepository.findOneBy({
-            imageKey: key
+    static async findOneByKey(key) {
+        return fileRepository.findOneBy({
+            fileKey: key
         });
     }
-
     /**
-     * Saves a new image to the database and links it to a ticket.
+     * Saves a new file to the database.
+     * We'll set ticketId to null for now since we aren't linking it to a ticket yet.
      */
-    async createImage(key, fileBuffer, mimeType, ticketId) {
-        logger.info(`Creating image ${key} for Ticket ID: ${ticketId}`);
-        
-        const newImage = this.imageRepository.create({
-            imageKey: key,
-            imageData: fileBuffer,
-            mimeType: mimeType,
-            ticketId: parseInt(ticketId) // Ensure it's an integer
+    static async createFile(key, file, ticketId) {
+        // Create a new file object
+        const newFile = fileRepository.create({
+            fileKey: key,
+            fileName: file.originalname,
+            fileData: file.buffer, 
+            mimeType: file.mimetype, 
+            id: undefined, // Let the database auto-generate the ID
+            ticket: { ticketId: parseInt(ticketId) }, // Link to the ticket
         });
 
-        await this.imageRepository.save(newImage);
-        return newImage;
+        // Save it to the database
+        await fileRepository.save(newFile);
+        return newFile;
     }
-    
-    /**
-     * Optional: Helper to get all images for a specific ticket
-     */
-    async getImagesByTicketId(ticketId) {
-        return await this.imageRepository.find({
-            where: { ticketId: parseInt(ticketId) },
-            select: ["imageKey", "mimeType", "id"] // Don't fetch huge blob data for lists
-        });
+    static async findAll() {
+        return fileRepository.find();
     }
 }
 
-module.exports = new ImageService();
+module.exports = { FileService };
