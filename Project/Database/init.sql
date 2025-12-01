@@ -333,12 +333,14 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[MiHub_Quality_Images](
-	[ID] [int] IDENTITY(1,1) NOT NULL,
-	[TICKETID] [int] NOT NULL,
-	[ImageKey] [nvarchar](255) NOT NULL,
-	[ImageData] [varbinary](max) NOT NULL,
-	[MimeType] [nvarchar](100) NOT NULL,
+Create Table [dbo].[MiHub_Quality_Attachments](
+    [ID]          [INT] IDENTITY(10000,1) PRIMARY KEY,
+    [TICKETID]    [INT] NOT NULL,
+    [FileKey]     [NVARCHAR](255)  NOT NULL UNIQUE,
+    [FileName]    [NVARCHAR](255)  NOT NULL,
+    [FileData]    [VARBINARY](MAX) NOT NULL,
+    [MimeType]    [NVARCHAR](100)  NOT NULL
+ CONSTRAINT [PK_MiHub_Quality_Images] PRIMARY KEY CLUSTERED 
  CONSTRAINT [PK_MiHub_Quality_Images] PRIMARY KEY CLUSTERED 
 (
 	[ID] ASC
