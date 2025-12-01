@@ -1,5 +1,5 @@
 const { AppDataSource } = require("../data-source");
-const File = require("../entities/image.entity"); 
+const File = require("../entities/file.entity"); 
 const { IsNull } = require("typeorm");
 
 const fileRepository = AppDataSource.getRepository(File); 
