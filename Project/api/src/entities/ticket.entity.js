@@ -104,7 +104,7 @@ module.exports = new EntitySchema({
             type: "many-to-one",
             joinColumn: { name: "ASSIGNED_TO" },
         },
-        images: {
+        files: {
             target: "File", // The 'name' from file.entity.js
             type: "one-to-many", // One Ticket can have Many Images
             inverseSide: "ticket", // Links to the 'ticket' property in file.entity.js
