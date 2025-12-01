@@ -7,8 +7,8 @@ const ticketRoutes = require("./ticket.routes");
 router.use("/tickets", ticketRoutes);
 const workOrderRoutes = require("./work-order.routes");
 router.use("/", workOrderRoutes); 
-const imageRoutes = require("./image.routes");
-router.use("/images", imageRoutes);
+const fileRoutes = require("./file.routes");
+router.use("/files", fileRoutes);
 
 // --- Import the ENTITIES for the SIMPLE tables ---
 const Division = require('../entities/division.entity');
