@@ -15,7 +15,7 @@ class TicketService {
         this.relations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
-            "sequence", "unit", "wo", "assignedTo", "images"
+            "sequence", "unit", "wo", "assignedTo", "files"
         ];
     }
 
