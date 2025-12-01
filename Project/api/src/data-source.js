@@ -41,7 +41,7 @@ const AppDataSource = new DataSource({
         WorkOrderNonconformance,
         WorkOrderSequence,
         WorkOrderUnit,
-        Image
+        File
     ],
     
     synchronize: false, 
