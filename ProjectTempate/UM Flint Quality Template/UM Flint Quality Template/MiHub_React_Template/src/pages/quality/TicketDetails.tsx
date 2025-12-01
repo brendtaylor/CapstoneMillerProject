@@ -7,7 +7,16 @@ import ScaleLoader from "react-spinners/ScaleLoader";
 import { Textarea } from "../../components/ui/textarea";
 import AssignUser from "../../components/AssignUser";
 import { isEditable, requiresAssignedUser } from "../../lib/ticketRules";
-import type { Ticket as TicketType } from "../../types";
+import type { 
+  Ticket as TicketType, 
+  User, 
+  Division, 
+  Status, 
+  WorkOrder, 
+  Unit, 
+  Sequence, 
+  Nonconformance 
+} from "../../types";
 //import FileList from "../../components/FileList"; commented out temporarily to make react compile
 
 interface Note {
@@ -20,24 +29,27 @@ interface Note {
   };
 }
 
-interface Ticket {
+interface TicketDetailsTicket {
   ticketId: number;
   qualityTicketId?: string;
   description: string;
   openDate: string;
-  status: {
-    statusId: number;
-    statusDescription: string;
-  };
-  initiator: { name: string };
-
-  division?: { divisionName: string };
+  
+  // Use global types to prevent "incompatible type" errors
+  status: Status;
+  initiator: User;
+  division?: Division; 
+  wo?: WorkOrder;
+  unit?: Unit;
+  sequence?: Sequence;
+  manNonCon?: Nonconformance;
+  
+  // These fields might not have global types yet, so keep them as is or update if needed
   partNum?: { partNum: string };
-  drawingNum?: { drawing_num: string };
-  wo?: { wo: string };
-  unit?: { unitName: string };
-  sequence?: { seqName: string };
-  manNonCon?: { nonCon: string };
+  drawingNum?: string;
+  
+  // Ensure this matches the User type (id and name)
+  assignedTo?: User | null; 
 }
 
 const TicketDetails: React.FC = () => {
