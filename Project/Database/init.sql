@@ -350,30 +350,20 @@ GO
 
 CREATE TABLE [dbo].[AuditLogs](
     [LOG_ID] INT IDENTITY(1,1) NOT NULL,
-    [USER_ID] SMALLINT NOT NULL,        -- FK to MiHub_Quality_Users.ID
-    [TICKET_ID] INT NOT NULL,           -- FK to MiHubWeb_Quality_Tickets.TICKETID
+    [USER_ID] SMALLINT NULL,       -- reference only, no FK
+    [UserRole] TINYINT NULL,       -- raw role number snapshot
+    [TICKET_ID] INT NULL,          -- reference only, no FK
+    [WO_ID] INT NULL,              -- reference only, no FK
     [ACTION] NVARCHAR(50) NOT NULL,
     [TIMESTAMP] DATETIME2 NOT NULL,
-    [WO_ID] INT NULL,                   -- allow NULLs here
     CONSTRAINT [PK_AuditLogs] PRIMARY KEY CLUSTERED ([LOG_ID] ASC)
 ) ON [PRIMARY];
 GO
 
--- Add foreign key constraints
-ALTER TABLE [dbo].[AuditLogs]  WITH CHECK ADD CONSTRAINT [FK_AuditLogs_Users]
-FOREIGN KEY([USER_ID]) REFERENCES [dbo].[MiHub_Quality_Users] ([ID]);
+CREATE INDEX IX_AuditLogs_Timestamp ON [dbo].[AuditLogs] ([TIMESTAMP]);
+CREATE INDEX IX_AuditLogs_Action ON [dbo].[AuditLogs] ([ACTION]);
+CREATE INDEX IX_AuditLogs_UserRole ON [dbo].[AuditLogs] ([UserRole]);
 GO
-
-ALTER TABLE [dbo].[AuditLogs]  WITH CHECK ADD CONSTRAINT [FK_AuditLogs_Tickets]
-FOREIGN KEY([TICKET_ID]) REFERENCES [dbo].[MiHubWeb_Quality_Tickets] ([TICKETID]);
-GO
-
-ALTER TABLE [dbo].[AuditLogs]  WITH CHECK ADD CONSTRAINT [FK_AuditLogs_WorkOrders]
-FOREIGN KEY([WO_ID]) REFERENCES [dbo].[MiHub_WO] ([WO_ID]);
-GO
-
-ALTER TABLE [dbo].[AuditLogs]
-ALTER COLUMN [WO_ID] INT NULL;
 
 -- ######################################################################
 -- #

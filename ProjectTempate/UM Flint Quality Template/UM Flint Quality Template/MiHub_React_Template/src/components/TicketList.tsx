@@ -235,6 +235,12 @@ const TicketList: React.FC = () => {
         throw new Error(errorMessage);
       }
       toast({ title: "Success", description: `Ticket ${qualityTicketId} has been archived.` });
+
+      const woId = ticket?.wo?.wo ? parseInt(ticket.wo.wo, 10) : undefined;
+
+      await logAudit("Archive", ticketId, woId);
+
+
       fetchTickets();
     } catch (err: any) {
       console.error("Archive error:", err);
@@ -245,7 +251,7 @@ const TicketList: React.FC = () => {
   const confirmAndArchive = async (ticketId: number) => {
     setTicketToArchive(ticketId);
     setShowArchiveConfirm(true);
-    //await logAudit("archive", ticketId);
+    
   };
 
   const handleEdit = (ticketId: number) => {
@@ -351,7 +357,7 @@ const TicketList: React.FC = () => {
 
       //const numericTicketId = Number(editingTicket.qualityTicketId);
 
-      //await logAudit("edit", numericTicketId);
+      await logAudit("Edit", editingTicket.ticketId, parseInt(editingTicket.wo?.wo));
 
       fetchTickets();
       setIsEditing(false);

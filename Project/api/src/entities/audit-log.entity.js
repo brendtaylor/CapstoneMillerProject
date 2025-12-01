@@ -12,13 +12,23 @@ module.exports = new EntitySchema({
     },
     userId: {
       type: Number,
-      nullable: false,
+      nullable: true,
       name: "USER_ID"
+    },
+    userRole: {
+      type: Number,   // tinyint in SQL maps to Number here
+      nullable: true,
+      name: "UserRole"
     },
     ticketId: {
       type: Number,
-      nullable: false,
+      nullable: true,
       name: "TICKET_ID"
+    },
+    woId: {
+      type: Number,
+      nullable: true,
+      name: "WO_ID"
     },
     action: {
       type: "nvarchar",
@@ -30,23 +40,6 @@ module.exports = new EntitySchema({
       type: "datetime2",
       nullable: false,
       name: "TIMESTAMP"
-    },
-    woId: {
-      type: Number,
-      nullable: false,
-      name: "WO_ID"
-    }
-  },
-  relations: {
-    user: {
-      target: "User", // must match the entity name in user.entity.js
-      type: "many-to-one",
-      joinColumn: { name: "USER_ID" }
-    },
-    ticket: {
-      target: "Ticket", // must match the entity name in ticket.entity.js
-      type: "many-to-one",
-      joinColumn: { name: "TICKET_ID" }
     }
   }
 });

@@ -305,8 +305,8 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             const newTicket = await response.json();
             toast({ title: "Success!", description: `Ticket ${newTicket.qualityTicketId} has been created.` });
 
-            // Log the Ticket creation
-            await logAudit("create", newTicket.qualityTicketId);
+            // Log audit with numeric ticketId and human-friendly WO string
+            await logAudit("Create", parseInt(newTicket.ticketId, 10), parseInt(workOrderSearch, 10));
 
             {/*
             // Upload Files

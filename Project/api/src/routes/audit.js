@@ -1,21 +1,33 @@
 const { Router } = require("express");
 const { AppDataSource } = require("../data-source");
 const AuditLog = require("../entities/audit-log.entity.js");
-const Ticket = require("../entities/ticket.entity.js");
+const User = require("../entities/user.entity.js");
+
 
 const router = Router();
 
-// GET /api/audit - fetch audit logs
+// GET /api/audit - fetch audit logs (with optional search)
 router.get("/audit", async (req, res) => {
   try {
     const auditRepo = AppDataSource.getRepository("AuditLog");
+    const search = req.query.search?.toLowerCase();
 
-    // Fetch latest logs, include ticket relation if you want
-    const logs = await auditRepo.find({
-      order: { logId: "DESC" },
-      take: 50, // limit rows for safety
-      relations: ["ticket"] // if you want joined ticket info
-    });
+    let logs;
+
+    if (search) {
+      logs = await auditRepo
+        .createQueryBuilder("log")
+        .where("LOWER(log.action) LIKE :search", { search: `%${search}%` })
+        .orWhere("CAST(log.woId AS VARCHAR) LIKE :search", { search: `%${search}%` })
+        .orderBy("log.timestamp", "DESC")
+        .take(50)
+        .getMany();
+    } else {
+      logs = await auditRepo.find({
+        order: { logId: "DESC" },
+        take: 50
+      });
+    }
 
     res.json(logs);
   } catch (err) {
@@ -24,28 +36,26 @@ router.get("/audit", async (req, res) => {
   }
 });
 
+
+
 // POST /api/audit - record a new audit entry
 router.post("/audit", async (req, res) => {
-  const { userId, ticketId, action, timestamp } = req.body;
+  const { userId, ticketId, action, timestamp, woId } = req.body;
 
   try {
     const auditRepo = AppDataSource.getRepository("AuditLog");
-    const ticketRepo = AppDataSource.getRepository("Ticket");
+    const userRepo = AppDataSource.getRepository("User");
 
-    // Look up the ticket to get its Work Order
-    const ticket = await ticketRepo.findOne({
-      where: { ticketId },
-      relations: ["wo"]
-    });
-
-    if (!ticket || !ticket.wo) {
-      return res.status(400).json({ error: "Ticket or Work Order not found" });
+    const user = await userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      return res.status(400).json({ error: "User not found" });
     }
 
     const newLog = auditRepo.create({
       userId,
+      userRole: user.role,          // snapshot role
       ticketId,
-      woId: ticket.wo.woId,   // auto-populated from relation
+      woId,
       action,
       timestamp: new Date(timestamp)
     });
