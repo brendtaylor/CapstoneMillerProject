@@ -11,6 +11,7 @@ const {
     connectSSE 
 } = require("../controllers/ticket.controller");
 
+
 // --- Static routes must come BEFORE dynamic routes ---
 // This route is for the Server-Sent Events stream
 router.get("/events", connectSSE);

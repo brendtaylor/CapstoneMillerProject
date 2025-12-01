@@ -7,8 +7,6 @@ const cors = require('cors');
 
 const mainApiRouter = require("./src/routes/index.js");
 
-const auditRouter = require("./src/routes/audit.js");
-
 const { AppDataSource } = require("./src/data-source");
 
 
@@ -28,9 +26,6 @@ AppDataSource.initialize()
             methods: ['GET','POST','PUT','DELETE','OPTIONS'],
             allowedHeaders: ['Content-Type','Authorization', 'cache-control', 'pragma']
         }));
-
-        // Mount the audit routes under /api
-        app.use("/api", auditRouter);
 
         // main router
         app.use('/api', mainApiRouter);

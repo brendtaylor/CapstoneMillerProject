@@ -13,7 +13,6 @@ import { useToast } from '../hooks/use-toast';
 import { useDebounce } from '../hooks/use-debounce';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useNavigate } from "react-router-dom";
-import { logAudit } from "./utils/auditLogger";
 
 import { 
   Ticket, 
@@ -26,12 +25,6 @@ import {
   WorkOrderSummary
 } from "../types"; 
 
-
-// Local interfaces to match the specific API responses expected by the Form logic
-interface ManNonCon {
-    nonConId: number;
-    nonCon: string;
-}
 
 // --- HELPERS ---
 
@@ -425,19 +418,6 @@ const TicketList: React.FC = () => {
   const handleArchive = async (ticketId: number, woId?: number) => {
     try {
       const response = await fetch(`http://localhost:3000/api/tickets/${ticketId}`, { method: 'DELETE' });
-      if (!response.ok) {
-        let errorMessage = `Failed to archive ticket. Status: ${response.status}`;
-        try { const errorData = await response.json(); errorMessage = errorData.message || errorMessage; } catch (e) { /* Ignore */ }
-        throw new Error(errorMessage);
-      }
-      toast({ title: "Success", description: `Ticket ${qualityTicketId} has been archived.` });
-
-      const woId = ticket?.wo?.wo ? parseInt(ticket.wo.wo, 10) : undefined;
-
-      await logAudit("Archive", ticketId, woId);
-
-
-      fetchTickets();
       if (!response.ok) throw new Error(`Status: ${response.status}`);
       toast({ title: "Success", description: `Ticket has been archived.` });
       // SSE will handle updates
@@ -446,18 +426,14 @@ const TicketList: React.FC = () => {
     }
   };
 
-  const confirmAndArchive = async (ticketId: number) => {
-    setTicketToArchive(ticketId);
   const confirmAndArchive = (ticketId: number, woId?: number) => {
     setTicketToArchive({id: ticketId, woId});
     setShowArchiveConfirm(true);
-    
   };
 
   const handleEdit = (ticket: Ticket) => {
     setEditingTicket(ticket);
     setIsEditing(true);
-    
 
     setEditFields({
       status: ticket.status?.statusId?.toString() || '0',
@@ -493,14 +469,6 @@ const TicketList: React.FC = () => {
         toast({ variant: "destructive", title: "Validation Error", description: "Fill required fields." }); return; 
     }
 
-    
-    // Validation (Matching FileForm logic)
-    if (!editFields.divisionId) { toast({ variant: "destructive", title: "Validation Error", description: "'Division' field is empty." }); return; }
-    if (!editFields.workOrderId) { toast({ variant: "destructive", title: "Validation Error", description: "'Work Order' field is empty." }); return; }
-    if (!editFields.laborDeptId) { toast({ variant: "destructive", title: "Validation Error", description: "'Labor Department' field is empty." }); return; }
-    if (!editFields.manNonConId) { toast({ variant: "destructive", title: "Validation Error", description: "'Manufacturing Nonconformance' field is empty." }); return; }
-    if (!editFields.description) { toast({ variant: "destructive", title: "Validation Error", description: "Description is a required field." }); return; }
-
     try {
       const payload = {
         status: parseInt(editFields.status),
@@ -523,16 +491,6 @@ const TicketList: React.FC = () => {
 
       if (!response.ok) throw new Error(`Failed to update ticket.`);
 
-      if (!success) throw new Error(`Failed to update ticket. Status: ${response.status}`);
-
-      toast({ title: "Success", description: `Ticket ${editingTicket.qualityTicketId} has been updated.` });
-      
-
-      //const numericTicketId = Number(editingTicket.qualityTicketId);
-
-      await logAudit("Edit", editingTicket.ticketId, parseInt(editingTicket.wo?.wo));
-
-      fetchTickets();
       toast({ title: "Success", description: `Ticket ${editingTicket.qualityTicketId} has been updated.` });     
       // SSE will handle updates
       setIsEditing(false);
@@ -540,7 +498,6 @@ const TicketList: React.FC = () => {
     } catch (err: any) {
       toast({ variant: "destructive", title: "Update Failed", description: err.message });
     }
-    
   };
 
   // --- RENDER ---

@@ -15,7 +15,6 @@ const WorkOrderLaborDepartment = require ("./entities/work-order-labor-departmen
 const WorkOrderNonconformance = require ("./entities/work-order-nonconformance.entity");
 const WorkOrderSequence = require ("./entities/work-order-sequence.entity");
 const WorkOrderUnit = require ("./entities/work-order-unit.entity");
-const AuditLog = require("./entities/audit-log.entity.js");
 const Image = require("./entities/image.entity");
 
 const AppDataSource = new DataSource({
@@ -42,7 +41,6 @@ const AppDataSource = new DataSource({
         WorkOrderNonconformance,
         WorkOrderSequence,
         WorkOrderUnit,
-        AuditLog
         Image
     ],
     
