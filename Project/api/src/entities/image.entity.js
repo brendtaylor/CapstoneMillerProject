@@ -1,30 +1,31 @@
 const { EntitySchema } = require("typeorm");
 
 module.exports = new EntitySchema({
-    name: "Image",
-    tableName: "MiHub_Quality_Images", 
+    name: "File",
+    tableName: "MiHub_Quality_Attachments", 
     columns: {
-        ticketId: {
-            type: "int",      
-            name: "TICKETID",  
-            nullable: false,        
-        },
         id: {
             primary: true,
             type: "int",
             generated: "increment", // Assumes ID is an auto-incrementing key
             name: "ID",
         },
-        imageKey: {
+        fileKey: {
             type: "nvarchar",
-            name: "ImageKey",
+            name: "FileKey",
             length: "255",
             unique: true, // This is very important for searching
             nullable: false,
         },
-        imageData: {
+        fileName:{
+            type: "nvarchar",
+            name: "FileName",
+            length: "255",
+            nullable: false,
+        },
+        fileData: {
             type: "varbinary",
-            name: "ImageData",
+            name: "FileData",
             length: "max",
             nullable: false,
         },
@@ -38,10 +39,11 @@ module.exports = new EntitySchema({
     relations: {
         ticket: {
             target: "Ticket", 
-            type: "many-to-one", 
+            type: "many-to-one", // An image belongs to one ticket
+            inverseSide: "files", // The property on the Ticket entity that refers to these files
             joinColumn: {
-                name: "TICKETID", 
-                referencedColumnName: "ticketId",
+                name: "TICKETID", // The column in this table
+                referencedColumnName: "ticketId", // The column in the "Ticket" table
             },
         },
     },
