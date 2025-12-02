@@ -77,9 +77,9 @@ class WorkOrderService {
                 "unit", 
                 "wo", 
                 "assignedTo", 
-                "images",
-                "closures",           // <--- ADDED: Fetch the history list
-                "closures.closedBy"   // <--- ADDED: Fetch who closed the cycle
+                "files",
+                "closures",           
+                "closures.closedBy"   
             ],
             order: {
                 openDate: "DESC" 

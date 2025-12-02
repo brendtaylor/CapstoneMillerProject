@@ -382,7 +382,7 @@ ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets]
 ADD [LAST_REOPEN_DATE] [datetime] NULL;
 GO
 
-/****** Object:  Table [dbo].[MiHub_Quality_Images]    Script Date: 9/29/2025 4:27:56 PM ******/
+/****** Object:  Table [dbo].[MiHub_Quality_Attachments]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
