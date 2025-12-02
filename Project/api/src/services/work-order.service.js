@@ -69,7 +69,7 @@ class WorkOrderService {
             },
             relations: [
                 "status", "initiator", "division", "manNonCon",
-                "laborDepartment", "sequence", "unit", "wo", "assignedTo", "images"
+                "laborDepartment", "sequence", "unit", "wo", "assignedTo", "files"
             ],
             order: {
                 openDate: "DESC" 
