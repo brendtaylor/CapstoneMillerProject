@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from '../hooks/use-toast';
 import { useDebounce } from '../hooks/use-debounce';
+import { logAudit } from './utils/auditLogger';
 import {
     Division,
     WorkOrder,
@@ -254,6 +255,38 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             }
             const newTicket = await response.json();
             toast({ title: "Success!", description: `Ticket ${newTicket.qualityTicketId} has been created.` });
+
+             // Log Ticket Creation
+            await logAudit("Create", parseInt(newTicket.ticketId, 10), parseInt(workOrderSearch, 10));
+
+            {/*
+            // Upload Files
+            for (const f of files) {
+                if (f.uploaded) continue; // skip already uploaded
+
+                const formData = new FormData();
+                formData.append("ticketId", newTicket.qualityTicketId.toString());
+                formData.append("imageKey", f.name);
+                formData.append("imageFile", f.file);
+
+                const res = await fetch("http://localhost:3000/api/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || "File upload failed");
+
+                toast({ title: "File Uploaded", description: `${f.name} uploaded.` });
+
+                setFiles(prev =>
+                    prev.map(file =>
+                    file.name === f.name ? { ...file, uploaded: true } : file
+                    )
+                );
+            }
+
+            */}
             
             handleDelete(); // Clear form
             setCreatedTicketId(newTicket.qualityTicketId);
