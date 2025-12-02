@@ -35,6 +35,9 @@ const TicketDetails: React.FC = () => {
   const [previousStatus, setPreviousStatus] = useState("0"); // Track the last confirmed status
   const [showAssignmentPrompt, setShowAssignmentPrompt] = useState(false);
   const [showClosingPrompt, setShowClosingPrompt] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ status: number; extraFields?: object } | null>(null);
   const [closingFields, setClosingFields] = useState({
     correctiveAction: "",
     materialsUsed: "",
@@ -116,10 +119,7 @@ const TicketDetails: React.FC = () => {
   };
 
   // Update Status (can be called directly or after assignment)
-  const handleStatusUpdate = async (newStatus?: string, extraFields?: object) => {
-    const newStatusId = parseInt(status, 10);
-    const statusToUpdate = newStatus ? parseInt(newStatus, 10) : newStatusId;
-
+  const performStatusUpdate = async (statusToUpdate: number, extraFields?: object) => {
     try {
       await fetch(`http://localhost:3000/api/tickets/${id}`, { // change back to api/tickets/status later
         method: "PUT",
@@ -135,7 +135,23 @@ const TicketDetails: React.FC = () => {
         title: "Error",
         description: "Failed to update status.",
       });
+    } finally {
+      setPendingStatusUpdate(null);
     }
+  };
+
+  const handleStatusUpdate = async (newStatus?: string, extraFields?: object, options?: { skipConfirmation?: boolean }) => {
+    const newStatusId = parseInt(status, 10);
+    const statusToUpdate = newStatus ? parseInt(newStatus, 10) : newStatusId;
+    const skipConfirmation = options?.skipConfirmation;
+
+    if (statusToUpdate === 1 && !skipConfirmation) {
+      setPendingStatusUpdate({ status: statusToUpdate, extraFields });
+      setShowStatusConfirm(true);
+      return;
+    }
+
+    performStatusUpdate(statusToUpdate, extraFields);
   };
 
   // Handle status dropdown change
@@ -177,7 +193,7 @@ const TicketDetails: React.FC = () => {
               onAssignmentSuccess={() => {
                 setShowAssignmentPrompt(false); // Close overlay
                 fetchTicket(); // Refresh ticket to get new assignee
-                handleStatusUpdate("1"); // Now update status to "In Progress"
+                handleStatusUpdate("1", undefined, { skipConfirmation: true }); // Now update status to "In Progress" without extra confirm
               }}
             />
             <Button
@@ -260,9 +276,47 @@ const TicketDetails: React.FC = () => {
                   ...closingFields,
                   estimatedLaborHours: closingFields.estimatedLaborHours ? parseFloat(closingFields.estimatedLaborHours) : null,
                 };
-                handleStatusUpdate("2", payload);
-                setShowClosingPrompt(false);
+                setPendingStatusUpdate({ status: 2, extraFields: payload });
+                setShowCloseConfirm(true);
               }}>Save & Close Ticket</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showStatusConfirm && pendingStatusUpdate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" onClick={() => { setShowStatusConfirm(false); setStatus(previousStatus); setPendingStatusUpdate(null); }}>
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md relative z-[80]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-2">Confirm Status Change</h3>
+            <p className="text-sm text-gray-700 mb-4">Are you sure you want to set this ticket to In Progress?</p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => { setShowStatusConfirm(false); setStatus(previousStatus); setPendingStatusUpdate(null); }}>Cancel</Button>
+              <Button onClick={() => {
+                performStatusUpdate(pendingStatusUpdate.status, pendingStatusUpdate.extraFields);
+                setShowStatusConfirm(false);
+              }}>Yes, Set In Progress</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCloseConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" onClick={() => { setShowCloseConfirm(false); setPendingStatusUpdate(null); }}>
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md relative z-[80]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-2">Confirm Close</h3>
+            <p className="text-sm text-gray-700 mb-4">Are you sure you want to save changes and close this ticket?</p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => { setShowCloseConfirm(false); setPendingStatusUpdate(null); }}>Cancel</Button>
+              <Button onClick={() => {
+                const payload = pendingStatusUpdate?.extraFields || {
+                  ...closingFields,
+                  estimatedLaborHours: closingFields.estimatedLaborHours ? parseFloat(closingFields.estimatedLaborHours) : null,
+                };
+                performStatusUpdate(2, payload);
+                setPendingStatusUpdate(null);
+                setShowCloseConfirm(false);
+                setShowClosingPrompt(false);
+              }}>Yes, Close Ticket</Button>
             </div>
           </div>
         </div>
