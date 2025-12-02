@@ -68,8 +68,18 @@ class WorkOrderService {
                 status: { statusId: In(statuses) } 
             },
             relations: [
-                "status", "initiator", "division", "manNonCon",
-                "laborDepartment", "sequence", "unit", "wo", "assignedTo", "images"
+                "status", 
+                "initiator", 
+                "division", 
+                "manNonCon",
+                "laborDepartment", 
+                "sequence", 
+                "unit", 
+                "wo", 
+                "assignedTo", 
+                "images",
+                "closures",           // <--- ADDED: Fetch the history list
+                "closures.closedBy"   // <--- ADDED: Fetch who closed the cycle
             ],
             order: {
                 openDate: "DESC" 

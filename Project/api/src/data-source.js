@@ -17,6 +17,9 @@ const WorkOrderSequence = require ("./entities/work-order-sequence.entity");
 const WorkOrderUnit = require ("./entities/work-order-unit.entity");
 const File = require("./entities/file.entity");
 const AuditLog = require("./entities/audit-log.entity.js");
+const TicketClosure = require("./entities/ticket-closure.entity");
+const Note = require("./entities/note.entity");
+
 
 const AppDataSource = new DataSource({
     type: "mssql",
@@ -43,7 +46,9 @@ const AppDataSource = new DataSource({
         WorkOrderSequence,
         WorkOrderUnit,
         File,
-        AuditLog
+        AuditLog,
+        TicketClosure,
+        Note
     ],
     
     synchronize: false, 
