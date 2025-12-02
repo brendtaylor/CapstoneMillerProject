@@ -15,7 +15,7 @@ class TicketService {
         this.relations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
-            "sequence", "unit", "wo", "assignedTo", "images"
+            "sequence", "unit", "wo", "assignedTo", "files"
         ];
     }
 
@@ -108,7 +108,9 @@ class TicketService {
             return completeTicket;
 
         } catch (error) {
-            await queryRunner.rollbackTransaction();
+            if (queryRunner.isTransactionActive) {
+                await queryRunner.rollbackTransaction();
+            }
             logger.error(`Error in createTicket transaction: ${error.message}`);
             throw error;
         } finally {
