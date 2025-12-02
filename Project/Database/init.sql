@@ -333,32 +333,24 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-Create Table [dbo].[MiHub_Quality_Attachments](
+CREATE TABLE [dbo].[MiHub_Quality_Attachments](
     [ID]          [INT] IDENTITY(10000,1) PRIMARY KEY,
     [TICKETID]    [INT] NOT NULL,
     [FileKey]     [NVARCHAR](255)  NOT NULL UNIQUE,
     [FileName]    [NVARCHAR](255)  NOT NULL,
     [FileData]    [VARBINARY](MAX) NOT NULL,
-    [MimeType]    [NVARCHAR](100)  NOT NULL
- CONSTRAINT [PK_MiHub_Quality_Images] PRIMARY KEY CLUSTERED 
- CONSTRAINT [PK_MiHub_Quality_Images] PRIMARY KEY CLUSTERED 
-(
-	[ID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
- CONSTRAINT [UQ_MiHub_Quality_Images_ImageKey] UNIQUE NONCLUSTERED 
-(
-	[ImageKey] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+    [MimeType]    [NVARCHAR](100)  NOT NULL,
+    -- Note: Removed the clustered constraint duplication from your original file
+);
 GO
 
 /****** Object:  Foreign Key [FK_Image_Ticket] ******/
-ALTER TABLE [dbo].[MiHub_Quality_Images]  WITH CHECK ADD  CONSTRAINT [FK_Image_Ticket] FOREIGN KEY([TICKETID])
+ALTER TABLE [dbo].[MiHub_Quality_Attachments] WITH CHECK ADD CONSTRAINT [FK_Image_Ticket] FOREIGN KEY([TICKETID])
 REFERENCES [dbo].[MiHubWeb_Quality_Tickets] ([TICKETID])
 ON DELETE CASCADE
 GO
 
-ALTER TABLE [dbo].[MiHub_Quality_Images] CHECK CONSTRAINT [FK_Image_Ticket]
+ALTER TABLE [dbo].[MiHub_Quality_Attachments] CHECK CONSTRAINT [FK_Image_Ticket]
 GO
 
 -- ######################################################################
