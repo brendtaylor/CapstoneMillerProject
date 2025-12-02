@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from '../hooks/use-toast';
 import { useDebounce } from '../hooks/use-debounce';
+import { logAudit } from './utils/auditLogger';
+import { validateFileCount, uploadFile } from "./utils/fileHelper";
 import {
     Division,
     WorkOrder,
@@ -17,6 +19,9 @@ interface SavedFile {
     name: string;
     data: string; // Base64 string
     isFile: boolean;
+    file: File;          // Original File object (needed for upload)
+    uploaded?: boolean;  // Track if this file has been uploaded
+    imageKey?: string;   // Key returned from backend
 }
 
 const STORAGE_KEY = "ticketDraft";
@@ -179,17 +184,15 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
 
     // --- Handlers ---
 
-    // Limit amount of files to upload
     const MAX_FILES = 10;
 
-    // Handles files and Files
     const handleFileUpload = (fileArray: File[]) => {
-        // Check if adding these files would exceed the limit
+        // Enforce max file limit
         if (files.length + fileArray.length > MAX_FILES) {
             toast({
             title: "Upload Limit Reached",
             description: `You can only upload up to ${MAX_FILES} files.`,
-            variant: "destructive"
+            variant: "destructive",
             });
             return;
         }
@@ -200,22 +203,30 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             toast({
                 title: "Unsupported File Type",
                 description: "Video files are not allowed.",
-                variant: "destructive"
+                variant: "destructive",
             });
             return; // skip this file
             }
-            
+
             const reader = new FileReader();
             reader.onloadend = () => {
-            const isFile = file.type.startsWith("File/");
-            setfiles(prev => [
+            setfiles((prev) => [
                 ...prev,
-                { name: file.name, data: reader.result as string, isFile }
+                {
+                name: file.name,
+                data: reader.result as string, // Base64 preview
+                isFile: true,
+                file,                          // Keep raw File for upload
+                uploaded: false,               // Not yet uploaded
+                } as SavedFile,
             ]);
             };
-            reader.readAsDataURL(file); // works for files and other files
+            reader.readAsDataURL(file); // Generate preview
         });
     };
+
+
+
 
     const handleSave = async () => {
         // --- Validation ---
@@ -225,6 +236,16 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         if (!laborDeptId) { toast({ variant: "destructive", title: "Validation Error", description: "'Labor Department' field is empty." }); return; }
         if (!manNonConId) { toast({ variant: "destructive", title: "Validation Error", description: "'Manufacturing Nonconformance' field is empty." }); return; }
         if (!description) { toast({ variant: "destructive", title: "Validation Error", description: "Description is a required field." }); return; }
+
+        // --- Check File Limit ---
+        if (files.length > MAX_FILES) {
+            toast({
+            title: "Upload Limit Reached",
+            description: `You can only upload up to ${MAX_FILES} files.`,
+            variant: "destructive",
+            });
+            return;
+        }
 
         setIsSaving(true);
 
@@ -254,6 +275,45 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             }
             const newTicket = await response.json();
             toast({ title: "Success!", description: `Ticket ${newTicket.qualityTicketId} has been created.` });
+
+            // Log Ticket Creation
+            await logAudit("Create", parseInt(newTicket.ticketId, 10), parseInt(workOrderSearch, 10));
+
+        
+
+// --- Upload Multiple Files ---
+for (const f of files) {
+  if (f.uploaded) continue; // skip already uploaded
+
+  // Build FormData for this file
+  const formData = new FormData();
+  formData.append("ticketId", newTicket.ticketId.toString());   // ✅ use DB PK
+  formData.append("imageKey", f.name);                          // or unique key
+  formData.append("imageFile", f.file);                         // raw File object
+
+  try {
+    const res = await fetch("http://localhost:3000/api/images/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "File upload failed");
+
+    toast({ title: "File Uploaded", description: `${f.name} uploaded.` });
+
+    setfiles(prev =>
+      prev.map(file =>
+        file.name === f.name ? { ...file, uploaded: true } : file
+      )
+    );
+  } catch (err: any) {
+    toast({ variant: "destructive", title: "Upload Failed", description: err.message });
+  }
+}
+
+            
+        
             
             handleDelete(); // Clear form
             setCreatedTicketId(newTicket.qualityTicketId);

@@ -13,6 +13,7 @@ import { useToast } from '../hooks/use-toast';
 import { useDebounce } from '../hooks/use-debounce';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useNavigate } from "react-router-dom";
+import { logAudit } from "./utils/auditLogger";
 
 import { 
   Ticket, 
@@ -24,6 +25,7 @@ import {
   Nonconformance,
   WorkOrderSummary
 } from "../types"; 
+import { workerData } from "worker_threads";
 
 
 // --- HELPERS ---
@@ -420,15 +422,29 @@ const TicketList: React.FC = () => {
       const response = await fetch(`http://localhost:3000/api/tickets/${ticketId}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(`Status: ${response.status}`);
       toast({ title: "Success", description: `Ticket has been archived.` });
+
+    // Use cache to lookup WO string
+    const ticketList = ticketsCache[woId ?? -1];
+    const archivedTicket = ticketList?.find(t => t.ticketId === ticketId);
+    const woNum = archivedTicket?.wo?.wo;
+
+    if (woNum) {
+      await logAudit("Archive", ticketId, parseInt(woNum, 10));
+    } else {
+      console.warn("Could not find woNumber for audit log");
+    }
+
+    const woNumber = archivedTicket?.wo?.wo; // human-friendly WO string
       // SSE will handle updates
     } catch (err: any) {
       toast({ variant: "destructive", title: "Archive Failed", description: err.message });
     }
   };
 
-  const confirmAndArchive = (ticketId: number, woId?: number) => {
+  const confirmAndArchive = async (ticketId: number, woId?: number) => {
     setTicketToArchive({id: ticketId, woId});
     setShowArchiveConfirm(true);
+  
   };
 
   const handleEdit = (ticket: Ticket) => {
@@ -491,7 +507,8 @@ const TicketList: React.FC = () => {
 
       if (!response.ok) throw new Error(`Failed to update ticket.`);
 
-      toast({ title: "Success", description: `Ticket ${editingTicket.qualityTicketId} has been updated.` });     
+      toast({ title: "Success", description: `Ticket ${editingTicket.qualityTicketId} has been updated.` });  
+      await logAudit("Edit", editingTicket.ticketId, parseInt(editingTicket.wo?.wo));   
       // SSE will handle updates
       setIsEditing(false);
       setEditingTicket(null);

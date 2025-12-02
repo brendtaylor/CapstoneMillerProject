@@ -353,6 +353,29 @@ GO
 ALTER TABLE [dbo].[MiHub_Quality_Attachments] CHECK CONSTRAINT [FK_Image_Ticket]
 GO
 
+/****** Object:  Table [dbo].[AuditLogs]    Script Date: 11/25/2025 8:10:00 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[AuditLogs](
+    [LOG_ID] INT IDENTITY(1,1) NOT NULL,
+    [USER_ID] SMALLINT NULL,       -- reference only, no FK
+    [UserRole] TINYINT NULL,       -- raw role number snapshot
+    [TICKET_ID] INT NULL,          -- reference only, no FK
+    [WO_ID] INT NULL,              -- reference only, no FK
+    [ACTION] NVARCHAR(50) NOT NULL,
+    [TIMESTAMP] DATETIME2 NOT NULL,
+    CONSTRAINT [PK_AuditLogs] PRIMARY KEY CLUSTERED ([LOG_ID] ASC)
+) ON [PRIMARY];
+GO
+
+CREATE INDEX IX_AuditLogs_Timestamp ON [dbo].[AuditLogs] ([TIMESTAMP]);
+CREATE INDEX IX_AuditLogs_Action ON [dbo].[AuditLogs] ([ACTION]);
+CREATE INDEX IX_AuditLogs_UserRole ON [dbo].[AuditLogs] ([UserRole]);
+GO
+
 -- ######################################################################
 -- #
 -- # FOREIGN KEY CONSTRAINTS

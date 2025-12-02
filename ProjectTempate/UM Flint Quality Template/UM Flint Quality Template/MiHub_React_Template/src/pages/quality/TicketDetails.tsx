@@ -32,6 +32,7 @@ const TicketDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [noteText, setNoteText] = useState("");
   const [status, setStatus] = useState("0"); // Default to 'Open' (0)
+  const [previousStatus, setPreviousStatus] = useState("0"); // Track the last confirmed status
   const [showAssignmentPrompt, setShowAssignmentPrompt] = useState(false);
   const [showClosingPrompt, setShowClosingPrompt] = useState(false);
   const [closingFields, setClosingFields] = useState({
@@ -39,6 +40,7 @@ const TicketDetails: React.FC = () => {
     materialsUsed: "",
     estimatedLaborHours: "",
   });
+  const resetToPreviousStatus = () => setStatus(previousStatus);
 
   // Load Ticket Info
   const fetchTicket = async () => {
@@ -46,7 +48,9 @@ const TicketDetails: React.FC = () => {
       const response = await fetch(`http://localhost:3000/api/tickets/${id}`);
       const data: Ticket = await response.json();
       setTicket(data);
-      setStatus(data.status?.statusId?.toString() || "0");
+      const currentStatus = data.status?.statusId?.toString() || "0";
+      setStatus(currentStatus);
+      setPreviousStatus(currentStatus);
       // Pre-fill closing fields if they already exist
       setClosingFields({
         correctiveAction: data.correctiveAction || "",
@@ -136,6 +140,8 @@ const TicketDetails: React.FC = () => {
 
   // Handle status dropdown change
   const handleStatusChange = (newStatusValue: string) => {
+    // Remember what the status was before the user initiated the change
+    setPreviousStatus(status);
     const newStatusId = parseInt(newStatusValue, 10);
     setStatus(newStatusValue);
 
@@ -174,7 +180,16 @@ const TicketDetails: React.FC = () => {
                 handleStatusUpdate("1"); // Now update status to "In Progress"
               }}
             />
-            <Button variant="outline" className="w-full mt-3" onClick={() => setShowAssignmentPrompt(false)}>Cancel</Button>
+            <Button
+              variant="outline"
+              className="w-full mt-3"
+              onClick={() => {
+                setShowAssignmentPrompt(false);
+                resetToPreviousStatus();
+              }}
+            >
+              Cancel
+            </Button>
           </div>
         </div>
       )}
@@ -224,7 +239,15 @@ const TicketDetails: React.FC = () => {
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
-              <Button variant="outline" onClick={() => setShowClosingPrompt(false)}>Cancel</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowClosingPrompt(false);
+                  resetToPreviousStatus();
+                }}
+              >
+                Cancel
+              </Button>
               <Button onClick={() => {
                 if (!closingFields.correctiveAction.trim() || !closingFields.materialsUsed.trim() || !closingFields.estimatedLaborHours) {
                   return toast({
