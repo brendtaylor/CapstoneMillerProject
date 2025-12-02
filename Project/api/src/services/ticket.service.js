@@ -108,7 +108,9 @@ class TicketService {
             return completeTicket;
 
         } catch (error) {
-            await queryRunner.rollbackTransaction();
+            if (queryRunner.isTransactionActive) {
+                await queryRunner.rollbackTransaction();
+            }
             logger.error(`Error in createTicket transaction: ${error.message}`);
             throw error;
         } finally {
