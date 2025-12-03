@@ -4,6 +4,7 @@ import { useToast } from '../hooks/use-toast';
 import { useDebounce } from '../hooks/use-debounce';
 import { logAudit } from './utils/auditLogger';
 import { validateFileCount, uploadFile } from "./utils/fileHelper";
+import { FileText, FileImage, FileArchive, FileSpreadsheet, FileType, File, } from "lucide-react";
 import {
     Division,
     WorkOrder,
@@ -12,6 +13,19 @@ import {
     Nonconformance,
     LaborDepartment
 } from '../types';
+ 
+
+const getFileIcon = (previewType: SavedFile["previewType"]) => {
+  switch (previewType) {
+    case "image": return FileImage;
+    case "pdf": return FileText;
+    case "doc": return FileType;
+    case "excel": return FileSpreadsheet;
+    case "txt": return FileText;
+    case "zip": return FileArchive;
+    default: return File;
+  }
+};
 
 // --- Interfaces ---
 
@@ -22,6 +36,8 @@ interface SavedFile {
     file: File;          // Original File object (needed for upload)
     uploaded?: boolean;  // Track if this file has been uploaded
     fileKey?: string;   // Key returned from backend
+    previewType: "image" | "pdf" | "doc" | "excel" | "txt" | "zip" | "other";
+    color?: string;
 }
 
 const STORAGE_KEY = "ticketDraft";
@@ -187,43 +203,63 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     const MAX_FILES = 10;
 
     const handleFileUpload = (fileArray: File[]) => {
-        // Enforce max file limit
-        if (files.length + fileArray.length > MAX_FILES) {
-            toast({
-            title: "Upload Limit Reached",
-            description: `You can only upload up to ${MAX_FILES} files.`,
-            variant: "destructive",
-            });
-            return;
+    if (files.length + fileArray.length > MAX_FILES) {
+        toast({
+        title: "Upload Limit Reached",
+        description: `You can only upload up to ${MAX_FILES} files.`,
+        variant: "destructive",
+        });
+        return;
+    }
+
+    fileArray.forEach((file) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+        let previewType: SavedFile["previewType"] = "other";
+        let color = "text-gray-500";
+
+        if (file.type.startsWith("image/")) {
+            previewType = "image";
+        } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+            previewType = "pdf";
+            color = "text-red-500"; 
+        } else if (file.type.includes("word") || file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+            previewType = "doc";
+            color = "text-blue-500"; 
+        } else if (
+            file.type.includes("excel") ||
+            file.type.includes("spreadsheet") ||
+            file.name.endsWith(".xlsx") ||
+            file.name.endsWith(".xls")
+        ) {
+            previewType = "excel";
+            color = "text-green-500";
+        } else if (file.name.endsWith(".txt")) {
+            previewType = "txt";
+            color = "text-blue-400"; 
+        } else if (file.type.includes("zip") || file.name.endsWith(".zip") || file.name.endsWith(".rar")) {
+            previewType = "zip";
+            color = "text-yellow-600"; 
         }
 
-        fileArray.forEach((file) => {
-            // Block video files
-            if (file.type.startsWith("video/")) {
-            toast({
-                title: "Unsupported File Type",
-                description: "Video files are not allowed.",
-                variant: "destructive",
-            });
-            return; // skip this file
-            }
-
-            const reader = new FileReader();
-            reader.onloadend = () => {
-            setfiles((prev) => [
-                ...prev,
-                {
-                name: file.name,
-                data: reader.result as string, // Base64 preview
-                isFile: true,
-                file,                          // Keep raw File for upload
-                uploaded: false,               // Not yet uploaded
-                } as SavedFile,
-            ]);
-            };
-            reader.readAsDataURL(file); // Generate preview
-        });
+        setfiles((prev) => [
+            ...prev,
+            {
+            name: file.name,
+            data: reader.result as string,
+            isFile: true,
+            file,
+            uploaded: false,
+            previewType,
+            color,
+            } as SavedFile,
+        ]);
+        };
+        reader.readAsDataURL(file);
+    });
     };
+
+
 
 
 
@@ -276,45 +312,48 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             const newTicket = await response.json();
             toast({ title: "Success!", description: `Ticket ${newTicket.qualityTicketId} has been created.` });
 
+            // --- Upload Multiple Files ---
+            for (const f of files) {
+            if (f.uploaded) continue; // skip already uploaded
+
+            // Build FormData for this file
+            const formData = new FormData();
+            formData.append("ticketId", newTicket.ticketId.toString());   // ✅ use DB PK
+            formData.append("fileKey", `${newTicket.ticketId}_${Date.now()}_${f.name}`);                          // or unique key
+            formData.append("imageFile", f.file);                         // raw File object
+
+            try {
+                const res = await fetch("http://localhost:3000/api/files/upload", {
+                method: "POST",
+                body: formData,
+                });
+
+                const contentType = res.headers.get("content-type");
+                let data;
+                if (contentType && contentType.includes("application/json")) {
+                    data = await res.json();
+                } 
+                else {
+                    const text = await res.text();
+                    throw new Error(`Unexpected response: ${text}`);
+                }
+
+                //toast({ title: "File Uploaded", description: `${f.name} uploaded.` });
+
+                setfiles(prev =>
+                prev.map(file =>
+                    file.name === f.name ? { ...file, uploaded: true } : file
+                )
+                );
+            } catch (err: any) {
+                toast({ variant: "destructive", title: "Upload Failed", description: err.message });
+            }
+            }
+            
             // Log Ticket Creation
             await logAudit("Create", parseInt(newTicket.ticketId, 10), parseInt(workOrderSearch, 10));
 
-        
-/* 
-// --- Upload Multiple Files ---
-for (const f of files) {
-  if (f.uploaded) continue; // skip already uploaded
 
-  // Build FormData for this file
-  const formData = new FormData();
-  formData.append("ticketId", newTicket.ticketId.toString());   // ✅ use DB PK
-  formData.append("fileKey", f.name);                          // or unique key
-  formData.append("imageFile", f.file);                         // raw File object
-
-  try {
-    const res = await fetch("http://localhost:3000/api/file/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "File upload failed");
-
-    toast({ title: "File Uploaded", description: `${f.name} uploaded.` });
-
-    setfiles(prev =>
-      prev.map(file =>
-        file.name === f.name ? { ...file, uploaded: true } : file
-      )
-    );
-  } catch (err: any) {
-    toast({ variant: "destructive", title: "Upload Failed", description: err.message });
-  }
-}
-
-            */
-        
-            
             handleDelete(); // Clear form
             setCreatedTicketId(newTicket.qualityTicketId);
             setShowPostCreate(true);
@@ -514,47 +553,51 @@ for (const f of files) {
 
             {/* 9. File Upload */}
             <div
-                className="flex flex-col items-center justify-center space-y-2 mt-6 border-2 border-dashed border-gray-300 p-6 rounded cursor-pointer"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                    e.preventDefault();
-                    const files = Array.from(e.dataTransfer.files);
-                    handleFileUpload(files);
-                }}
+            className="flex flex-col items-center justify-center space-y-2 mt-6 border-2 border-dashed border-gray-300 p-6 rounded cursor-pointer"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+                e.preventDefault();
+                const files = Array.from(e.dataTransfer.files);
+                handleFileUpload(files);
+            }}
             >
-                <label htmlFor="FileUpload" className="cursor-pointer flex flex-col items-center">
-                    <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-65 h-56 mb-2"/>
-                    <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload or Drag Files</span>
-                </label>
-                <input
-                    id="FileUpload"
-                    type="file"
-                    multiple
-                    onChange={(e) => e.target.files && handleFileUpload(Array.from(e.target.files))}
-                    className="hidden"
-                />
-                {files.length > 0 && (
-                    <ul className="mt-2 space-y-2 text-sm text-gray-700 w-full">
-                        {files.map((file, i) => (
-                            <li key={i} className="flex items-center bg-gray-100 p-2 rounded">
-                                {file.isFile ? (
-                                    <img src={file.data} alt={file.name} className="w-16 h-14 object-cover rounded mr-2"/>
-                                ) : (
-                                    <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded mr-2">
-                                    📄
-                                    </div>
-                                )}
-                                <span className="flex-1">{file.name}</span>
-                                <button
-                                    onClick={() => setfiles(prev => prev.filter((_, index) => index !== i))}
-                                    className="text-red-500 hover:text-red-700"
-                                >
-                                    Remove
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                )}
+            <label htmlFor="FileUpload" className="cursor-pointer flex flex-col items-center">
+                <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-65 h-56 mb-2"/>
+                <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload or Drag Files</span>
+            </label>
+            <input
+                id="FileUpload"
+                type="file"
+                multiple
+                onChange={(e) => e.target.files && handleFileUpload(Array.from(e.target.files))}
+                className="hidden"
+            />
+
+            {files.length > 0 && (
+                <ul className="mt-6 space-y-4 text-sm text-gray-700 w-full">
+                {files.map((f, i) => {
+                const Icon = getFileIcon(f.previewType);
+                return (
+                    <li key={i} className="flex items-center bg-gray-100 p-2 rounded">
+                    {f.previewType === "image" ? (
+                        <img src={f.data} alt={f.name} className="w-16 h-14 object-cover rounded mr-2" />
+                    ) : (
+                        <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded mr-2">
+                        <Icon className={`w-6 h-6 ${f.color}`} />
+                        </div>
+                    )}
+                    <span className="flex-1 truncate">{f.name}</span>
+                    <button
+                        onClick={() => setfiles(prev => prev.filter((_, index) => index !== i))}
+                        className="text-red-500 hover:text-red-700"
+                    >
+                        Remove
+                    </button>
+                    </li>
+                );
+                })}
+                </ul>
+            )}
             </div>
 
             {/* Save/Delete Actions */}

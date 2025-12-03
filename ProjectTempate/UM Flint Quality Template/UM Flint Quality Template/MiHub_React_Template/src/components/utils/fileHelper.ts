@@ -15,10 +15,10 @@ export async function uploadFile(ticketId: number, file: File) {
   const uniqueKey = `${ticketId}_${Date.now()}_${file.name}`;
 
   formData.append("ticketId", ticketId.toString());   // ✅ use ticketId
-  formData.append("imageKey", uniqueKey);
+  formData.append("fileKey", uniqueKey);
   formData.append("imageFile", file);
 
-  const res = await fetch("http://localhost:3000/api/images/upload", {
+  const res = await fetch("http://localhost:3000/api/file/upload", {
     method: "POST",
     body: formData,
   });
@@ -35,3 +35,4 @@ export async function uploadFile(ticketId: number, file: File) {
 export function getImageUrl(imageKey: string): string {
   return `http://localhost:3000/api/images/${encodeURIComponent(imageKey)}`;
 }
+

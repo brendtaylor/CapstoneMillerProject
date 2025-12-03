@@ -7,9 +7,9 @@ import ScaleLoader from "react-spinners/ScaleLoader";
 import { Textarea } from "../../components/ui/textarea";
 import AssignUser from "../../components/AssignUser";
 import { isEditable, requiresAssignedUser } from "../../lib/ticketRules";
-import type {
-  Ticket
-} from "../../types";
+import type { Ticket } from "../../types";
+//import { Ticket } from "lucide-react";
+import FileDownload from "../../components/FileDownload"
 //import FileList from "../../components/FileList"; commented out temporarily to make react compile
 
 interface Note {
@@ -379,7 +379,7 @@ const TicketDetails: React.FC = () => {
         </CardHeader>
 
         <CardContent>
-          {/* <FileList /> */}
+          <FileDownload ticketId={ticket.ticketId} />
         </CardContent>
       </Card>
 

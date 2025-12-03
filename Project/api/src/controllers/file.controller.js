@@ -19,7 +19,7 @@ class FileController {
                 res.status(404).json({ message: "File not found." });
             }
         }catch(error){
-            res.status(500).json({ message: error.message });
+            res.status(500).json({ message: error.message || "Internal server error" });
         }
     }
     /**
@@ -48,9 +48,33 @@ class FileController {
             if (error.number === 2627 || error.number === 2601) { 
                 return res.status(409).json({ message: "This file key already exists. Please use a different key." });
             }
-            res.status(500).json({ message: error.message });
+            res.status(500).json({ message: error.message || "Internal server error" });
         }
     }
+    static async getFilesByTicket(req, res) {
+    try {
+        const { ticketId } = req.params;
+        const files = await FileService.findByTicketId(ticketId);
+
+        if (!files || files.length === 0) {
+        return res.status(404).json({ message: "No files found for this ticket." });
+        }
+
+        // Return metadata only, not raw binary
+        return res.status(200).json(
+        files.map(f => ({
+            fileKey: f.fileKey,
+            name: f.originalName,
+            mimeType: f.mimeType,
+            size: f.fileData.length
+        }))
+        );
+    } catch (error) {
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+    }
+
+
 }
 
 module.exports = { FileController};

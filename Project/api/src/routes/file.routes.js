@@ -13,4 +13,8 @@ router.get("/:key", FileController.getFileByKey);
 // 'imageFile' must match the key in the FormData from the React app
 router.post("/upload", upload.single('imageFile'), FileController.uploadFile);
 
+// Route to get a file by its ticketId
+router.get("/ticket/:ticketId", FileController.getFilesByTicket);
+
+
 module.exports = router;

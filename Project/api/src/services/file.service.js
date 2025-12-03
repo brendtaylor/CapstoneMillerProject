@@ -36,6 +36,17 @@ class FileService {
     static async findAll() {
         return fileRepository.find();
     }
+
+    // Get all files based on ticketId
+    static async findByTicketId(ticketId) {
+    return fileRepository.find({
+        where: { ticket: { ticketId: Number(ticketId) } }, // use relation
+        select: ["fileKey", "fileName", "mimeType", "fileData"],
+        relations: ["ticket"],
+    });
+    }
+
+
 }
 
 module.exports = { FileService };
