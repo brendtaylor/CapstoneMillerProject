@@ -35,6 +35,21 @@ const AuditLog: React.FC = () => {
     return () => clearTimeout(timerId);
   }, [searchTerm]);
 
+  // Map numeric role to readable string
+  function getRoleName(role: number | null): string {
+    switch (role) {
+      case 0:
+        return "Viewer";
+      case 1:
+        return "Editor";
+      case 2:
+        return "Admin";
+      default:
+        return "—"; // Other
+    }
+  }
+
+
   const handleSearch = async (term: string) => {
     setLoading(true);
     setError(false);
@@ -122,7 +137,7 @@ const AuditLog: React.FC = () => {
               <tr key={log.logId}>
                 <td className="border px-4 py-2">{log.logId}</td>
                 <td className="border px-4 py-2">{log.userId ?? "—"}</td>
-                <td className="border px-4 py-2">{log.userRole ?? "—"}</td>
+                <td className="border px-4 py-2">{getRoleName(log.userRole)}</td>
                 <td className="border px-4 py-2">{log.ticketId ?? "—"}</td>
                 <td className="border px-4 py-2">{log.woId ?? "—"}</td>
                 <td className="border px-4 py-2">{log.action || "—"}</td>

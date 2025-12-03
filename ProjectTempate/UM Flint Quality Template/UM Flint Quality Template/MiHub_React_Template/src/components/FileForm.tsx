@@ -108,7 +108,6 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                 setseqID(parsed.seqID || '');
                 setDrawingNum(parsed.drawingNum || '');
                 setDescription(parsed.description || '');
-                setfiles(parsed.files || []);
                 
                 // Restore search/text terms
                 setDivisionSearch(parsed.divisionSearch || '');
@@ -128,12 +127,12 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     useEffect(() => {
         if (loading) return;
         const data = { 
-            divisionId, workOrderId, laborDeptId, manNonConId, unitId, seqID, drawingNum, description, files,
+            divisionId, workOrderId, laborDeptId, manNonConId, unitId, seqID, drawingNum, description,
             divisionSearch, workOrderSearch, laborDeptText, manNonConText, unitText, sequenceText
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }, [
-        divisionId, workOrderId, laborDeptId, manNonConId, unitId, seqID, drawingNum, description, files,
+        divisionId, workOrderId, laborDeptId, manNonConId, unitId, seqID, drawingNum, description,
         divisionSearch, workOrderSearch, laborDeptText, manNonConText, unitText, sequenceText, loading
     ]);
 
@@ -269,11 +268,6 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         reader.readAsDataURL(file);
         });
     };
-
-
-
-
-
 
     const handleSave = async () => {
         // --- Validation ---
