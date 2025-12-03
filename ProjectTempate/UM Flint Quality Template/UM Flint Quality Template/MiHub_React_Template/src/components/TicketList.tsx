@@ -163,6 +163,8 @@ const TicketList: React.FC = () => {
         >
           View Details
         </Button>
+
+        {/* Admin: Edit + Delete */}
         {userRole === 'admin' && (
           <>
             <Button
@@ -175,6 +177,7 @@ const TicketList: React.FC = () => {
             >
               Edit Ticket
             </Button>
+            
             <Button
               variant="destructive"
               onClick={() => {
@@ -183,10 +186,21 @@ const TicketList: React.FC = () => {
               }}
               className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
             >
-              Archive Ticket
+              Delete Ticket
             </Button>
           </>
         )}
+
+        {/* Editor: close ticket only */}
+        {userRole === 'editor' && (
+          <Button
+              variant="destructive"
+              onClick={() => navigate('/tickets/${ticket.ticketId}?close=true')}
+              className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
+            >
+              Close Ticket
+            </Button>
+          )}
       </div>
 
       <div className="space-y-6">
