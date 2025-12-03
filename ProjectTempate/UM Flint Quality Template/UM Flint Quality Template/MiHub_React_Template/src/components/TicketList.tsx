@@ -749,9 +749,12 @@ const TicketList: React.FC = () => {
             <div className="space-y-6">
                 <div>
                 <label className="block text-sm font-medium text-gray-700">Status</label>
-                <select value={editFields.status} onChange={(e) => setEditFields({ ...editFields, status: e.target.value })} className="mt-1 block w-full border border-gray-300 rounded-md p-2">
-                    <option value="0">Open</option><option value="1">In Progress</option><option value="2">Closed</option>
-                </select>
+                  
+                    <div className="mt-1 flex items-center">
+                      <span className="text-gray-900 font-medium">{editFields.status === '0' ? 'Open' : editFields.status === '1' ? 'In Progress' : 'Closed'}</span>
+                      <span className="ml-2 text-xs text-gray-500 italic">(Use 'View Details' to change ticket status)</span>
+                    </div>
+                  
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Division *</label>
