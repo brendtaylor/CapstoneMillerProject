@@ -586,7 +586,9 @@ GO
 INSERT INTO dbo.WorkOrder_Sequences (WO_ID, SEQUENCE_ID)
 VALUES
     (1, 101), -- REW-00300
-    (1, 103); -- DSA-20019
+    (1, 103), -- DSA-20019
+	(2, 102),
+	(2, 104);
 GO
 
 -- Define valid nonconformances for ALL WOs (Example)

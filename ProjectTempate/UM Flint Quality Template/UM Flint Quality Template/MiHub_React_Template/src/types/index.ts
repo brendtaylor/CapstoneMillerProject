@@ -1,6 +1,4 @@
 // --- Basic Lookup Types ---
-// These match the generic-controller entities
-
 export interface Division {
   divisionId: number;
   divisionName: string;
@@ -22,8 +20,6 @@ export interface LaborDepartment {
 }
 
 // --- WO-Dependent Lookup Types ---
-// These are the options that will be filtered
-
 export interface WorkOrder {
   woId: number;
   wo: string;
@@ -35,15 +31,14 @@ export interface Unit {
 }
 
 export interface Sequence {
-  sequenceId: number;
-  sequenceName: string;
+  seqID: number;
+  seqName: string;
 }
 
 export interface Nonconformance {
   nonConId: number;
   nonCon: string;
 }
-
 
 // --- API Response Types ---
 
@@ -54,7 +49,18 @@ export interface WorkOrderSummary {
   open_ticket_count: number;
 }
 
-// Represents a full ticket object
+// 1. Define TicketClosure separate from Ticket
+export interface TicketClosure {
+  id: number;
+  cycleStartDate?: string | null;
+  cycleCloseDate: string;
+  correctiveAction?: string | null;
+  materialsUsed?: string | null;
+  estimatedLaborHours?: number | null;
+  closedBy?: User | null;
+}
+
+// 2. Represents a full ticket object
 export interface Ticket {
   ticketId: number;
   qualityTicketId: string;
@@ -75,8 +81,11 @@ export interface Ticket {
   unit?: Unit | null;
   assignedTo?: User | null;
 
-  // Closing fields
+  // Closing fields (Legacy/Current Cycle)
   estimatedLaborHours?: number | null;
   correctiveAction?: string | null;
   materialsUsed?: string |null;
+  
+  // 3. Add the closures array here
+  closures?: TicketClosure[];
 }

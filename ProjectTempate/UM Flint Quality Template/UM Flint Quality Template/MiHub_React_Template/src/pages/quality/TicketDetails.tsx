@@ -342,7 +342,7 @@ const TicketDetails: React.FC = () => {
           <p><b>Division:</b> {ticket.division?.divisionName}</p>
           <p><b>Drawing #:</b> {ticket.drawingNum}</p>
           <p><b>Unit:</b> {ticket.unit?.unitName}</p>
-          <p><b>Sequence:</b> {ticket.sequence?.sequenceName}</p>
+          <p><b>Sequence:</b> {ticket.sequence?.seqName}</p>
           <p><b>Nonconformance:</b> {ticket.manNonCon?.nonCon}</p>
           <p><b>Opened:</b> {new Date(ticket.openDate).toLocaleString()}</p>
           <p><b>Initiator:</b> {ticket.initiator?.name}</p>

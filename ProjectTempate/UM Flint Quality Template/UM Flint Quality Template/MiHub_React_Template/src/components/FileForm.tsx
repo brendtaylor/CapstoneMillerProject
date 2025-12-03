@@ -56,7 +56,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     const [laborDeptId, setLaborDeptId] = useState('');
     const [manNonConId, setManNonConId] = useState('');
     const [unitId, setUnitId] = useState('');
-    const [sequenceId, setSequenceId] = useState('');
+    const [seqID, setseqID] = useState('');
     const [drawingNum, setDrawingNum] = useState(''); // Changed to string input
     const [description, setDescription] = useState('');
     const [files, setfiles] = useState<SavedFile[]>([]); //Files
@@ -105,7 +105,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                 setLaborDeptId(parsed.laborDeptId || '');
                 setManNonConId(parsed.manNonConId || '');
                 setUnitId(parsed.unitId || '');
-                setSequenceId(parsed.sequenceId || '');
+                setseqID(parsed.seqID || '');
                 setDrawingNum(parsed.drawingNum || '');
                 setDescription(parsed.description || '');
                 setfiles(parsed.files || []);
@@ -128,12 +128,12 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     useEffect(() => {
         if (loading) return;
         const data = { 
-            divisionId, workOrderId, laborDeptId, manNonConId, unitId, sequenceId, drawingNum, description, files,
+            divisionId, workOrderId, laborDeptId, manNonConId, unitId, seqID, drawingNum, description, files,
             divisionSearch, workOrderSearch, laborDeptText, manNonConText, unitText, sequenceText
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }, [
-        divisionId, workOrderId, laborDeptId, manNonConId, unitId, sequenceId, drawingNum, description, files,
+        divisionId, workOrderId, laborDeptId, manNonConId, unitId, seqID, drawingNum, description, files,
         divisionSearch, workOrderSearch, laborDeptText, manNonConText, unitText, sequenceText, loading
     ]);
 
@@ -296,7 +296,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             ...(isSet(laborDeptId) && { laborDepartment: parseInt(laborDeptId) }), // New Field
             ...(isSet(manNonConId) && { manNonCon: parseInt(manNonConId) }),
             ...(isSet(unitId) && { unit: parseInt(unitId) }),
-            ...(isSet(sequenceId) && { sequence: parseInt(sequenceId) }),
+            ...(isSet(seqID) && { sequence: parseInt(seqID) }),
         };
 
         try {
@@ -376,7 +376,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         setLaborDeptId('');
         setManNonConId('');
         setUnitId('');
-        setSequenceId('');
+        setseqID('');
         setDrawingNum('');
         setDescription('');
         setfiles([]);
@@ -436,7 +436,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                         setLaborDeptId(''); setLaborDeptText('');
                         setManNonConId(''); setManNonConText('');
                         setUnitId(''); setUnitText('');
-                        setSequenceId(''); setSequenceText('');
+                        setseqID(''); setSequenceText('');
                     }}
                     onFocus={() => !workOrderSearch && fetchGlobalDropdownData('work-orders', setWorkOrders)}
                     placeholder="Search or select a work order"
@@ -516,14 +516,14 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     disabled={!workOrderId}
                     onChange={(e) => {
                         setSequenceText(e.target.value);
-                        const selected = sequences.find(s => s.sequenceName === e.target.value);
-                        setSequenceId(selected ? String(selected.sequenceId) : '');
+                        const selected = sequences.find(s => s.seqName === e.target.value);
+                        setseqID(selected ? String(selected.seqID) : '');
                     }}
                     placeholder={workOrderId ? "Select a sequence" : "Select a Work Order first"}
                     className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
                 />
                 <datalist id="sequence-list">
-                    {sequences.map((s) => <option key={s.sequenceId} value={s.sequenceName} />)}
+                    {sequences.map((s) => <option key={s.seqID} value={s.seqName} />)}
                 </datalist>
             </div>
 

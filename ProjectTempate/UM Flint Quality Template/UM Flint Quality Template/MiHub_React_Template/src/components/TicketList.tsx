@@ -55,7 +55,7 @@ const ticketMatchesTag = (ticket: Ticket, tag: string): boolean => {
     ticket.wo?.wo?.toLowerCase().includes(t) ||
     ticket.division?.divisionName?.toLowerCase().includes(t) ||
     ticket.laborDepartment?.departmentName?.toLowerCase().includes(t) ||
-    ticket.sequence?.sequenceName?.toLowerCase().includes(t) ||
+    ticket.sequence?.seqName?.toLowerCase().includes(t) ||
     ticket.unit?.unitName?.toLowerCase().includes(t) ||
     ticket.manNonCon?.nonCon?.toLowerCase().includes(t) ||
     ticket.drawingNum?.toLowerCase().includes(t) ||
@@ -190,6 +190,7 @@ const TicketList: React.FC = () => {
       </div>
 
       <div className="space-y-6">
+        {/* --- Description --- */}
         <div className="lg:col-span-3 space-y-2">
           <h4 className="text-sm font-bold text-gray-900">Description</h4>
           <div className="p-3 bg-gray-50 rounded border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap break-words">
@@ -203,13 +204,15 @@ const TicketList: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* --- Context & Classification --- */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-gray-50 p-3 rounded border border-gray-100">
             <div className="space-y-3">
               <h4 className="text-sm font-bold text-gray-900 border-b pb-1">Context</h4>
               <DetailRow label="Division" value={ticket.division?.divisionName} />
               <DetailRow label="Labor Dept" value={ticket.laborDepartment?.departmentName} />
-              <DetailRow label="Sequence" value={ticket.sequence ? ticket.sequence.sequenceName : 'N/A'} />
+              <DetailRow label="Sequence" value={ticket.sequence ? ticket.sequence.seqName : 'N/A'} />
               <DetailRow label="Unit" value={ticket.unit?.unitName} />
             </div>
           </div>
@@ -222,19 +225,38 @@ const TicketList: React.FC = () => {
             </div>
           </div>
         </div>
-        {ticket.status?.statusId === 2 && (
-          <div className="bg-blue-50 p-3 rounded border border-blue-100">
-            <h4 className="text-sm font-bold text-blue-900 border-b border-blue-200 pb-1">Resolution</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3 mt-2 mb-4">
-              <DetailRow label="Closed Date" value={ticket.closeDate ? new Date(ticket.closeDate).toLocaleDateString() : 'N/A'} />
-              <DetailRow label="Est. Hours Lost" value={ticket.estimatedLaborHours?.toString()} />
-              <DetailRow label="Materials" value={ticket.materialsUsed} />
+
+        {/* --- Resolution (Cleaned: No Legacy Fallback) --- */}
+        {ticket.closures && ticket.closures.length > 0 && (
+            <div className="space-y-4">
+               {ticket.closures
+                 .slice() // Copy before sorting
+                 .sort((a, b) => new Date(b.cycleCloseDate).getTime() - new Date(a.cycleCloseDate).getTime()) // Newest first
+                 .map((closure, idx) => (
+                  <div key={closure.id || idx} className="bg-blue-50 p-3 rounded border border-blue-100 relative">
+                    <h4 className="text-sm font-bold text-blue-900 border-b border-blue-200 pb-1 mb-2">
+                        Resolution Cycle {ticket.closures && ticket.closures.length > 1 ? `#${ticket.closures.length - idx}` : ''}
+                    </h4>
+                    
+                    {/* Date Badge */}
+                    <div className="absolute top-3 right-3 text-xs text-blue-600 font-medium bg-blue-100 px-2 py-0.5 rounded-full">
+                         {closure.cycleStartDate ? `${new Date(closure.cycleStartDate).toLocaleDateString()} — ` : ''}
+                         {new Date(closure.cycleCloseDate).toLocaleDateString()}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3 mb-4 mt-2">
+                      <DetailRow label="Closed By" value={closure.closedBy?.name || "Unknown"} />
+                      <DetailRow label="Est. Hours Lost" value={closure.estimatedLaborHours?.toString()} />
+                      <DetailRow label="Materials" value={closure.materialsUsed} />
+                    </div>
+                    
+                    <div className="pt-3 border-t border-blue-200">
+                      <span className="text-blue-900 text-xs uppercase tracking-wider font-semibold block mb-1">Corrective Action</span>
+                      <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{closure.correctiveAction || "N/A"}</p>
+                    </div>
+                  </div>
+               ))}
             </div>
-            <div className="pt-3 border-t border-blue-200">
-              <span className="text-blue-900 text-xs uppercase tracking-wider font-semibold block mb-1">Corrective Action</span>
-              <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{ticket.correctiveAction || "N/A"}</p>
-            </div>
-          </div>
         )}
       </div>
     </>
@@ -258,7 +280,7 @@ const TicketList: React.FC = () => {
   // Edit Fields
   const [editFields, setEditFields] = useState({
     status: '', divisionId: '', workOrderId: '', laborDeptId: '', 
-    manNonConId: '', unitId: '', sequenceId: '', drawingNum: '', description: '',
+    manNonConId: '', unitId: '', seqID: '', drawingNum: '', description: '',
   });
 
   const [editDivisionSearch, setEditDivisionSearch] = useState('');
@@ -512,7 +534,7 @@ const TicketList: React.FC = () => {
       laborDeptId: ticket.laborDepartment?.departmentId?.toString() || '',
       manNonConId: ticket.manNonCon?.nonConId?.toString() || '',
       unitId: ticket.unit?.unitId?.toString() || '',
-      sequenceId: ticket.sequence?.sequenceId?.toString() || '',
+      seqID: ticket.sequence?.seqID?.toString() || '',
       drawingNum: ticket.drawingNum || '', description: ticket.description || '',
     });
 
@@ -521,7 +543,7 @@ const TicketList: React.FC = () => {
     setEditLaborDeptText(ticket.laborDepartment?.departmentName || '');
     setEditNonconformanceText((ticket.manNonCon as any)?.nonCon || '');
     setEditUnitText(ticket.unit?.unitName || '');
-    setEditSequenceText(ticket.sequence?.sequenceName || '');
+    setEditSequenceText(ticket.sequence?.seqName || '');
     
     fetchGlobalDropdownData('divisions', setDivisions);
     fetchGlobalDropdownData('work-orders', setWorkOrders);
@@ -550,7 +572,7 @@ const TicketList: React.FC = () => {
         laborDepartment: parseInt(editFields.laborDeptId),
         manNonCon: parseInt(editFields.manNonConId),
         ...(editFields.unitId && { unit: parseInt(editFields.unitId) }),
-        ...(editFields.sequenceId && { sequence: parseInt(editFields.sequenceId) }),
+        ...(editFields.seqID && { sequence: parseInt(editFields.seqID) }),
       };
 
       const response = await fetch(`http://localhost:3000/api/tickets/${editingTicket.ticketId}`, {
@@ -738,14 +760,14 @@ const TicketList: React.FC = () => {
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Work Order *</label>
-                    <input list="edit-wo-list" value={editWorkOrderSearch} onChange={(e) => { setEditWorkOrderSearch(e.target.value); const s = workOrders.find(w => String(w.wo) === e.target.value); setEditFields({ ...editFields, workOrderId: s ? String(s.woId) : '', laborDeptId: '', manNonConId: '', unitId: '', sequenceId: '' }); setEditLaborDeptText(''); setEditNonconformanceText(''); setEditUnitText(''); setEditSequenceText(''); }} className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+                    <input list="edit-wo-list" value={editWorkOrderSearch} onChange={(e) => { setEditWorkOrderSearch(e.target.value); const s = workOrders.find(w => String(w.wo) === e.target.value); setEditFields({ ...editFields, workOrderId: s ? String(s.woId) : '', laborDeptId: '', manNonConId: '', unitId: '', seqID: '' }); setEditLaborDeptText(''); setEditNonconformanceText(''); setEditUnitText(''); setEditSequenceText(''); }} className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
                     <datalist id="edit-wo-list">{workOrders.map(w => <option key={w.woId} value={w.wo} />)}</datalist>
                 </div>
                 {/* Dependent Fields */}
                 <div><label className="block text-sm font-medium text-gray-700">Labor Dept *</label><input list="edit-dept-list" value={editLaborDeptText} disabled={!editFields.workOrderId} onChange={(e) => { setEditLaborDeptText(e.target.value); const s = laborDepts.find(d => d.departmentName === e.target.value); setEditFields({...editFields, laborDeptId: s ? String(s.departmentId) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-dept-list">{laborDepts.map(d => <option key={d.departmentId} value={d.departmentName}/>)}</datalist></div>
                 <div><label className="block text-sm font-medium text-gray-700">Nonconformance *</label><input list="edit-nc-list" value={editNonconformanceText} disabled={!editFields.workOrderId} onChange={(e) => { setEditNonconformanceText(e.target.value); const s = manNonCons.find(m => m.nonCon === e.target.value); setEditFields({...editFields, manNonConId: s ? String(s.nonConId) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-nc-list">{manNonCons.map(m => <option key={m.nonConId} value={m.nonCon}/>)}</datalist></div>
                 <div><label className="block text-sm font-medium text-gray-700">Unit</label><input list="edit-unit-list" value={editUnitText} disabled={!editFields.workOrderId} onChange={(e) => { setEditUnitText(e.target.value); const s = units.find(u => u.unitName === e.target.value); setEditFields({...editFields, unitId: s ? String(s.unitId) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-unit-list">{units.map(u => <option key={u.unitId} value={u.unitName}/>)}</datalist></div>
-                <div><label className="block text-sm font-medium text-gray-700">Sequence</label><input list="edit-seq-list" value={editSequenceText} disabled={!editFields.workOrderId} onChange={(e) => { setEditSequenceText(e.target.value); const s = sequences.find(q => q.sequenceName === e.target.value); setEditFields({...editFields, sequenceId: s ? String(s.sequenceId) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-seq-list">{sequences.map(s => <option key={s.sequenceId} value={s.sequenceName}/>)}</datalist></div>
+                <div><label className="block text-sm font-medium text-gray-700">Sequence</label><input list="edit-seq-list" value={editSequenceText} disabled={!editFields.workOrderId} onChange={(e) => { setEditSequenceText(e.target.value); const s = sequences.find(q => q.seqName === e.target.value); setEditFields({...editFields, seqID: s ? String(s.seqID) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-seq-list">{sequences.map(s => <option key={s.seqID} value={s.seqName}/>)}</datalist></div>
                 <div><label className="block text-sm font-medium text-gray-700">Drawing #</label><input type="text" value={editFields.drawingNum} onChange={(e) => setEditFields({...editFields, drawingNum: e.target.value})} className="mt-1 w-full border border-gray-300 rounded p-2"/></div>
                 <div><label className="block text-sm font-medium text-gray-700">Description *</label><textarea rows={4} value={editFields.description} onChange={(e) => setEditFields({...editFields, description: e.target.value})} className="mt-1 w-full border border-gray-300 rounded p-2"/></div>
             </div>
