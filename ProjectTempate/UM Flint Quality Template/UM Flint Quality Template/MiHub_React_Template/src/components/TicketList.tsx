@@ -115,7 +115,29 @@ const TicketList: React.FC = () => {
   setOpenWorkOrders([]);
   setOpenTickets({});
   }, [statusFilter]);
+  //attempting to make the ticket status easier to call
+  const statusFilterRef = useRef(statusFilter);
+
+  useEffect(() => {
+    statusFilterRef.current = statusFilter;
+  }, [statusFilter]);
+
+  const buildUrl = (path: string, params: Record<string, any> = {}) => {
+  const url = new URL(`http://localhost:3000${path}`);
   
+  if (statusFilterRef.current) {
+    url.searchParams.set("status", statusFilterRef.current);
+  }
+
+  Object.entries(params).forEach(([key, val]) => {
+    if (val !== undefined && val !== null) {
+      url.searchParams.set(key, String(val));
+    }
+  });
+
+  return url.toString();
+};
+
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -257,10 +279,7 @@ const TicketList: React.FC = () => {
     if (dashboardData.length === 0) setLoadingSummaries(true);
     
     try {
-      const url = new URL('http://localhost:3000/api/work-orders-summary');
-        if (statusFilter) url.searchParams.append('status', statusFilter);
-
-        const response = await fetch(url.toString(), {
+      const response = await fetch(buildUrl("/api/work-orders-summary"), {
             headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
         });
       if (!response.ok) throw new Error(`Status: ${response.status}`);
@@ -287,11 +306,13 @@ const TicketList: React.FC = () => {
 
         setIsSearching(true);
         try {
-            const response = await fetch(`http://localhost:3000/api/work-orders-summary?search=${encodeURIComponent(debouncedSearchTerm)}`);
-            if (!response.ok) throw new Error("Search failed");
-            
-            const results: WorkOrderSummary[] = await response.json();
-            setSearchResults(results);
+        
+        const response = await fetch(buildUrl('/api/work-orders-summary', { search: debouncedSearchTerm }));
+        
+          if (!response.ok) throw new Error("Search failed");
+          
+          const results: WorkOrderSummary[] = await response.json();
+          setSearchResults(results);
             
         } catch (e) {
             console.error(e);
@@ -309,21 +330,22 @@ const TicketList: React.FC = () => {
 
     setLoadingWOs(prev => ({ ...prev, [woId]: true }));
     try {
-      
-      const url = new URL(`http://localhost:3000/api/work-orders/${woId}/tickets`);
-        if (statusFilter) url.searchParams.append('status', statusFilter);
+        
+        const response = await fetch(
+        buildUrl(`/api/work-orders/${woId}/tickets`),
+        {
+          headers: { 'Cache-Control': 'no-cache' },
+        }
+        );
 
-        const response = await fetch(url.toString(), {
-      headers: { 'Cache-Control': 'no-cache' }
-      
-      });
       if (!response.ok) throw new Error("Failed to fetch tickets");
       const data: Ticket[] = await response.json();
       
       setTicketsCache(prev => ({
-        ...prev,
-        [woId]: data
+      ...prev,
+      [woId]: data
       }));
+
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Could not load tickets." });
     } finally {
