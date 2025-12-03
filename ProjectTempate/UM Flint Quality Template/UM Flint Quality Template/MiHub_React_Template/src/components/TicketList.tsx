@@ -99,7 +99,24 @@ const TicketList: React.FC = () => {
   const { userRole, userId } = useAuth();
   const [searchResult, setSearchResult] = useState<Ticket[] | null>(null);
   const [searchTags, setSearchTags] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed' | 'inprogress'>('all');
+
+  const [statusFilter, setStatusFilter] = useState<string>('0,1');//::::
+  // Load saved status filter
+  useEffect(() => {
+    const saved = localStorage.getItem("ticketStatusFilter");
+    if (saved) setStatusFilter(saved);
+  }, []);
+  useEffect(() => {
+  localStorage.setItem("ticketStatusFilter", statusFilter);
+  }, [statusFilter]);
+  
+  useEffect(() => {
+  // Close all accordions
+  setOpenWorkOrders([]);
+  setOpenTickets({});
+  }, [statusFilter]);
+  
+
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -240,9 +257,12 @@ const TicketList: React.FC = () => {
     if (dashboardData.length === 0) setLoadingSummaries(true);
     
     try {
-      const response = await fetch('http://localhost:3000/api/work-orders-summary', {
-        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-      });
+      const url = new URL('http://localhost:3000/api/work-orders-summary');
+        if (statusFilter) url.searchParams.append('status', statusFilter);
+
+        const response = await fetch(url.toString(), {
+            headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+        });
       if (!response.ok) throw new Error(`Status: ${response.status}`);
       const data: WorkOrderSummary[] = await response.json();
       setDashboardData(data);
@@ -254,7 +274,7 @@ const TicketList: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchWOSummaries(); }, []);
+  useEffect(() => {fetchWOSummaries();}, [debouncedSearchTerm, statusFilter]);
 
   // 2. Search Handler
   useEffect(() => {
@@ -289,8 +309,13 @@ const TicketList: React.FC = () => {
 
     setLoadingWOs(prev => ({ ...prev, [woId]: true }));
     try {
-      const response = await fetch(`http://localhost:3000/api/work-orders/${woId}/tickets`, {
-        headers: { 'Cache-Control': 'no-cache' }
+      
+      const url = new URL(`http://localhost:3000/api/work-orders/${woId}/tickets`);
+        if (statusFilter) url.searchParams.append('status', statusFilter);
+
+        const response = await fetch(url.toString(), {
+      headers: { 'Cache-Control': 'no-cache' }
+      
       });
       if (!response.ok) throw new Error("Failed to fetch tickets");
       const data: Ticket[] = await response.json();
@@ -305,6 +330,13 @@ const TicketList: React.FC = () => {
         setLoadingWOs(prev => ({ ...prev, [woId]: false }));
     }
   };
+    // refresh tickets when statusFilter changes
+  useEffect(() => {
+    openWorkOrders.forEach((woNumber) => {
+      const woId = dashboardData.find((wo) => wo.wo_number === woNumber)?.wo_id;
+      if (woId) fetchTicketsForWO(woId, true); 
+    });
+  }, [statusFilter, openWorkOrders]);
 
   // 4. SSE REAL-TIME UPDATES
   useEffect(() => {
@@ -537,9 +569,18 @@ const TicketList: React.FC = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm bg-white"
         />
+        <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-white border border-gray-300 rounded-md p-2"
+            >
+                <option value="0,1">Open & In-Progress</option>
+                <option value="2">Closed</option>
+                <option value="0">Open</option>
+                <option value="1">In-Progress</option>
+            </select>
         {isSearching && <ScaleLoader color="#3b82f6" height={20} />}
       </div>
-
       <div className="space-y-4">
         {(sortedWOs.length === 0 && !loadingSummaries) ? (
              <div className="text-center p-8 text-gray-500 bg-white rounded shadow-sm">
