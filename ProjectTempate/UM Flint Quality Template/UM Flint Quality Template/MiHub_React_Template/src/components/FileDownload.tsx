@@ -7,7 +7,8 @@ import {
   FileType,
   File,
 } from "lucide-react";
-import FilePreviewModal, { PreviewType } from "./FilePreviewModal";
+import FilePreviewModal from "./FilePreviewModal";
+import type { PreviewType } from "./FilePreviewModal";
 
 interface FileMeta {
   fileKey: string;

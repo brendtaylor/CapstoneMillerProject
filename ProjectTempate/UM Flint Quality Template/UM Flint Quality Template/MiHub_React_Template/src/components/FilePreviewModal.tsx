@@ -6,6 +6,7 @@ import {
   getDocument,
   PDFDocumentProxy,
 } from "pdfjs-dist";
+
 const pdfWorkerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
   import.meta.url
@@ -39,11 +40,33 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const docxRef = useRef<HTMLDivElement | null>(null);
   const [excelHtml, setExcelHtml] = useState<string>("");
+  const [zoom, setZoom] = useState<number>(1.0);
+  const [pdfSize, setPdfSize] = useState<{ width: number; height: number }>({
+    width: 0,
+    height: 0,
+  });
+  const [viewportWidth, setViewportWidth] = useState<number>(
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
 
   const title = useMemo(
     () => `Preview: ${fileName || "File"}`,
     [fileName]
   );
+
+  const canZoom = previewType !== "other";
+  const zoomStyle = {
+    transform: `scale(${zoom})`,
+    transformOrigin: "top left" as const,
+    transition: "transform 0.1s ease",
+    width: `${100 / zoom}%`,
+  };
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (!isOpen || previewType !== "pdf" || !blob || !canvasRef.current) return;
@@ -54,12 +77,13 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
       const data = await blob.arrayBuffer();
       pdfDoc = await getDocument({ data }).promise;
       const page = await pdfDoc.getPage(1);
-      const viewport = page.getViewport({ scale: 1.2 });
+      const viewport = page.getViewport({ scale: zoom });
       const canvas = canvasRef.current;
       const context = canvas?.getContext("2d");
       if (!canvas || !context) return;
       canvas.height = viewport.height;
       canvas.width = viewport.width;
+      setPdfSize({ width: viewport.width, height: viewport.height });
       await page.render({ canvasContext: context, viewport }).promise;
     };
 
@@ -71,7 +95,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
         pdfDoc.destroy();
       }
     };
-  }, [blob, isOpen, previewType]);
+  }, [blob, isOpen, previewType, zoom]);
 
   useEffect(() => {
     if (!isOpen || previewType !== "excel" || !blob) return;
@@ -88,7 +112,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
       setExcelHtml(
         html.replace(
           "<table",
-          "<table class='w-full text-sm border border-gray-200 border-collapse' "
+          "<table class='w-full text-sm border border-gray-200 border-collapse'"
         )
       );
     };
@@ -106,6 +130,12 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
 
   if (!isOpen) return null;
 
+  const contentMaxWidth = Math.max(320, viewportWidth - 48); // padding guard for mobile
+  const pdfDisplayWidth =
+    pdfSize.width && pdfSize.width < contentMaxWidth
+      ? pdfSize.width
+      : contentMaxWidth;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
       <div className="relative w-full max-w-5xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-hidden">
@@ -116,13 +146,47 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
               {previewType.toUpperCase()}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl font-bold hover:bg-gray-200"
-            aria-label="Close preview"
-          >
-            ×
-          </button>
+          <div className="flex items-center gap-2">
+            {canZoom && (
+              <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1 text-sm">
+                <button
+                  className="px-2 font-semibold hover:text-blue-600"
+                  onClick={() =>
+                    setZoom((z) => Math.max(0.5, +(z - 0.2).toFixed(2)))
+                  }
+                  aria-label="Zoom out"
+                >
+                  -
+                </button>
+                <span className="w-14 text-center">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  className="px-2 font-semibold hover:text-blue-600"
+                  onClick={() =>
+                    setZoom((z) => Math.min(3, +(z + 0.2).toFixed(2)))
+                  }
+                  aria-label="Zoom in"
+                >
+                  +
+                </button>
+                <button
+                  className="px-2 text-xs text-gray-600 hover:text-blue-600"
+                  onClick={() => setZoom(1)}
+                  aria-label="Reset zoom"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl font-bold hover:bg-gray-200"
+              aria-label="Close preview"
+            >
+              X
+            </button>
+          </div>
         </div>
 
         <div className="p-4 overflow-y-auto max-h-[75vh] bg-gray-50">
@@ -138,7 +202,12 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
                 <div className="flex flex-col gap-3">
                   <canvas
                     ref={canvasRef}
-                    className="max-h-[70vh] mx-auto border border-gray-200 shadow-sm"
+                    className="mx-auto border border-gray-200 shadow-sm"
+                    style={{
+                      width: pdfDisplayWidth,
+                      maxWidth: "100%",
+                      height: "auto",
+                    }}
                   />
                   {blobUrl && (
                     <a
@@ -155,24 +224,27 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
 
               {previewType === "image" && blobUrl && (
                 <div className="flex justify-center">
-                  <img
-                    src={blobUrl}
-                    alt={fileName}
-                    className="max-h-[70vh] rounded shadow"
-                  />
+                  <div style={zoomStyle}>
+                    <img
+                      src={blobUrl}
+                      alt={fileName}
+                      className="rounded shadow max-w-full h-auto"
+                    />
+                  </div>
                 </div>
               )}
 
               {previewType === "excel" && (
-                <div
-                  className="bg-white p-3 rounded border border-gray-200 overflow-auto"
-                  dangerouslySetInnerHTML={{ __html: excelHtml }}
-                />
+                <div className="bg-white p-3 rounded border border-gray-200 overflow-auto">
+                  <div style={zoomStyle} dangerouslySetInnerHTML={{ __html: excelHtml }} />
+                </div>
               )}
 
               {previewType === "word" && (
-                <div className="bg-white p-3 rounded border border-gray-200">
-                  <div ref={docxRef} className="prose max-w-none" />
+                <div className="bg-white p-3 rounded border border-gray-200 overflow-auto">
+                  <div style={zoomStyle}>
+                    <div ref={docxRef} className="prose max-w-none" />
+                  </div>
                 </div>
               )}
 
