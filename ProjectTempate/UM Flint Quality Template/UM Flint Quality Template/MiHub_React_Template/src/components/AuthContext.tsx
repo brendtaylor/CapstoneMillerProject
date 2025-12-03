@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
 
 interface AuthContextType {
-  userId: number | null;
+  userId: number; //Took Out Null for testing
   username: string | null;
   displayName: string | null;
   userRole: string | null;

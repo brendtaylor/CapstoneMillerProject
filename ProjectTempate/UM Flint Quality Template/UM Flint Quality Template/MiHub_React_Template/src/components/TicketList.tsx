@@ -505,7 +505,7 @@ const TicketList: React.FC = () => {
     const woNum = archivedTicket?.wo?.wo;
 
     if (woNum) {
-      await logAudit("Archive", ticketId, parseInt(woNum, 10));
+      await logAudit(userId, "Archive", ticketId, parseInt(woNum, 10));
     } else {
       console.warn("Could not find woNumber for audit log");
     }
@@ -520,7 +520,6 @@ const TicketList: React.FC = () => {
   const confirmAndArchive = async (ticketId: number, woId?: number) => {
     setTicketToArchive({id: ticketId, woId});
     setShowArchiveConfirm(true);
-  
   };
 
   const handleEdit = (ticket: Ticket) => {
@@ -584,7 +583,7 @@ const TicketList: React.FC = () => {
       if (!response.ok) throw new Error(`Failed to update ticket.`);
 
       toast({ title: "Success", description: `Ticket ${editingTicket.qualityTicketId} has been updated.` });  
-      await logAudit("Edit", editingTicket.ticketId, parseInt(editingTicket.wo?.wo));   
+      await logAudit(userId, "Edit", editingTicket.ticketId, parseInt(editingTicket.wo?.wo));   
       // SSE will handle updates
       setIsEditing(false);
       setEditingTicket(null);

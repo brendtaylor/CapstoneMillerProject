@@ -8,26 +8,17 @@
 //localStorage.setItem("userId", "1001"); // NROACH from your seed data
 
 // auditLogger.ts
-export async function logAudit(action: string, ticketId: number, woId?: number) {
-  try {
-    const userId = parseInt(localStorage.getItem("userId") || "0", 10);
-    const timestamp = new Date().toISOString();
+export async function logAudit(userId: number, action: string, ticketId: number, woId?: number) {
+  const timestamp = new Date().toISOString();
+  const auditData = { userId, ticketId, action, timestamp, woId }; // 👈 FIXED
 
-    const auditData = { userId, ticketId, action, timestamp, woId };
+  const response = await fetch("http://localhost:3000/api/audit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(auditData),
+  });
 
-    const response = await fetch("http://localhost:3000/api/audit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(auditData),
-    });
-
-    if (!response.ok) {
-      console.error("Audit log failed:", await response.text());
-    } else {
-      console.log(`Audit logged: ${action} (Ticket #${ticketId})`);
-    }
-  } catch (error) {
-    console.error("Audit log error:", error);
-  }
+  if (!response.ok) throw new Error(await response.text());
+  return response.json();
 }
 

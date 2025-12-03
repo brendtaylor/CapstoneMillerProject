@@ -203,18 +203,29 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     const MAX_FILES = 10;
 
     const handleFileUpload = (fileArray: File[]) => {
-    if (files.length + fileArray.length > MAX_FILES) {
-        toast({
-        title: "Upload Limit Reached",
-        description: `You can only upload up to ${MAX_FILES} files.`,
-        variant: "destructive",
-        });
-        return;
-    }
+        // Enforce max file limit
+        if (files.length + fileArray.length > MAX_FILES) {
+            toast({
+            title: "Upload Limit Reached",
+            description: `You can only upload up to ${MAX_FILES} files.`,
+            variant: "destructive",
+            });
+            return;
+        }
 
-    fileArray.forEach((file) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
+        fileArray.forEach((file) => {
+            // Block video files
+            if (file.type.startsWith("video/")) {
+            toast({
+                title: "Unsupported File Type",
+                description: "Video files are not allowed.",
+                variant: "destructive",
+            });
+            return; // skip this file
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
         let previewType: SavedFile["previewType"] = "other";
         let color = "text-gray-500";
 
@@ -242,21 +253,21 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             color = "text-yellow-600"; 
         }
 
-        setfiles((prev) => [
-            ...prev,
-            {
-            name: file.name,
-            data: reader.result as string,
-            isFile: true,
-            file,
-            uploaded: false,
-            previewType,
-            color,
-            } as SavedFile,
-        ]);
-        };
+            setfiles((prev) => [
+                ...prev,
+                {
+                name: file.name,
+                data: reader.result as string,
+                isFile: true,
+                file,
+                uploaded: false,
+                previewType,
+                color,
+                } as SavedFile,
+            ]);
+            };
         reader.readAsDataURL(file);
-    });
+        });
     };
 
 
@@ -351,7 +362,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             }
             
             // Log Ticket Creation
-            await logAudit("Create", parseInt(newTicket.ticketId, 10), parseInt(workOrderSearch, 10));
+            await logAudit(userId, "Create", parseInt(newTicket.ticketId, 10), parseInt(workOrderSearch, 10));
 
 
             handleDelete(); // Clear form
@@ -553,51 +564,51 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
 
             {/* 9. File Upload */}
             <div
-            className="flex flex-col items-center justify-center space-y-2 mt-6 border-2 border-dashed border-gray-300 p-6 rounded cursor-pointer"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-                e.preventDefault();
-                const files = Array.from(e.dataTransfer.files);
-                handleFileUpload(files);
-            }}
+                className="flex flex-col items-center justify-center space-y-2 mt-6 border-2 border-dashed border-gray-300 p-6 rounded cursor-pointer"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                    e.preventDefault();
+                    const files = Array.from(e.dataTransfer.files);
+                    handleFileUpload(files);
+                }}
             >
-            <label htmlFor="FileUpload" className="cursor-pointer flex flex-col items-center">
-                <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-65 h-56 mb-2"/>
-                <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload or Drag Files</span>
-            </label>
-            <input
-                id="FileUpload"
-                type="file"
-                multiple
-                onChange={(e) => e.target.files && handleFileUpload(Array.from(e.target.files))}
-                className="hidden"
-            />
+                <label htmlFor="FileUpload" className="cursor-pointer flex flex-col items-center">
+                    <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-65 h-56 mb-2"/>
+                    <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload or Drag Files</span>
+                </label>
+                <input
+                    id="FileUpload"
+                    type="file"
+                    multiple
+                    onChange={(e) => e.target.files && handleFileUpload(Array.from(e.target.files))}
+                    className="hidden"
+                />
 
-            {files.length > 0 && (
+                {files.length > 0 && (
                 <ul className="mt-6 space-y-4 text-sm text-gray-700 w-full">
                 {files.map((f, i) => {
                 const Icon = getFileIcon(f.previewType);
                 return (
-                    <li key={i} className="flex items-center bg-gray-100 p-2 rounded">
+                            <li key={i} className="flex items-center bg-gray-100 p-2 rounded">
                     {f.previewType === "image" ? (
                         <img src={f.data} alt={f.name} className="w-16 h-14 object-cover rounded mr-2" />
-                    ) : (
-                        <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded mr-2">
+                                ) : (
+                                    <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded mr-2">
                         <Icon className={`w-6 h-6 ${f.color}`} />
-                        </div>
-                    )}
+                                    </div>
+                                )}
                     <span className="flex-1 truncate">{f.name}</span>
-                    <button
-                        onClick={() => setfiles(prev => prev.filter((_, index) => index !== i))}
-                        className="text-red-500 hover:text-red-700"
-                    >
-                        Remove
-                    </button>
-                    </li>
+                                <button
+                                    onClick={() => setfiles(prev => prev.filter((_, index) => index !== i))}
+                                    className="text-red-500 hover:text-red-700"
+                                >
+                                    Remove
+                                </button>
+                            </li>
                 );
                 })}
-                </ul>
-            )}
+                    </ul>
+                )}
             </div>
 
             {/* Save/Delete Actions */}
