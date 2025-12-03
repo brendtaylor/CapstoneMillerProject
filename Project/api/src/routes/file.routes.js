@@ -16,5 +16,7 @@ router.post("/upload", upload.single('imageFile'), FileController.uploadFile);
 // Route to get a file by its ticketId
 router.get("/ticket/:ticketId", FileController.getFilesByTicket);
 
+// Route to delete a file by its key
+router.delete("/:key", FileController.deleteFile);
 
 module.exports = router;

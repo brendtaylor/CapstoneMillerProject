@@ -14,9 +14,9 @@ class FileService {
             fileKey: key
         });
     }
+
     /**
      * Saves a new file to the database.
-     * We'll set ticketId to null for now since we aren't linking it to a ticket yet.
      */
     static async createFile(key, file, ticketId) {
         // Create a new file object
@@ -33,20 +33,29 @@ class FileService {
         await fileRepository.save(newFile);
         return newFile;
     }
+
     static async findAll() {
         return fileRepository.find();
     }
 
     // Get all files based on ticketId
     static async findByTicketId(ticketId) {
-    return fileRepository.find({
-        where: { ticket: { ticketId: Number(ticketId) } }, // use relation
-        select: ["fileKey", "fileName", "mimeType", "fileData"],
-        relations: ["ticket"],
-    });
+        return fileRepository.find({
+            where: { ticket: { ticketId: Number(ticketId) } }, // use relation
+            select: ["fileKey", "fileName", "mimeType", "fileData"],
+            relations: ["ticket"],
+        });
     }
 
-
+    /**
+     * Deletes a file by its unique FileKey.
+     * @param {string} key - The FileKey of the file to delete.
+     * @returns {Promise<DeleteResult>} - The result of the delete operation.
+     */
+    static async deleteFile(key) {
+        // Delete the file entity where the fileKey matches
+        return await fileRepository.delete({ fileKey: key });
+    }
 }
 
 module.exports = { FileService };

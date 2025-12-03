@@ -11,9 +11,9 @@ class FileController {
             const file = await FileService.findOneByKey(key);
 
             if (file) {
-                // 1. Set the correct content-type header
+                // Set the correct content-type header
                 res.set("Content-Type", file.mimeType);
-                // 2. Send the raw image data as the response
+                // Send the raw image data as the response
                 res.status(200).send(file.fileData);
             } else {
                 res.status(404).json({ message: "File not found." });
@@ -22,6 +22,7 @@ class FileController {
             res.status(500).json({ message: error.message || "Internal server error" });
         }
     }
+
     /**
      * Handles the POST /api/upload request.
      * Saves the image file and key to the database.
@@ -51,30 +52,52 @@ class FileController {
             res.status(500).json({ message: error.message || "Internal server error" });
         }
     }
+
     static async getFilesByTicket(req, res) {
-    try {
-        const { ticketId } = req.params;
-        const files = await FileService.findByTicketId(ticketId);
+        try {
+            const { ticketId } = req.params;
+            const files = await FileService.findByTicketId(ticketId);
 
-        if (!files || files.length === 0) {
-        return res.status(404).json({ message: "No files found for this ticket." });
+            if (!files || files.length === 0) {
+            return res.status(404).json({ message: "No files found for this ticket." });
+            }
+
+            // Return metadata only, not raw binary
+            return res.status(200).json(
+            files.map(f => ({
+                fileKey: f.fileKey,
+                name: f.originalName,
+                mimeType: f.mimeType,
+                size: f.fileData.length
+            }))
+            );
+        } catch (error) {
+            return res.status(500).json({ message: error.message || "Internal server error" });
         }
-
-        // Return metadata only, not raw binary
-        return res.status(200).json(
-        files.map(f => ({
-            fileKey: f.fileKey,
-            name: f.originalName,
-            mimeType: f.mimeType,
-            size: f.fileData.length
-        }))
-        );
-    } catch (error) {
-        return res.status(500).json({ message: error.message || "Internal server error" });
-    }
     }
 
+    /**
+     * Handles the DELETE /api/files/:key request.
+     * Deletes a file by its unique key.
+     */
+    static async deleteFile(req, res) {
+        try {
+            const { key } = req.params;
+            
+            // Call service to delete
+            const result = await FileService.deleteFile(key);
 
+            // Check if any row was affected (deleted)
+            if (result.affected === 0) {
+                return res.status(404).json({ message: "File not found or already deleted." });
+            }
+
+            res.status(200).json({ message: "File deleted successfully." });
+
+        } catch (error) {
+            res.status(500).json({ message: error.message || "Internal server error" });
+        }
+    }
 }
 
-module.exports = { FileController};
+module.exports = { FileController };
