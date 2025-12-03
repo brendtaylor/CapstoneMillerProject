@@ -21,7 +21,7 @@ interface SavedFile {
     isFile: boolean;
     file: File;          // Original File object (needed for upload)
     uploaded?: boolean;  // Track if this file has been uploaded
-    imageKey?: string;   // Key returned from backend
+    fileKey?: string;   // Key returned from backend
 }
 
 const STORAGE_KEY = "ticketDraft";
@@ -280,7 +280,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             await logAudit("Create", parseInt(newTicket.ticketId, 10), parseInt(workOrderSearch, 10));
 
         
-
+/* 
 // --- Upload Multiple Files ---
 for (const f of files) {
   if (f.uploaded) continue; // skip already uploaded
@@ -288,11 +288,11 @@ for (const f of files) {
   // Build FormData for this file
   const formData = new FormData();
   formData.append("ticketId", newTicket.ticketId.toString());   // ✅ use DB PK
-  formData.append("imageKey", f.name);                          // or unique key
+  formData.append("fileKey", f.name);                          // or unique key
   formData.append("imageFile", f.file);                         // raw File object
 
   try {
-    const res = await fetch("http://localhost:3000/api/images/upload", {
+    const res = await fetch("http://localhost:3000/api/file/upload", {
       method: "POST",
       body: formData,
     });
@@ -312,7 +312,7 @@ for (const f of files) {
   }
 }
 
-            
+            */
         
             
             handleDelete(); // Clear form
