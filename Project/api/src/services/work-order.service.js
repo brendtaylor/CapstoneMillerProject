@@ -68,8 +68,18 @@ class WorkOrderService {
                 status: { statusId: In(statuses) } 
             },
             relations: [
-                "status", "initiator", "division", "manNonCon",
-                "laborDepartment", "sequence", "unit", "wo", "assignedTo", "files"
+                "status", 
+                "initiator", 
+                "division", 
+                "manNonCon",
+                "laborDepartment", 
+                "sequence", 
+                "unit", 
+                "wo", 
+                "assignedTo", 
+                "files",
+                "closures",           
+                "closures.closedBy"   
             ],
             order: {
                 openDate: "DESC" 

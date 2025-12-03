@@ -109,5 +109,17 @@ module.exports = new EntitySchema({
             type: "one-to-many", // One Ticket can have Many Images
             inverseSide: "ticket", // Links to the 'ticket' property in file.entity.js
         },
+        closures: {
+            target: "TicketClosure",
+            type: "one-to-many",
+            inverseSide: "ticket",
+            cascade: true, 
+        },
+        notes: {
+            target: "Note",
+            type: "one-to-many",
+            inverseSide: "ticket",
+            cascade: true,
+        },
     },
 });

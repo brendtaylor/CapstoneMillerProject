@@ -27,6 +27,32 @@ PRIMARY KEY CLUSTERED
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
+
+USE TICKET_SYSTEM;
+GO
+
+/****** Object:  Table [dbo].[MiHubWeb_Quality_Ticket_Notes]                        ******/
+CREATE TABLE [dbo].[MiHubWeb_Quality_Ticket_Notes](
+    [NOTE_ID] [int] IDENTITY(1,1) NOT NULL,
+    [TICKET_ID] [int] NOT NULL,
+    [AUTHOR_ID] [smallint] NOT NULL,
+    [NOTE_TEXT] [nvarchar](max) NOT NULL,
+    [CREATED_AT] [datetime] DEFAULT GETDATE(),
+    CONSTRAINT [PK_Ticket_Notes] PRIMARY KEY CLUSTERED ([NOTE_ID] ASC)
+);
+GO
+
+ALTER TABLE [dbo].[MiHubWeb_Quality_Ticket_Notes] WITH CHECK 
+ADD CONSTRAINT [FK_Notes_Ticket] FOREIGN KEY([TICKET_ID])
+REFERENCES [dbo].[MiHubWeb_Quality_Tickets] ([TICKETID])
+ON DELETE CASCADE;
+GO
+
+ALTER TABLE [dbo].[MiHubWeb_Quality_Ticket_Notes] WITH CHECK 
+ADD CONSTRAINT [FK_Notes_User] FOREIGN KEY([AUTHOR_ID])
+REFERENCES [dbo].[MiHub_Quality_Users] ([ID]);
+GO
+
 /****** Object:  Table [dbo].[MiHub_Labor_Department]    Script Date: 11/15/2025 6:50:00 PM ******/
 SET ANSI_NULLS ON
 GO
@@ -260,7 +286,7 @@ CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets](
 	[INITIATOR] [smallint] NOT NULL,
 	[WO] [int] NOT NULL,
 	[UNIT] [smallint] NULL,
-	[SEQUENCE] [smallint] NULL, -- CHANGED FROM NOT NULL TO NULL
+	[SEQUENCE] [smallint] NULL, 
 	[DIVISION] [smallint] NOT NULL,
 	[LABOR_DEPARTMENT] [smallint] NOT NULL,
 	[OPEN_DATE] [datetime] NOT NULL,
@@ -291,7 +317,7 @@ CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets_Archive](
 	[INITIATOR] [smallint] NOT NULL,
 	[WO] [int] NOT NULL,
 	[UNIT] [smallint] NULL,
-	[SEQUENCE] [smallint] NULL, -- CHANGED FROM NOT NULL TO NULL
+	[SEQUENCE] [smallint] NULL,
 	[DIVISION] [smallint] NOT NULL,
 	[LABOR_DEPARTMENT] [smallint] NOT NULL,
 	[OPEN_DATE] [datetime] NOT NULL,
@@ -328,7 +354,35 @@ CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets_Closed](
 ) ON [PRIMARY]
 GO
 
-/****** Object:  Table [dbo].[MiHub_Quality_Images]    Script Date: 9/29/2025 4:27:56 PM ******/
+-- ######################################################################
+-- # NEW TABLE: CLOSURE HISTORY
+-- ######################################################################
+
+CREATE TABLE [dbo].[MiHubWeb_Quality_Ticket_Closures](
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[TICKET_ID] [int] NOT NULL,
+	[CYCLE_START_DATE] [datetime] NULL,
+	[CYCLE_CLOSE_DATE] [datetime] NOT NULL,
+	[CORRECTIVE_ACTION] [nvarchar](max) NULL,
+	[MATERIALS_USED] [nvarchar](max) NULL,
+	[ESTIMATED_LABOR_HOURS] [decimal](10, 2) NULL,
+	[CLOSED_BY] [smallint] NULL,
+    CONSTRAINT [PK_Ticket_Closures] PRIMARY KEY CLUSTERED ([ID] ASC)
+);
+GO
+
+ALTER TABLE [dbo].[MiHubWeb_Quality_Ticket_Closures] WITH CHECK 
+ADD CONSTRAINT [FK_Closure_Ticket] FOREIGN KEY([TICKET_ID])
+REFERENCES [dbo].[MiHubWeb_Quality_Tickets] ([TICKETID])
+ON DELETE CASCADE;
+GO
+
+-- Add column to main table
+ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets]
+ADD [LAST_REOPEN_DATE] [datetime] NULL;
+GO
+
+/****** Object:  Table [dbo].[MiHub_Quality_Attachments]    Script Date: 9/29/2025 4:27:56 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON

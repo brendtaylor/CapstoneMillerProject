@@ -14,7 +14,6 @@ async function getAllTickets(req, res) {
 // Controller to handle creating a new ticket
 async function createTicket(req, res) {
     try {
-        // Service handles DB creation AND 'emitToMake' logic now
         const newTicket = await ticketService.createTicket(req.body);
         res.status(201).json(newTicket);
     } catch (error) {
@@ -47,7 +46,6 @@ async function getTicketById(req, res) {
 //Controller for updating a specific ticket
 async function updateTicket(req, res) {
     try {
-        // Service handles DB update AND 'emitToMake' logic now
         const updatedTicket = await ticketService.updateTicket(req.params.id, req.body);
         if (updatedTicket) {
             res.json(updatedTicket);
@@ -118,6 +116,31 @@ async function getArchivedTicketByID(req, res) {
     }
 }
 
+async function getTicketNotes(req, res) {
+    try {
+        const notes = await ticketService.getNotesByTicketId(req.params.id);
+        res.json(notes);
+    } catch (error) {
+        console.error("Error fetching notes:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+async function addTicketNote(req, res) {
+    try {
+        const { note, authorId } = req.body; 
+        if (!note || !authorId) {
+            return res.status(400).json({ message: "Note text and Author ID are required." });
+        }
+
+        const newNote = await ticketService.addNote(req.params.id, note, authorId);
+        res.status(201).json(newNote);
+    } catch (error) {
+        console.error("Error adding note:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
 module.exports = { 
     getAllTickets, 
     createTicket, 
@@ -126,5 +149,7 @@ module.exports = {
     deleteTicket,
     getAllArchivedTickets,
     getArchivedTicketByID,
-    connectSSE    
+    connectSSE,
+    getTicketNotes,
+    addTicketNote    
 };

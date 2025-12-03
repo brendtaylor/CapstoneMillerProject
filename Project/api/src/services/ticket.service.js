@@ -1,13 +1,15 @@
 const { AppDataSource } = require("../data-source");
 const { emitToMake } = require("../utils/makeEmitter"); 
-const { EventEmitter } = require("events"); // Node's built-in EventEmitter
+const { EventEmitter } = require("events"); 
 const logger = require("../../logger");
 
 class TicketService {
     constructor() {
         this.ticketRepository = AppDataSource.getRepository("Ticket");
         this.archivedRepository = AppDataSource.getRepository("ArchivedTicket");
-        this.workOrderRepository = AppDataSource.getRepository("WorkOrder"); 
+        this.workOrderRepository = AppDataSource.getRepository("WorkOrder");
+        this.closureRepository = AppDataSource.getRepository("TicketClosure"); 
+        this.noteRepository = AppDataSource.getRepository("Note");
         this.sseEmitter = new EventEmitter(); 
         logger.info("TicketService initialized");
     
@@ -15,7 +17,8 @@ class TicketService {
         this.relations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
-            "sequence", "unit", "wo", "assignedTo", "files"
+            "sequence", "unit", "wo", "assignedTo", "files",
+            "closures", "closures.closedBy"
         ];
     }
 
@@ -80,15 +83,15 @@ class TicketService {
                 status: 0,
             });
             
-            // 1. Save the raw ticket
+            // Save the raw ticket
             const savedTicket = await queryRunner.manager.save("Ticket", newTicket);
             await queryRunner.commitTransaction();
 
-            // 2. FETCH COMPLETE TICKET 
+            // FETCH COMPLETE TICKET 
             // fetch the full entity with relations so the UI receives { wo: { woId: ... } }
             const completeTicket = await this.getTicketById(savedTicket.ticketId);
 
-            // 3. Emit Events using the COMPLETE ticket
+            // Emit Events using the COMPLETE ticket
             this.sseEmitter.emit('new-ticket', completeTicket); 
             
             try {
@@ -120,18 +123,62 @@ class TicketService {
 
     async updateTicket(id, ticketData) {
         logger.info(`Updating ticket ID: ${id}`);
-        const updatePayload = { ...ticketData };
+        
+        // Fetch the current state of the ticket to check for status transitions
+        const currentTicket = await this.ticketRepository.findOne({ 
+            where: { ticketId: id },
+            relations: ["closures"] 
+        });
 
-        if (updatePayload.status === 2) {                                                   // 2 = 'Closed'
-            updatePayload.closeDate = new Date();
-            logger.info(`Ticket ${id} is being closed.`);
+        if (!currentTicket) {
+            logger.error(`Ticket ${id} not found.`);
+            throw new Error("Ticket not found");
         }
 
+        const updatePayload = { ...ticketData };
+        
+        // Check for Status Transitions
+        const isClosing = (updatePayload.status === 2 && currentTicket.status !== 2);
+        const isReopening = (updatePayload.status !== 2 && currentTicket.status === 2);
+
+        // --- LOGIC: CLOSING A TICKET ---
+        if (isClosing) {
+            updatePayload.closeDate = new Date();
+            logger.info(`Ticket ${id} is being closed. Saving cycle to history.`);
+
+            // Determine the Start Date for THIS cycle.
+            const cycleStart = currentTicket.lastReopenDate || currentTicket.openDate;
+
+            // Create a snapshot "batch" record in the history
+            const closureRecord = this.closureRepository.create({
+                ticket: { ticketId: id },
+                cycleStartDate: cycleStart,
+                cycleCloseDate: updatePayload.closeDate,
+                correctiveAction: updatePayload.correctiveAction || currentTicket.correctiveAction,
+                materialsUsed: updatePayload.materialsUsed || currentTicket.materialsUsed,
+                estimatedLaborHours: updatePayload.estimatedLaborHours || currentTicket.estimatedLaborHours,
+                // closedBy: updatePayload.assignedTo ? { id: updatePayload.assignedTo } : null 
+            });
+            
+            await this.closureRepository.save(closureRecord);
+        }
+
+        // --- LOGIC: RE-OPENING A TICKET ---
+        if (isReopening) {
+            logger.info(`Ticket ${id} is being re-opened.`);
+            // Mark the start of a new cycle
+            updatePayload.lastReopenDate = new Date();
+            // We do not clear the old resolution fields, allowing UI to see previous data until overwrite.
+        }
+
+        // Perform the Update on the Main Table
         await this.ticketRepository.update(id, updatePayload);
+        
+        // Fetch the fully updated entity
         const updatedTicket = await this.getTicketById(id);
         
         // Emit Events
-        this.sseEmitter.emit('update-ticket', updatedTicket); // For frontend SSE
+        this.sseEmitter.emit('update-ticket', updatedTicket); 
         
         try {
             const makeRs = await emitToMake('ticket.update', { ticket: updatedTicket });
@@ -216,6 +263,35 @@ class TicketService {
             this.sseEmitter.removeListener('update-ticket', updateTicketHandler);
             this.sseEmitter.removeListener('delete-ticket', deleteTicketHandler);
         });
+    }
+
+    async getNotesByTicketId(ticketId) {
+        return await this.noteRepository.find({
+            where: { ticket: { ticketId: parseInt(ticketId) } },
+            relations: ["author"],
+            order: { createdAt: "DESC" }
+        });
+    }
+
+    async addNote(ticketId, noteText, authorId) {
+        logger.info(`Adding note to ticket ${ticketId} by user ${authorId}`);
+        
+        const note = this.noteRepository.create({
+            text: noteText,
+            ticket: { ticketId: parseInt(ticketId) },
+            author: { id: parseInt(authorId) },
+            createdAt: new Date()
+        });
+
+        await this.noteRepository.save(note);
+        
+        // Retrieve the full note with author info to return to UI
+        const savedNote = await this.noteRepository.findOne({
+            where: { noteId: note.noteId },
+            relations: ["author"]
+        });
+
+        return savedNote;
     }
 }
 

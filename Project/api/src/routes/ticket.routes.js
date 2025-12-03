@@ -8,7 +8,9 @@ const {
     createTicket,
     updateTicket,
     deleteTicket,
-    connectSSE 
+    connectSSE,
+    getTicketNotes,
+    addTicketNote 
 } = require("../controllers/ticket.controller");
 
 
@@ -36,5 +38,9 @@ router.put("/:id", updateTicket);
 
 // DELETE /api/tickets/:id - Delete (archive) a ticket
 router.delete("/:id", deleteTicket);
+// GET /api/tickets/:id - Get Notes for a ticket
+router.get("/:id/notes", getTicketNotes);
 
+// POST /api/ticket/:id - Add notes to a ticket
+router.post("/:id/notes", addTicketNote);
 module.exports = router;
