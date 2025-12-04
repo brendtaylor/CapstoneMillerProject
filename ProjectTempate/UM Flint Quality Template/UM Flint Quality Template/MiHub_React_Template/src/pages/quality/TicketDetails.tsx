@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { useToast } from "../../hooks/use-toast";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import { Textarea } from "../../components/ui/textarea";
 import AssignUser from "../../components/AssignUser";
-import { isEditable, requiresAssignedUser } from "../../lib/ticketRules";
 import { useAuth } from "../../components/AuthContext";
+import { requiresAssignedUser } from "../../lib/ticketRules";
 import type { Ticket } from "../../types";
+import FileDownload from "../../components/FileDownload";
 import { logAudit } from "../../components/utils/auditLogger";
-//import { Ticket } from "lucide-react";
-import FileDownload from "../../components/FileDownload"
-//import FileList from "../../components/FileList"; commented out temporarily to make react compile
 
 interface Note {
   noteId: number;
@@ -28,7 +26,11 @@ const TicketDetails: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { userId } = useAuth();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Detect Archive Mode based on URL path
+  const isArchived = location.pathname.includes("/archived/");
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -36,27 +38,39 @@ const TicketDetails: React.FC = () => {
   const [noteText, setNoteText] = useState("");
   const [status, setStatus] = useState("0"); // Default to 'Open' (0)
   const [previousStatus, setPreviousStatus] = useState("0"); // Track the last confirmed status
+  
   const [showAssignmentPrompt, setShowAssignmentPrompt] = useState(false);
   const [showClosingPrompt, setShowClosingPrompt] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+  
   const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ status: number; extraFields?: object } | null>(null);
   const [closingFields, setClosingFields] = useState({
     correctiveAction: "",
     materialsUsed: "",
     estimatedLaborHours: "",
   });
+
   const resetToPreviousStatus = () => setStatus(previousStatus);
 
   // Load Ticket Info
   const fetchTicket = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/tickets/${id}`);
+      // Switch endpoint based on mode
+      const endpoint = isArchived 
+        ? `http://localhost:3000/api/tickets/archived/${id}`
+        : `http://localhost:3000/api/tickets/${id}`;
+
+      const response = await fetch(endpoint);
+      if (!response.ok) throw new Error("Ticket not found");
+      
       const data: Ticket = await response.json();
       setTicket(data);
+      
       const currentStatus = data.status?.statusId?.toString() || "0";
       setStatus(currentStatus);
       setPreviousStatus(currentStatus);
+      
       // Pre-fill closing fields if they already exist
       setClosingFields({
         correctiveAction: data.correctiveAction || "",
@@ -76,8 +90,10 @@ const TicketDetails: React.FC = () => {
   const fetchNotes = async () => {
     try {
       const response = await fetch(`http://localhost:3000/api/tickets/${id}/notes`);
-      const data = await response.json();
-      setNotes(data);
+      if (response.ok) {
+        const data = await response.json();
+        setNotes(data);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -85,28 +101,23 @@ const TicketDetails: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
       await fetchTicket();
       await fetchNotes();
       setLoading(false);
     };
     load();
-  }, [id]);
+  }, [id, isArchived]);
 
   // Add Note
   const handleAddNote = async () => {
+    if (isArchived) return; // Guard: Cannot add notes to archived tickets
+
     if (!noteText.trim()) {
       return toast({
         variant: "destructive",
         title: "Note Required",
         description: "Cannot submit an empty note.",
-      });
-    }
-
-    if (!userId) {
-      return toast({
-        variant: "destructive",
-        title: "Authentication Error",
-        description: "Could not identify the user. Please log in again.",
       });
     }
 
@@ -119,12 +130,12 @@ const TicketDetails: React.FC = () => {
 
       setNoteText("");
       fetchNotes();
-      // Log the action to the audit trail
-      if (ticket?.wo?.wo && userId) {
-        await logAudit(userId, "Add Note", ticket.ticketId, parseInt(ticket.wo.wo, 10));
-      }
-
       toast({ title: "Success", description: "Note added." });
+      
+      // Audit Log
+      if (userId && ticket) {
+        logAudit(userId, "Note Added", ticket.ticketId, parseInt(ticket.wo?.wo));
+      }
     } catch {
       toast({
         variant: "destructive",
@@ -137,7 +148,7 @@ const TicketDetails: React.FC = () => {
   // Update Status (can be called directly or after assignment)
   const performStatusUpdate = async (statusToUpdate: number, extraFields?: object) => {
     try {
-      await fetch(`http://localhost:3000/api/tickets/${id}`, {
+      await fetch(`http://localhost:3000/api/tickets/${id}`, { 
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: statusToUpdate, ...extraFields }),
@@ -145,6 +156,13 @@ const TicketDetails: React.FC = () => {
 
       toast({ title: "Success", description: "Status updated." });
       fetchTicket();
+
+      // Audit Log
+      if (userId && ticket) {
+        const getStatusDesc = (s: number) => s === 0 ? "Open" : s === 1 ? "In-Progress" : "Closed";
+        const newStatusDesc = getStatusDesc(statusToUpdate);
+        logAudit(userId, `Status: ${ticket.status?.statusDescription} → ${newStatusDesc}`, ticket.ticketId, parseInt(ticket.wo?.wo));
+      }
     } catch {
       toast({
         variant: "destructive",
@@ -157,6 +175,8 @@ const TicketDetails: React.FC = () => {
   };
 
   const handleStatusUpdate = async (newStatus?: string, extraFields?: object, options?: { skipConfirmation?: boolean }) => {
+    if (isArchived) return; // Guard
+
     const newStatusId = parseInt(status, 10);
     const statusToUpdate = newStatus ? parseInt(newStatus, 10) : newStatusId;
     const skipConfirmation = options?.skipConfirmation;
@@ -172,7 +192,8 @@ const TicketDetails: React.FC = () => {
 
   // Handle status dropdown change
   const handleStatusChange = (newStatusValue: string) => {
-    // Remember what the status was before the user initiated the change
+    if (isArchived) return; // Guard
+
     setPreviousStatus(status);
     const newStatusId = parseInt(newStatusValue, 10);
     setStatus(newStatusValue);
@@ -182,6 +203,16 @@ const TicketDetails: React.FC = () => {
       setShowAssignmentPrompt(true);
     } else if (newStatusId === 2) { // If new status is "Closed" (ID 2), show closing prompt.
       setShowClosingPrompt(true);
+    }
+  };
+
+  // --- NAVIGATION HANDLER ---
+  const handleBack = () => {
+    // Navigate to Quality page with state indicating which tab to open
+    if (isArchived) {
+      navigate("/quality", { state: { activeTab: "archivedTickets" } });
+    } else {
+      navigate("/quality", { state: { activeTab: "tickets" } });
     }
   };
 
@@ -195,8 +226,8 @@ const TicketDetails: React.FC = () => {
 
   return (
     <>
-      {/* Assignment Prompt Overlay */}
-      {showAssignmentPrompt && (
+      {/* Assignment Prompt Overlay - Only if NOT archived */}
+      {!isArchived && showAssignmentPrompt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
             <h3 className="text-lg font-semibold mb-2">Assignment Required</h3>
@@ -207,9 +238,9 @@ const TicketDetails: React.FC = () => {
               ticketId={ticket.ticketId}
               currentAssigned={ticket.assignedTo?.name}
               onAssignmentSuccess={() => {
-                setShowAssignmentPrompt(false); // Close overlay
-                fetchTicket(); // Refresh ticket to get new assignee
-                handleStatusUpdate("1", undefined, { skipConfirmation: true }); // Now update status to "In Progress" without extra confirm
+                setShowAssignmentPrompt(false); 
+                fetchTicket(); 
+                handleStatusUpdate("1", undefined, { skipConfirmation: true }); 
               }}
             />
             <Button
@@ -226,8 +257,8 @@ const TicketDetails: React.FC = () => {
         </div>
       )}
 
-      {/* Closing Fields Prompt Overlay */}
-      {showClosingPrompt && (
+      {/* Closing Fields Prompt Overlay - Only if NOT archived */}
+      {!isArchived && showClosingPrompt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
             <h3 className="text-lg font-semibold mb-2">Close Ticket</h3>
@@ -300,7 +331,8 @@ const TicketDetails: React.FC = () => {
         </div>
       )}
 
-      {showStatusConfirm && pendingStatusUpdate && (
+      {/* Confirmation Modals - Only if NOT archived */}
+      {!isArchived && showStatusConfirm && pendingStatusUpdate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" onClick={() => { setShowStatusConfirm(false); setStatus(previousStatus); setPendingStatusUpdate(null); }}>
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md relative z-[80]" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold mb-2">Confirm Status Change</h3>
@@ -316,7 +348,7 @@ const TicketDetails: React.FC = () => {
         </div>
       )}
 
-      {showCloseConfirm && (
+      {!isArchived && showCloseConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" onClick={() => { setShowCloseConfirm(false); setPendingStatusUpdate(null); }}>
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md relative z-[80]" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold mb-2">Confirm Close</h3>
@@ -338,125 +370,138 @@ const TicketDetails: React.FC = () => {
         </div>
       )}
 
-    <div className="max-w-3xl mx-auto mt-6 space-y-6">
+      <div className="max-w-3xl mx-auto mt-6 space-y-6">
 
-      {/* Back Button */}
-      <Button variant="outline" onClick={() => navigate(-1)}>
-        ← Back
-      </Button>
-
-      {/* Ticket Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ticket {ticket.qualityTicketId || `#${ticket.ticketId}`}</CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-2">
-          <p><b>Status:</b> {ticket.status?.statusDescription}</p>
-          <p><b>Description:</b> {ticket.description}</p>
-          <p><b>Work Order:</b> {ticket.wo?.wo}</p>
-          <p><b>Division:</b> {ticket.division?.divisionName}</p>
-          <p><b>Drawing #:</b> {ticket.drawingNum}</p>
-          <p><b>Unit:</b> {ticket.unit?.unitName}</p>
-          <p><b>Sequence:</b> {ticket.sequence?.seqName}</p>
-          <p><b>Nonconformance:</b> {ticket.manNonCon?.nonCon}</p>
-          <p><b>Opened:</b> {new Date(ticket.openDate).toLocaleString()}</p>
-          <p><b>Initiator:</b> {ticket.initiator?.name}</p>
-        </CardContent>
-      </Card>
-      
-      {/* Assignment */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Assignment</CardTitle>
-        </CardHeader>
-      
-      <CardContent className="space-y-3">
-      
-        {requiresAssignedUser(ticket) && (
-          <p className="text-red-600">
-            This ticket is In Progress but has no assigned user.
-          </p>
-      )}
-      
-      <AssignUser
-        ticketId={ticket.ticketId}
-        currentAssigned={ticket.assignedTo?.name}
-        onAssignmentSuccess={fetchTicket}
-      />
-      
-      </CardContent>
-    </Card>
-      
-      {/* Files */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Uploaded Files</CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <FileDownload ticketId={ticket.ticketId} />
-        </CardContent>
-      </Card>
-
-      {/* Status Update */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Update Status</CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-3">
-          <select
-            className="border rounded p-2 w-full"
-            value={status}
-            onChange={(e) => handleStatusChange(e.target.value)}
-          >
-            <option value="0">Open</option>
-            <option value="1">In Progress</option>
-            <option value="2">Closed</option>
-          </select>
-
-          <Button onClick={() => handleStatusUpdate()}>Update Status</Button>
-        </CardContent>
-      </Card>
-
-      {/* Notes */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Notes</CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-
-          {/* Existing Notes */}
-          <div className="space-y-2 max-h-60 overflow-auto border rounded p-2 bg-gray-50">
-            {notes.length > 0 ? (
-              notes.map((note) => (
-                <div key={note.noteId} className="p-2 bg-white rounded shadow-sm">
-                  <p>{note.text}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    – {note.author?.name} ({new Date(note.createdAt).toLocaleString()})
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500">No notes yet.</p>
-            )}
+        {/* Archived Banner */}
+        {isArchived && (
+          <div className="bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-4 rounded shadow-sm" role="alert">
+            <p className="font-bold">Archived Ticket</p>
+            <p>This ticket is in the archive and cannot be modified.</p>
           </div>
+        )}
 
-          {/* Add Note */}
-          <Textarea
-            placeholder="Add a note..."
-            value={noteText}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => 
-                setNoteText(e.target.value)}
-          />
+        {/* Back Button */}
+        <Button variant="outline" onClick={handleBack}>
+          ← Back
+        </Button>
 
-          <Button onClick={handleAddNote}>Add Note</Button>
-        </CardContent>
-      </Card>
+        {/* Ticket Info */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Ticket {ticket.qualityTicketId || `#${ticket.ticketId}`}</CardTitle>
+          </CardHeader>
 
-    </div>
+          <CardContent className="space-y-2">
+            <p><b>Status:</b> {ticket.status?.statusDescription}</p>
+            <p><b>Description:</b> {ticket.description}</p>
+            <p><b>Work Order:</b> {ticket.wo?.wo}</p>
+            <p><b>Division:</b> {ticket.division?.divisionName}</p>
+            <p><b>Drawing #:</b> {ticket.drawingNum}</p>
+            <p><b>Unit:</b> {ticket.unit?.unitName}</p>
+            <p><b>Sequence:</b> {ticket.sequence?.seqName}</p>
+            <p><b>Nonconformance:</b> {ticket.manNonCon?.nonCon}</p>
+            <p><b>Opened:</b> {new Date(ticket.openDate).toLocaleString()}</p>
+            <p><b>Initiator:</b> {ticket.initiator?.name}</p>
+          </CardContent>
+        </Card>
+        
+        {/* Assignment - Hide if Archived */}
+        {!isArchived && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Assignment</CardTitle>
+            </CardHeader>
+          
+            <CardContent className="space-y-3">
+              {requiresAssignedUser(ticket) && (
+                <p className="text-red-600">
+                  This ticket is In Progress but has no assigned user.
+                </p>
+              )}
+              <AssignUser
+                ticketId={ticket.ticketId}
+                currentAssigned={ticket.assignedTo?.name}
+                onAssignmentSuccess={fetchTicket}
+              />
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Files - Always Visible (assuming download is read-only) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Uploaded Files</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <FileDownload ticketId={ticket.ticketId} />
+          </CardContent>
+        </Card>
+
+        {/* Status Update - Hide if Archived */}
+        {!isArchived && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Update Status</CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-3">
+              <select
+                className="border rounded p-2 w-full"
+                value={status}
+                onChange={(e) => handleStatusChange(e.target.value)}
+              >
+                <option value="0">Open</option>
+                <option value="1">In Progress</option>
+                <option value="2">Closed</option>
+              </select>
+
+              <Button onClick={() => handleStatusUpdate()}>Update Status</Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Notes */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Notes</CardTitle>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+
+            {/* Existing Notes */}
+            <div className="space-y-2 max-h-60 overflow-auto border rounded p-2 bg-gray-50">
+              {notes.length > 0 ? (
+                notes.map((note) => (
+                  <div key={note.noteId} className="p-2 bg-white rounded shadow-sm">
+                    <p>{note.text}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      – {note.author?.name} ({new Date(note.createdAt).toLocaleString()})
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">No notes yet.</p>
+              )}
+            </div>
+
+            {/* Add Note - Hide input if Archived */}
+            {!isArchived && (
+              <>
+                <Textarea
+                  placeholder="Add a note..."
+                  value={noteText}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => 
+                      setNoteText(e.target.value)}
+                />
+
+                <Button onClick={handleAddNote}>Add Note</Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+      </div>
     </>
   );
 };

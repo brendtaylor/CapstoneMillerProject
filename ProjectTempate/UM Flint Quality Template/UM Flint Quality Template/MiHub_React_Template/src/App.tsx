@@ -50,6 +50,7 @@ const AppContent: React.FC = () => {
               <Route path="/purchasing" element={<Purchasing />} />
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/tickets/:id" element={<TicketDetails />} />
+              <Route path="/tickets/archived/:id" element={<TicketDetails />} />
             </Routes>
           </motion.div>
       </div>
