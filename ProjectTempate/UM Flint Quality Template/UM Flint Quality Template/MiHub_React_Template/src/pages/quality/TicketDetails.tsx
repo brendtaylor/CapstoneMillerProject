@@ -7,7 +7,9 @@ import ScaleLoader from "react-spinners/ScaleLoader";
 import { Textarea } from "../../components/ui/textarea";
 import AssignUser from "../../components/AssignUser";
 import { isEditable, requiresAssignedUser } from "../../lib/ticketRules";
+import { useAuth } from "../../components/AuthContext";
 import type { Ticket } from "../../types";
+import { logAudit } from "../../components/utils/auditLogger";
 //import { Ticket } from "lucide-react";
 import FileDownload from "../../components/FileDownload"
 //import FileList from "../../components/FileList"; commented out temporarily to make react compile
@@ -25,6 +27,7 @@ interface Note {
 const TicketDetails: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const { toast } = useToast();
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -99,15 +102,28 @@ const TicketDetails: React.FC = () => {
       });
     }
 
+    if (!userId) {
+      return toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "Could not identify the user. Please log in again.",
+      });
+    }
+
     try {
       await fetch(`http://localhost:3000/api/tickets/${id}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note: noteText }),
+        body: JSON.stringify({ note: noteText, authorId: userId }),
       });
 
       setNoteText("");
       fetchNotes();
+      // Log the action to the audit trail
+      if (ticket?.wo?.wo && userId) {
+        await logAudit(userId, "Add Note", ticket.ticketId, parseInt(ticket.wo.wo, 10));
+      }
+
       toast({ title: "Success", description: "Note added." });
     } catch {
       toast({
@@ -121,7 +137,7 @@ const TicketDetails: React.FC = () => {
   // Update Status (can be called directly or after assignment)
   const performStatusUpdate = async (statusToUpdate: number, extraFields?: object) => {
     try {
-      await fetch(`http://localhost:3000/api/tickets/${id}`, { // change back to api/tickets/status later
+      await fetch(`http://localhost:3000/api/tickets/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: statusToUpdate, ...extraFields }),
