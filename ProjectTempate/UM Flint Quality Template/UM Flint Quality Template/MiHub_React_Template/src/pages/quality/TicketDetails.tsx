@@ -216,6 +216,16 @@ const TicketDetails: React.FC = () => {
     }
   };
 
+  // Handle assignment success: refetch and update status if needed
+  const handleAssignmentSuccess = async () => {
+    await fetchTicket(); // Refetch to get the latest ticket data
+    // If the ticket was 'Open' (statusId 0), automatically set it to 'In Progress'
+    if (ticket?.status?.statusId === 0) {
+      // We can skip confirmation here as it's a logical next step
+      handleStatusUpdate("1", undefined, { skipConfirmation: true });
+    }
+  };
+
   if (loading || !ticket) {
     return (
       <div className="flex justify-center mt-10">
@@ -421,7 +431,7 @@ const TicketDetails: React.FC = () => {
               <AssignUser
                 ticketId={ticket.ticketId}
                 currentAssigned={ticket.assignedTo?.name}
-                onAssignmentSuccess={fetchTicket}
+                onAssignmentSuccess={handleAssignmentSuccess}
               />
             </CardContent>
           </Card>
