@@ -224,7 +224,7 @@ class TicketService {
         await this.ticketRepository.delete(id);
         
         // Emit events
-        this.sseEmitter.emit('delete-ticket', { id: id }); // For frontend SSE
+        this.sseEmitter.emit('delete-ticket', { id: parseInt(id, 10) }); // For frontend SSE
         
         logger.info(`Ticket ${id} archived and deleted`);
         return { id: id, message: "Ticket archived successfully" };
