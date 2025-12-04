@@ -1,7 +1,7 @@
 const workOrderService = require("../services/work-order.service");
 const logger = require("../../logger");
 
-// Controller for the new WO Dashboard Summary
+// Controller for the WO Dashboard Summary
 const getWorkOrderSummary = async (req, res) => {
     try {
         // Capture the optional 'search' query param
@@ -19,6 +19,19 @@ const getWorkOrderSummary = async (req, res) => {
     }
 };
 
+// Controller for Archived WO Dashboard Summary
+const getArchivedWorkOrderSummary = async (req, res) => {
+    try {
+        const searchTerm = req.query.search;
+        // No status filtering for archives
+        const data = await workOrderService.getArchivedWorkOrderSummary(searchTerm);
+        res.json(data);
+    } catch (error) {
+        logger.error(`Error in getArchivedWorkOrderSummary controller: ${error.message}`);
+        res.status(500).json({ message: "Error fetching archived work order summary" });
+    }
+};
+
 // Controller to get all tickets for one WO
 const getTicketsByWorkOrder = async (req, res) => {
     try {
@@ -32,6 +45,18 @@ const getTicketsByWorkOrder = async (req, res) => {
     } catch (error) {
         logger.error(`Error in getTicketsByWorkOrder controller: ${error.message}`);
         res.status(500).json({ message: "Error fetching tickets for work order" });
+    }
+};
+
+// Controller to get ARCHIVED tickets for one WO
+const getArchivedTicketsByWorkOrder = async (req, res) => {
+    try {
+        const woId = req.params.wo_id;
+        const data = await workOrderService.getArchivedTicketsByWorkOrder(woId);
+        res.json(data);
+    } catch (error) {
+        logger.error(`Error in getArchivedTicketsByWorkOrder controller: ${error.message}`);
+        res.status(500).json({ message: "Error fetching archived tickets for work order" });
     }
 };
 
@@ -83,7 +108,9 @@ const getNonconformancesByWorkOrder = async (req, res) => {
 
 module.exports = {
     getWorkOrderSummary,
+    getArchivedWorkOrderSummary, 
     getTicketsByWorkOrder,
+    getArchivedTicketsByWorkOrder, 
     getUnitsByWorkOrder,
     getSequencesByWorkOrder,
     getLaborDepartmentsByWorkOrder,

@@ -13,12 +13,20 @@ class TicketService {
         this.sseEmitter = new EventEmitter(); 
         logger.info("TicketService initialized");
     
-        // Define standard relations
+        // Standard relations for ACTIVE tickets
         this.relations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
             "sequence", "unit", "wo", "assignedTo", "files",
             "closures", "closures.closedBy"
+        ];
+
+        // Relations for ARCHIVED tickets
+        // Excludes 'files' and 'closures' which don't exist on the archive entity
+        this.archiveRelations = [
+            "status", "initiator", "division", 
+            "manNonCon", "laborDepartment", 
+            "sequence", "unit", "wo", "assignedTo"
         ];
     }
 
@@ -221,10 +229,11 @@ class TicketService {
         logger.info(`Ticket ${id} archived and deleted`);
         return { id: id, message: "Ticket archived successfully" };
     }
+
     async getAllArchivedTickets() {
         logger.info("Fetching all archived tickets");
         return await this.archivedRepository.find({
-            relations: this.relations
+            relations: this.archiveRelations 
         });
     }
 
@@ -232,7 +241,7 @@ class TicketService {
         logger.info(`Fetching archived ticket by ID: ${id}`);
         return await this.archivedRepository.findOne({
             where: { ticketId: parseInt(id) },
-            relations: this.relations
+            relations: this.archiveRelations 
         });
     }
 
@@ -294,6 +303,5 @@ class TicketService {
         return savedNote;
     }
 }
-
 
 module.exports = new TicketService();

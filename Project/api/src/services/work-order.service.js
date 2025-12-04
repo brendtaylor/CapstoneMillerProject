@@ -9,6 +9,7 @@ const unitLinkRepository = AppDataSource.getRepository("WorkOrderUnit");
 const sequenceLinkRepository = AppDataSource.getRepository("WorkOrderSequence");
 const departmentLinkRepository = AppDataSource.getRepository("WorkOrderLaborDepartment");
 const nonconformanceLinkRepository = AppDataSource.getRepository("WorkOrderNonconformance");
+const archivedTicketRepository = AppDataSource.getRepository("ArchivedTicket");
 
 class WorkOrderService {
 
@@ -26,12 +27,12 @@ class WorkOrderService {
 
         try {
             const query = workOrderRepository.createQueryBuilder("wo")
-                // 1. Inner Join to get only WOs that have tickets matching our status
+                // Inner Join to get only WOs that have tickets matching the provided status
                 .innerJoin("Ticket", "t", "t.wo = wo.woId") 
-                // 2. Filter tickets by the requested statuses
+                // Filter tickets by the requested statuses
                 .where("t.status IN (:...statuses)", { statuses });
 
-            // 3. Apply Search Filter if provided
+            // Apply Search Filter if provided
             if (searchTerm) {
                 query.andWhere("wo.wo LIKE :search", { search: `%${searchTerm}%` });
             }
@@ -47,6 +48,39 @@ class WorkOrderService {
             return summary;
         } catch (error) {
             logger.error(`Error in getWorkOrderSummary: ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Gets the summary of Work Orders that contain ARCHIVED tickets.
+     */
+    async getArchivedWorkOrderSummary(searchTerm = null) {
+        logger.info(`Fetching archived work order summary. Search: ${searchTerm || 'None'}`);
+
+        try {
+            // query 'WorkOrder' aliased as 'wo'
+            const query = workOrderRepository.createQueryBuilder("wo")
+                // Inner join with ArchivedTicket ('at') to only get WOs with archives
+                .innerJoin("ArchivedTicket", "at", "at.wo = wo.woId");
+
+            // Apply Search Filter if provided
+            if (searchTerm) {
+                query.andWhere("wo.wo LIKE :search", { search: `%${searchTerm}%` });
+            }
+
+            const summary = await query
+                .select("wo.woId", "wo_id") 
+                .addSelect("wo.wo", "wo_number") 
+                // Count the archived tickets
+                .addSelect("COUNT(at.ticketId)", "open_ticket_count") 
+                .groupBy("wo.woId, wo.wo")
+                .orderBy("wo.wo", "ASC")
+                .getRawMany(); 
+
+            return summary;
+        } catch (error) {
+            logger.error(`Error in getArchivedWorkOrderSummary: ${error.message}`);
             throw error;
         }
     }
@@ -88,7 +122,7 @@ class WorkOrderService {
     }
 
     /**
-     * Gets the *filtered* list of Units valid for a specific WO.
+     * Gets the filtered list of Units valid for a specific WO.
      */
     async getUnitsByWorkOrder(woId) {
         logger.info(`Fetching valid units for WO ID: ${woId}`);
@@ -100,7 +134,34 @@ class WorkOrderService {
     }
 
     /**
-     * Gets the *filtered* list of Sequences valid for a specific WO.
+     * Gets ARCHIVED tickets for a specific Work Order.
+     */
+    async getArchivedTicketsByWorkOrder(woId) {
+        logger.info(`Fetching archived tickets for WO ID: ${woId}`);
+
+        return await archivedTicketRepository.find({
+            where: { 
+                wo: { woId: parseInt(woId) }
+            },
+            relations: [
+                "status", 
+                "initiator", 
+                "division", 
+                "manNonCon",
+                "laborDepartment", 
+                "sequence", 
+                "unit", 
+                "wo", 
+                "assignedTo"
+            ],
+            order: {
+                openDate: "DESC" 
+            }
+        });
+    }
+
+    /**
+     * Gets the filtered list of Sequences valid for a specific WO.
      */
     async getSequencesByWorkOrder(woId) {
         logger.info(`Fetching valid sequences for WO ID: ${woId}`);
@@ -112,7 +173,7 @@ class WorkOrderService {
     }
 
     /**
-     * Gets the *filtered* list of Labor Departments valid for a specific WO.
+     * Gets the filtered list of Labor Departments valid for a specific WO.
      */
     async getLaborDepartmentsByWorkOrder(woId) {
         logger.info(`Fetching valid departments for WO ID: ${woId}`);
@@ -124,7 +185,7 @@ class WorkOrderService {
     }
 
     /**
-     * Gets the *filtered* list of Nonconformances valid for a specific WO.
+     * Gets the filtered list of Nonconformances valid for a specific WO.
      */
     async getNonconformancesByWorkOrder(woId) {
         logger.info(`Fetching valid nonconformances for WO ID: ${woId}`);
