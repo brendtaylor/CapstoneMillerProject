@@ -511,7 +511,7 @@ const TicketList: React.FC = () => {
     try {
       const response = await fetch(`http://localhost:3000/api/tickets/${ticketId}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(`Status: ${response.status}`);
-      toast({ title: "Success", description: `Ticket has been archived.` });
+      toast({ title: "Success", description: `Ticket has been deleted.` });
 
     // Use cache to lookup WO string
     const ticketList = ticketsCache[woId ?? -1];
@@ -807,10 +807,10 @@ const TicketList: React.FC = () => {
       {showArchiveConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
-                <h3 className="text-lg font-semibold mb-2">Archive Ticket</h3>
+                <h3 className="text-lg font-semibold mb-2">Delete Ticket?</h3>
                 <div className="flex justify-end space-x-3">
                     <button onClick={() => { setShowArchiveConfirm(false); setTicketToArchive(null); }} className="px-4 py-2 bg-gray-600 text-white rounded">Cancel</button>
-                    <button onClick={() => { if (ticketToArchive) { handleArchive(ticketToArchive.id, ticketToArchive.woId); setShowArchiveConfirm(false); setTicketToArchive(null); } }} className="px-4 py-2 bg-red-600 text-white rounded">Archive</button>
+                    <button onClick={() => { if (ticketToArchive) { handleArchive(ticketToArchive.id, ticketToArchive.woId); setShowArchiveConfirm(false); setTicketToArchive(null); } }} className="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
                 </div>
             </div>
         </div>
