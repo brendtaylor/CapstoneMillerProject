@@ -198,7 +198,7 @@ const ArchiveList: React.FC = () => {
                             {/* Description */}
                             <div className="lg:col-span-3 space-y-2">
                               <h4 className="text-sm font-bold text-gray-900">Description</h4>
-                              <div className="p-3 bg-gray-50 rounded border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap">
+                              <div className="p-3 bg-gray-50 rounded border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap break-words">
                                 {ticket.description || "No description provided."}
                               </div>
                             </div>

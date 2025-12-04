@@ -604,7 +604,7 @@ const TicketDetails: React.FC = () => {
               <b>Ticket ID:</b> {ticket.qualityTicketId || `#${ticket.ticketId}`}
             </p>
             <p><b>Status:</b> {ticket.status?.statusDescription}</p>
-            <p><b>Description:</b> {ticket.description}</p>
+            <p className="break-words"><b>Description:</b> {ticket.description}</p>
             <p><b>Work Order:</b> {ticket.wo?.wo}</p>
             <p><b>Division:</b> {ticket.division?.divisionName}</p>
             <p><b>Drawing #:</b> {ticket.drawingNum}</p>
