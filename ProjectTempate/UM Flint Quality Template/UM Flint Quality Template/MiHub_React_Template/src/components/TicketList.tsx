@@ -512,20 +512,27 @@ const TicketList: React.FC = () => {
       const response = await fetch(`http://localhost:3000/api/tickets/${ticketId}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(`Status: ${response.status}`);
       toast({ title: "Success", description: `Ticket has been deleted.` });
+      
+      // --- Immediate UI Update ---
+      if (woId) {
+        setTicketsCache(prev => ({
+          ...prev,
+          [woId]: prev[woId]?.filter(t => t.ticketId !== ticketId) || [],
+        }));
 
-    // Use cache to lookup WO string
-    const ticketList = ticketsCache[woId ?? -1];
-    const archivedTicket = ticketList?.find(t => t.ticketId === ticketId);
-    const woNum = archivedTicket?.wo?.wo;
+        // 2. Decrement the summary count for that WO
+        setDashboardData(prev => prev.map(summary => 
+          summary.wo_id === woId 
+            ? { ...summary, open_ticket_count: Math.max(0, summary.open_ticket_count - 1) }
+            : summary
+        ));
 
-    if (woNum) {
-      await logAudit(userId, "Archive", ticketId, parseInt(woNum, 10));
-    } else {
-      console.warn("Could not find woNumber for audit log");
-    }
-
-    const woNumber = archivedTicket?.wo?.wo; // human-friendly WO string
-      // SSE will handle updates
+        // 3. Log the audit action
+        const woNumber = dashboardData.find(wo => wo.wo_id === woId)?.wo_number;
+        if (woNumber) {
+          await logAudit(userId, "Archive", ticketId, parseInt(woNumber, 10));
+        }
+      }
     } catch (err: any) {
       toast({ variant: "destructive", title: "Archive Failed", description: err.message });
     }
