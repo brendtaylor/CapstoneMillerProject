@@ -404,7 +404,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
 
     return (
         <div className="space-y-6">
-            <p className="text-sm text-gray-500 italic">Fields marked with an asterisk (*) are required.</p>
+            <p className="text-sm text-gray-500 mb-6">Fields marked with <span className="text-red-500 font-bold">*</span> are required.</p>
 
             {/* 1. Division Dropdown (Global) */}
             <div>
@@ -618,7 +618,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             {/* Confirm Modal */}
             {showSubmitConfirm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold mb-2">Ready to submit?</h3>
                         <p className="text-sm text-gray-700 mb-4">Are you sure you want to submit this ticket? You can cancel to continue editing.</p>
                         <div className="flex justify-end space-x-3">
@@ -632,7 +632,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             {/* Post-Create Modal */}
             {showPostCreate && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
                         <h3 className="text-lg font-semibold mb-2">Ticket Created</h3>
                         <p className="text-sm text-gray-700 mb-4">Ticket {createdTicketId} has been created successfully. What would you like to do next?</p>
                         <div className="flex justify-end space-x-3">

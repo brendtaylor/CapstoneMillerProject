@@ -110,7 +110,7 @@ const Quality: React.FC = () => {
           
           {/* Create Form Overlay */}
           {showForm && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 sm:px-0" onClick={() => setShowForm(false)}>
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 sm:px-0">
               <div className="bg-white p-4 sm:p-6 rounded shadow-lg w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
                 <button onClick={() => setShowForm(false)} className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center bg-red-600 text-white text-2xl font-bold rounded-lg hover:bg-red-700">✕</button>
                 <CardTitle>File Form</CardTitle>
