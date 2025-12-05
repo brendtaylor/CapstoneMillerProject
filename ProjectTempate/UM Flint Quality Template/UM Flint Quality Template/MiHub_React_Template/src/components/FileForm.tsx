@@ -3,8 +3,9 @@ import { useAuth } from './AuthContext';
 import { useToast } from '../hooks/use-toast';
 import { useDebounce } from '../hooks/use-debounce';
 import { logAudit } from './utils/auditLogger';
-import { validateFileCount, uploadFile } from "./utils/fileHelper";
-import { FileText, FileImage, FileArchive, FileSpreadsheet, FileType, File, } from "lucide-react";
+import { getFileIcon } from "./utils/fileHelper";
+import { useFileHelper } from "../hooks/useFileHelper";
+
 import {
     Division,
     WorkOrder,
@@ -13,21 +14,7 @@ import {
     Nonconformance,
     LaborDepartment
 } from '../types';
- 
 
-const getFileIcon = (previewType: SavedFile["previewType"]) => {
-  switch (previewType) {
-    case "image": return FileImage;
-    case "pdf": return FileText;
-    case "doc": return FileType;
-    case "excel": return FileSpreadsheet;
-    case "txt": return FileText;
-    case "zip": return FileArchive;
-    default: return File;
-  }
-};
-
-// --- Interfaces ---
 
 interface SavedFile {
     name: string;
@@ -59,7 +46,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     const [seqID, setseqID] = useState('');
     const [drawingNum, setDrawingNum] = useState(''); // Changed to string input
     const [description, setDescription] = useState('');
-    const [files, setfiles] = useState<SavedFile[]>([]); //Files
+    //const [files, setfiles] = useState<SavedFile[]>([]); //Files
 
     // --- Search State (Only for Global/Large lists) ---
     const [divisionSearch, setDivisionSearch] = useState('');
@@ -196,78 +183,11 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         fetchFilteredData();
     }, [workOrderId]);
 
-
-    // --- Handlers ---
-
     const MAX_FILES = 10;
+   
+    
+     const { files, setFiles, handleFileUpload } = useFileHelper();
 
-    const handleFileUpload = (fileArray: File[]) => {
-        // Enforce max file limit
-        if (files.length + fileArray.length > MAX_FILES) {
-            toast({
-            title: "Upload Limit Reached",
-            description: `You can only upload up to ${MAX_FILES} files.`,
-            variant: "destructive",
-            });
-            return;
-        }
-
-        fileArray.forEach((file) => {
-            // Block video files
-            if (file.type.startsWith("video/")) {
-            toast({
-                title: "Unsupported File Type",
-                description: "Video files are not allowed.",
-                variant: "destructive",
-            });
-            return; // skip this file
-            }
-
-            const reader = new FileReader();
-            reader.onloadend = () => {
-        let previewType: SavedFile["previewType"] = "other";
-        let color = "text-gray-500";
-
-        if (file.type.startsWith("image/")) {
-            previewType = "image";
-        } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-            previewType = "pdf";
-            color = "text-red-500"; 
-        } else if (file.type.includes("word") || file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
-            previewType = "doc";
-            color = "text-blue-500"; 
-        } else if (
-            file.type.includes("excel") ||
-            file.type.includes("spreadsheet") ||
-            file.name.endsWith(".xlsx") ||
-            file.name.endsWith(".xls")
-        ) {
-            previewType = "excel";
-            color = "text-green-500";
-        } else if (file.name.endsWith(".txt")) {
-            previewType = "txt";
-            color = "text-blue-400"; 
-        } else if (file.type.includes("zip") || file.name.endsWith(".zip") || file.name.endsWith(".rar")) {
-            previewType = "zip";
-            color = "text-yellow-600"; 
-        }
-
-            setfiles((prev) => [
-                ...prev,
-                {
-                name: file.name,
-                data: reader.result as string,
-                isFile: true,
-                file,
-                uploaded: false,
-                previewType,
-                color,
-                } as SavedFile,
-            ]);
-            };
-        reader.readAsDataURL(file);
-        });
-    };
 
     const handleSave = async () => {
         // --- Validation ---
@@ -343,9 +263,9 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     throw new Error(`Unexpected response: ${text}`);
                 }
 
-                //toast({ title: "File Uploaded", description: `${f.name} uploaded.` });
+                
 
-                setfiles(prev =>
+                setFiles(prev =>
                 prev.map(file =>
                     file.name === f.name ? { ...file, uploaded: true } : file
                 )
@@ -384,7 +304,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         setseqID('');
         setDrawingNum('');
         setDescription('');
-        setfiles([]);
+        setFiles([]);
         
         setDivisionSearch('');
         setWorkOrderSearch('');
@@ -593,7 +513,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                                 )}
                     <span className="flex-1 truncate">{f.name}</span>
                                 <button
-                                    onClick={() => setfiles(prev => prev.filter((_, index) => index !== i))}
+                                    onClick={() => setFiles(prev => prev.filter((_, index) => index !== i))}
                                     className="text-red-500 hover:text-red-700"
                                 >
                                     Remove

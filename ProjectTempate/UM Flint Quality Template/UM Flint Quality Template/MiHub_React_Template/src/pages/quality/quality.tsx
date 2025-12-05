@@ -76,7 +76,7 @@ const Quality: React.FC = () => {
             <h2 className="text-lg font-semibold">Quality</h2>
           </div>
           <div className="border w-full mb-4"></div>
-          <TabsList className="flex flex-col gap-2 bg-transparent">
+          <TabsList className="flex flex-col mt-10 gap-2 bg-transparent">
             <TabsTrigger value="tickets" className="w-full justify-start data-[state=active]:bg-background mt-14">Tickets</TabsTrigger>
             <TabsTrigger value="checklist" className="w-full justify-start data-[state=active]:bg-background">Checklist</TabsTrigger>
             <TabsTrigger value="auditlog" className="w-full justify-start data-[state=active]:bg-background">Audit Log</TabsTrigger>

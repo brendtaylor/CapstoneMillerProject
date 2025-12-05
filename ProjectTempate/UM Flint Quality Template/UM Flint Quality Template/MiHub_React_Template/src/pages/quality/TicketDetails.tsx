@@ -21,6 +21,7 @@ import type {
 import FileDownload from "../../components/FileDownload";
 import { logAudit } from "../../components/utils/auditLogger";
 import { useDebounce } from "../../hooks/use-debounce";
+import UploadModal from "../../components/UploadModal";
 
 interface Note {
   noteId: number;
@@ -32,12 +33,16 @@ interface Note {
   };
 }
 
+
+
 const TicketDetails: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { userId, userRole } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  
 
   // Detect Archive Mode based on URL path
   const isArchived = location.pathname.includes("/archived/");
@@ -640,8 +645,22 @@ const TicketDetails: React.FC = () => {
         
         {/* Files - Always Visible (assuming download is read-only) */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Uploaded Files</CardTitle>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Upload File
+            </button>
+
+            {/* Upload Modal */}
+            <UploadModal
+              show={showUploadModal}
+              onClose={() => setShowUploadModal(false)}
+              ticketId={ticket.ticketId} 
+              workOrderSearch={ticket?.wo?.wo}
+            />
           </CardHeader>
 
           <CardContent>
