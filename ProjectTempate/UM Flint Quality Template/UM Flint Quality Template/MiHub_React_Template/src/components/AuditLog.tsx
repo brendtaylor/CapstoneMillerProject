@@ -49,6 +49,14 @@ const AuditLog: React.FC = () => {
     }
   }
 
+  function formatTicketId(ticketId: number): string {
+    // Make it Positive
+    const positiveValue = Math.abs(999-ticketId);
+
+    // Pad to 3 digits
+    return positiveValue.toString().padStart(3, "0");
+  }
+
 
   const handleSearch = async (term: string) => {
     setLoading(true);
@@ -126,8 +134,8 @@ const AuditLog: React.FC = () => {
               <th className="border px-4 py-2">Log ID</th>
               <th className="border px-4 py-2">User ID</th>
               <th className="border px-4 py-2">User Role</th>
-              <th className="border px-4 py-2">Ticket ID</th>
               <th className="border px-4 py-2">Work Order ID</th>
+              <th className="border px-4 py-2">Ticket ID</th>
               <th className="border px-4 py-2">Action</th>
               <th className="border px-4 py-2">Timestamp</th>
             </tr>
@@ -138,8 +146,8 @@ const AuditLog: React.FC = () => {
                 <td className="border px-4 py-2">{log.logId}</td>
                 <td className="border px-4 py-2">{log.userId ?? "—"}</td>
                 <td className="border px-4 py-2">{getRoleName(log.userRole)}</td>
-                <td className="border px-4 py-2">{log.ticketId ?? "—"}</td>
                 <td className="border px-4 py-2">{log.woId ?? "—"}</td>
+                <td className="border px-4 py-2">{log.ticketId != null ? formatTicketId(log.ticketId) : "—"}</td>
                 <td className="border px-4 py-2">{log.action || "—"}</td>
                 <td className="border px-4 py-2">
                   {log.timestamp && !isNaN(Date.parse(log.timestamp))
