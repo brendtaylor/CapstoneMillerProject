@@ -1,14 +1,10 @@
+// ProjectTempate/UM Flint Quality Template/UM Flint Quality Template/MiHub_React_Template/src/components/FileDownload.tsx
 import React, { useEffect, useState } from "react";
+import { api } from "../api"; // Import your Axios instance
 import {
-  FileText,
-  FileImage,
-  FileArchive,
-  FileSpreadsheet,
-  FileType,
-  File,
+  FileText, FileImage, FileArchive, FileSpreadsheet, FileType, File,
 } from "lucide-react";
-import FilePreviewModal from "./FilePreviewModal";
-import type { PreviewType } from "./FilePreviewModal";
+import FilePreviewModal, { PreviewType } from "./FilePreviewModal";
 
 interface FileMeta {
   fileKey: string;
@@ -17,9 +13,7 @@ interface FileMeta {
   size: number;
 }
 
-interface FileDownloadProps {
-  ticketId: number;
-}
+interface FileDownloadProps { ticketId: number; }
 
 const FileDownload: React.FC<FileDownloadProps> = ({ ticketId }) => {
     const [files, setFiles] = useState<FileMeta[]>([]);
@@ -35,10 +29,9 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId }) => {
     const fetchFiles = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:3000/api/files/ticket/${ticketId}`);
-            if (!res.ok) throw new Error("Failed to fetch files");
-                const data = await res.json();
-                setFiles(data);
+            // Retrieve file metadata list
+            const response = await api.get<FileMeta[]>(`/files/ticket/${ticketId}`);
+            setFiles(response.data);
             } catch (err) {
                 console.error("Error fetching files:", err);
             } finally {
@@ -49,18 +42,21 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId }) => {
     }, [ticketId]);
 
     const handleDownload = async (fileKey: string, fileName: string) => {
-        const res = await fetch(`http://localhost:3000/api/files/${fileKey}`);
-        if (!res.ok) {
-            console.error("Download failed");
-            return;
+        try {
+            const response = await api.get(`/files/${fileKey}`, { responseType: 'blob' });
+            
+            // [FIX] Cast response.data as Blob to satisfy TypeScript
+            const blob = response.data as Blob;
+            
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Download failed", error);
         }
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        window.URL.revokeObjectURL(url);
     };
 
     const extractFileName = (fileKey: string) => {
@@ -71,55 +67,28 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId }) => {
     const inferPreviewType = (file: FileMeta, blob?: Blob | null): PreviewType => {
         const name = extractFileName(file.fileKey).toLowerCase();
         const type = blob?.type || file.mimeType?.toLowerCase() || "";
-
         if (type.startsWith("image/")) return "image";
         if (type === "application/pdf" || name.endsWith(".pdf")) return "pdf";
-        if (
-            type.includes("excel") ||
-            type.includes("spreadsheet") ||
-            name.endsWith(".xlsx") ||
-            name.endsWith(".xls")
-        ) return "excel";
-        if (
-            type.includes("word") ||
-            name.endsWith(".docx") ||
-            name.endsWith(".doc")
-        ) return "word";
+        if (type.includes("excel") || type.includes("spreadsheet") || name.endsWith(".xlsx") || name.endsWith(".xls")) return "excel";
+        if (type.includes("word") || name.endsWith(".docx") || name.endsWith(".doc")) return "word";
         return "other";
     };
 
     const getFileIcon = (file: FileMeta) => {
-    const name = extractFileName(file.fileKey).toLowerCase();
-    const type = file.mimeType?.toLowerCase() || "";
-
-    if (type.startsWith("image/")) {
-        return { Icon: FileImage, color: "text-gray-500" };
-    }
-    if (type === "application/pdf" || name.endsWith(".pdf")) {
-        return { Icon: FileText, color: "text-red-500" };
-    }
-    if (type.includes("word") || name.endsWith(".docx") || name.endsWith(".doc")) {
-        return { Icon: FileType, color: "text-blue-500" };
-    }
-    if (
-        type.includes("excel") ||
-        type.includes("spreadsheet") ||
-        name.endsWith(".xlsx") ||
-        name.endsWith(".xls")
-    ) {
-        return { Icon: FileSpreadsheet, color: "text-green-500" };
-    }
-    if (name.endsWith(".txt") || type === "text/plain") {
-        return { Icon: FileText, color: "text-blue-400" };
-    }
-    if (type.includes("zip") || name.endsWith(".zip") || name.endsWith(".rar")) {
-        return { Icon: FileArchive, color: "text-yellow-600" };
-    }
-    //if (type === "text/javascript" || name.endsWith(".js")) {
-    //  return { Icon: FileType, color: "text-purple-500" };
-    //}
-
-    return { Icon: File, color: "text-gray-500" };
+        const name = extractFileName(file.fileKey).toLowerCase();
+        const type = file.mimeType?.toLowerCase() || "";
+        if (type.startsWith("image/")) return { Icon: FileImage, color: "text-gray-500" };
+        if (type === "application/pdf" || name.endsWith(".pdf")) return { Icon: FileText, color: "text-red-500" };
+        if (type.includes("word") || name.endsWith(".docx") || name.endsWith(".doc")) return { Icon: FileType, color: "text-blue-500" };
+        if (type.includes("excel") || type.includes("spreadsheet") || name.endsWith(".xlsx") || name.endsWith(".xls")) return { Icon: FileSpreadsheet, color: "text-green-500" };
+        if (name.endsWith(".txt") || type === "text/plain") return { Icon: FileText, color: "text-blue-400" };
+        if (type.includes("zip") || name.endsWith(".zip") || name.endsWith(".rar")) return { Icon: FileArchive, color: "text-yellow-600" };
+        return { Icon: File, color: "text-gray-500" };
+    };
+    const formatSize = (bytes: number) => {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
     const handlePreview = async (file: FileMeta) => {
@@ -129,9 +98,11 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId }) => {
         setPreviewBlob(null);
         setPreviewUrl(null);
         try {
-            const res = await fetch(`http://localhost:3000/api/files/${file.fileKey}`);
-            if (!res.ok) throw new Error("Failed to fetch file for preview");
-            const blob = await res.blob();
+            const response = await api.get(`/files/${file.fileKey}`, { responseType: 'blob' });
+            
+            // [FIX] Cast response.data as Blob
+            const blob = response.data as Blob;
+            
             const url = URL.createObjectURL(blob);
             setPreviewBlob(blob);
             setPreviewUrl(url);
@@ -151,18 +122,8 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId }) => {
         setPreviewError(null);
     };
 
-
-
-
-    const formatSize = (bytes: number) => {
-        if (bytes < 1024) return `${bytes} B`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    };
-
     if (loading) return <p>Loading files...</p>;
 
-    
   return (
     <div className="mt-4">
       {files.length === 0 ? (
@@ -172,10 +133,7 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId }) => {
           {files.map((f) => {
             const { Icon, color } = getFileIcon(f);
             return (
-              <li
-                key={f.fileKey}
-                className="flex items-center justify-between bg-gray-100 p-3 rounded shadow-sm"
-              >
+              <li key={f.fileKey} className="flex items-center justify-between bg-gray-100 p-3 rounded shadow-sm">
                 <div className="flex items-center space-x-3">
                   <Icon className={`w-6 h-6 ${color}`} />
                   <div>
@@ -183,17 +141,10 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId }) => {
                     <span className="text-xs text-gray-500">{formatSize(f.size)}</span>
                   </div>
                 </div>
-                
                 <div className="flex items-center gap-3">
-                    <button 
-                        onClick={() => handlePreview(f)} 
-                        className="text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                        Preview
-                    </button>
+                    <button onClick={() => handlePreview(f)} className="text-blue-600 hover:text-blue-800 font-medium">Preview</button>
                     <button onClick={() => handleDownload(f.fileKey, extractFileName(f.fileKey))} className="text-blue-600 hover:text-blue-800 font-medium">Download</button>
                 </div>
-
               </li>
             );
           })}

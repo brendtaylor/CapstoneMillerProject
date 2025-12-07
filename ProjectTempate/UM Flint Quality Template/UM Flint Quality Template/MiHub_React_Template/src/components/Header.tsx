@@ -1,4 +1,4 @@
-// ProjectTempate/.../src/components/Header.tsx (Updated)
+// ProjectTempate/.../src/components/Header.tsx
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthContext";
@@ -8,13 +8,11 @@ import {
   NavigationMenu,
   NavigationMenuList,
   NavigationMenuItem,
-  NavigationMenuLink,
 } from "../components/ui/navigation-menu";
 import {
   Sheet,
   SheetTrigger,
   SheetContent,
-  SheetClose,
   SheetTitle,
   SheetDescription,
   SheetHeader,
@@ -31,7 +29,6 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Button } from "../components/ui/button"; 
 
-// --- 1. DEFINED TEST USERS (Simulated Database Data) ---
 const DEV_USERS = [
     { id: 1001, name: "NROACH", role: "Admin" },
     { id: 1002, name: "CPORRETT", role: "Editor" },
@@ -40,7 +37,6 @@ const DEV_USERS = [
 
 const Header: React.FC = () => {
   const [profileOpen, setProfileOpen] = useState(false);
-  // --- UPDATED: loginAs now expects userId ---
   const { username, displayName, userRole, userId, loginAs } = useAuth(); 
   const navigate = useNavigate();
   const location = useLocation();
@@ -67,7 +63,6 @@ const Header: React.FC = () => {
     };
   }, []);
   
-  // --- 2. UPDATED ROLE SWITCHER COMPONENT ---
   const RoleSwitcher = () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -86,7 +81,6 @@ const Header: React.FC = () => {
           <DropdownMenuItem
             key={user.id}
             className={`flex items-center w-full text-left text-sm px-3 py-2 rounded cursor-pointer ${userId === user.id ? 'bg-blue-100 font-bold' : 'hover:bg-gray-100'}`}
-            // --- CALLS loginAs with the User ID ---
             onSelect={() => loginAs(user.id)} 
             disabled={userId === user.id}
           >
@@ -96,7 +90,6 @@ const Header: React.FC = () => {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-  // --- END UPDATED ROLE SWITCHER COMPONENT ---
 
   return (
     <header className="bg-gray-800 p-4 min-h-[75px] max-h-[75px]">
@@ -132,12 +125,10 @@ const Header: React.FC = () => {
                   </SheetTrigger>
                 ))}
               </div>
-              {/* --- MOBILE ROLE SWITCHER --- */}
               <div className="py-4">
                   <h4 className="text-md font-semibold mb-2">Developer Tools</h4>
                   <RoleSwitcher />
               </div>
-              {/* --- END MOBILE ROLE SWITCHER --- */}
 
               {username && (
                 <DropdownMenu>
@@ -156,7 +147,6 @@ const Header: React.FC = () => {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="flex items-center justify-between w-full text-left text-sm px-3 py-2 rounded hover:bg-gray-100 cursor-pointer"
-                      // onClick={() => logout(navigate)}
                     >
                       Logout <LogOut />
                     </DropdownMenuItem>
@@ -166,7 +156,6 @@ const Header: React.FC = () => {
             </SheetContent>
           </Sheet>
         ) : (
-          // Desktop Navigation Menu
           <NavigationMenu>
             <NavigationMenuList className="flex space-x-4">
               {navItems.map((item) => (
@@ -181,11 +170,9 @@ const Header: React.FC = () => {
                 </NavigationMenuItem>
               ))}
               
-              {/* --- DESKTOP ROLE SWITCHER --- */}
               <NavigationMenuItem>
                 <RoleSwitcher />
               </NavigationMenuItem>
-              {/* --- END DESKTOP ROLE SWITCHER --- */}
 
               {username && (
                 <DropdownMenu>
@@ -198,7 +185,8 @@ const Header: React.FC = () => {
                     <div className="px-2 py-1">
                       <h4 className="text-lg font-semibold">{displayName || ""}</h4>
                       <h5 className="text-sm text-gray-700 font-semibold">
-                        {userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : ""}
+                         {/* [FIX] Ensure userRole is treated as a string to prevent crashes */}
+                        {userRole ? String(userRole).charAt(0).toUpperCase() + String(userRole).slice(1) : ""}
                       </h5>
                       <h6 className="text-sm text-gray-500 mt-1">{username+"@millc.com" || ""}</h6>
                     </div>
@@ -214,7 +202,6 @@ const Header: React.FC = () => {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="flex items-center justify-between w-full text-left text-sm px-3 py-2 rounded hover:bg-gray-100 cursor-pointer"
-                      // onClick={() => logout(navigate)}
                     >
                       Logout <LogOut />
                     </DropdownMenuItem>

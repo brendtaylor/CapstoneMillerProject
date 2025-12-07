@@ -11,8 +11,8 @@ import { Input } from "../../components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useDebounce } from "../../hooks/use-debounce";
 import { Ticket, WorkOrderSummary } from "../../types";
+import { api } from "../../api"; // [FIX] Import Axios Instance
 
-// Helper for display rows
 const DetailRow = ({ label, value }: { label: string; value?: string | number | null }) => (
   <div className="flex flex-col sm:flex-row sm:justify-between border-b border-gray-100 pb-1 mb-1 last:border-0">
     <span className="text-gray-500 text-xs uppercase tracking-wider font-semibold">{label}</span>
@@ -32,7 +32,6 @@ const getStatusBadgeStyle = (statusId?: number): string => {
 const ArchiveList: React.FC = () => {
   const navigate = useNavigate();
   
-  // Data State
   const [summaries, setSummaries] = useState<WorkOrderSummary[]>([]);
   const [searchResults, setSearchResults] = useState<WorkOrderSummary[] | null>(null);
   const [ticketsCache, setTicketsCache] = useState<Record<number, Ticket[]>>({});
@@ -40,32 +39,27 @@ const ArchiveList: React.FC = () => {
   const [loadingSummaries, setLoadingSummaries] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Search State
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // UI State
   const [openWorkOrders, setOpenWorkOrders] = useState<string[]>([]);
   const [openTickets, setOpenTickets] = useState<Record<string, string>>({});
 
-  // Fetch Archived Work Order Summaries
   useEffect(() => {
     const fetchSummaries = async () => {
       setLoadingSummaries(true);
       try {
         const url = debouncedSearchTerm 
-          ? `http://localhost:3000/api/work-orders/archived-summary?search=${debouncedSearchTerm}`
-          : `http://localhost:3000/api/work-orders/archived-summary`;
+          ? `/work-orders/archived-summary?search=${debouncedSearchTerm}`
+          : `/work-orders/archived-summary`;
 
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Failed to fetch archive summary");
-        
-        const data: WorkOrderSummary[] = await response.json();
+        // [FIX] Use api.get to send auth token
+        const response = await api.get<WorkOrderSummary[]>(url);
         
         if (debouncedSearchTerm) {
-            setSearchResults(data);
+            setSearchResults(response.data);
         } else {
-            setSummaries(data);
+            setSummaries(response.data);
             setSearchResults(null);
         }
       } catch (err) {
@@ -79,16 +73,14 @@ const ArchiveList: React.FC = () => {
     fetchSummaries();
   }, [debouncedSearchTerm]);
 
-  // Lazy Load Archived Tickets for a WO
   const fetchTicketsForWO = async (woId: number) => {
     if (ticketsCache[woId]) return;
 
     setLoadingWOs(prev => ({ ...prev, [woId]: true }));
     try {
-        const response = await fetch(`http://localhost:3000/api/work-orders/${woId}/archived-tickets`);
-        if (!response.ok) throw new Error("Failed to fetch tickets");
-        const data: Ticket[] = await response.json();
-        setTicketsCache(prev => ({ ...prev, [woId]: data }));
+        // [FIX] Use api.get to send auth token
+        const response = await api.get<Ticket[]>(`/work-orders/${woId}/archived-tickets`);
+        setTicketsCache(prev => ({ ...prev, [woId]: response.data }));
     } catch (err) {
         console.error(err);
     } finally {
@@ -107,7 +99,6 @@ const ArchiveList: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-800">Archived Tickets</h1>
       </div>
 
-      {/* Search Bar */}
       <div className="mb-6">
         <Input
           type="text"
@@ -118,7 +109,6 @@ const ArchiveList: React.FC = () => {
         />
       </div>
 
-      {/* Ticket List */}
       <div className="space-y-4">
         {displayedData.length === 0 ? (
           <div className="text-center p-8 text-gray-500 bg-white rounded shadow-sm">
@@ -195,7 +185,6 @@ const ArchiveList: React.FC = () => {
                           </div>
 
                           <div className="space-y-6">
-                            {/* Description */}
                             <div className="lg:col-span-3 space-y-2">
                               <h4 className="text-sm font-bold text-gray-900">Description</h4>
                               <div className="p-3 bg-gray-50 rounded border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap break-words">
@@ -203,7 +192,6 @@ const ArchiveList: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Classification Grids */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                               <div className="bg-gray-50 p-3 rounded border border-gray-100">
                                 <div className="space-y-3">
@@ -224,24 +212,20 @@ const ArchiveList: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* check for correctiveAction or materialsUsed to verify if closing data exists */}
                             {(ticket.correctiveAction || ticket.materialsUsed) && (
                                 <div className="bg-blue-50 p-3 rounded border border-blue-100 relative">
                                     <h4 className="text-sm font-bold text-blue-900 border-b border-blue-200 pb-1 mb-2">
                                         Resolution
                                     </h4>
-                                    
                                     {ticket.closeDate && (
                                         <div className="absolute top-3 right-3 text-xs text-blue-600 font-medium bg-blue-100 px-2 py-0.5 rounded-full">
                                             Closed: {new Date(ticket.closeDate).toLocaleDateString()}
                                         </div>
                                     )}
-
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 mb-4 mt-2">
                                         <DetailRow label="Est. Hours Lost" value={ticket.estimatedLaborHours?.toString()} />
                                         <DetailRow label="Materials Used" value={ticket.materialsUsed} />
                                     </div>
-                                    
                                     <div className="pt-3 border-t border-blue-200">
                                         <span className="text-blue-900 text-xs uppercase tracking-wider font-semibold block mb-1">Corrective Action</span>
                                         <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{ticket.correctiveAction || "N/A"}</p>

@@ -14,6 +14,7 @@ import { useDebounce } from '../hooks/use-debounce';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useNavigate } from "react-router-dom";
 import { logAudit } from "./utils/auditLogger";
+import { api } from "../api"; 
 
 import { 
   Ticket, 
@@ -25,8 +26,6 @@ import {
   Nonconformance,
   WorkOrderSummary
 } from "../types"; 
-import { workerData } from "worker_threads";
-
 
 // --- HELPERS ---
 
@@ -46,76 +45,52 @@ const getStatusBadgeStyle = (statusId?: number): string => {
   }
 };
 
-const ticketMatchesTag = (ticket: Ticket, tag: string): boolean => {
-  const t = tag.toLowerCase();
-
-  return (
-    ticket.ticketId?.toString().includes(t) ||
-    ticket.qualityTicketId?.toLowerCase().includes(t) ||
-    ticket.wo?.wo?.toLowerCase().includes(t) ||
-    ticket.division?.divisionName?.toLowerCase().includes(t) ||
-    ticket.laborDepartment?.departmentName?.toLowerCase().includes(t) ||
-    ticket.sequence?.seqName?.toLowerCase().includes(t) ||
-    ticket.unit?.unitName?.toLowerCase().includes(t) ||
-    ticket.manNonCon?.nonCon?.toLowerCase().includes(t) ||
-    ticket.drawingNum?.toLowerCase().includes(t) ||
-    ticket.description?.toLowerCase().includes(t) ||
-    ticket.initiator?.name?.toLowerCase().includes(t)
-  );
-};
-
-
 const TicketList: React.FC = () => {
   // --- STATE MANAGEMENT ---
   
-  // 1. Data Sources
-  const [dashboardData, setDashboardData] = useState<WorkOrderSummary[]>([]); // The full list with counts
-  const [searchResults, setSearchResults] = useState<WorkOrderSummary[] | null>(null); // The filtered list from search
+  const [dashboardData, setDashboardData] = useState<WorkOrderSummary[]>([]); 
+  const [searchResults, setSearchResults] = useState<WorkOrderSummary[] | null>(null); 
   
-  // 2. Ticket Cache: Key = WorkOrder ID, Value = Array of Tickets
   const [ticketsCache, setTicketsCache] = useState<Record<number, Ticket[]>>({});
   
-  // Ref to track which WOs are cached (for SSE to know what to refresh without breaking closures)
   const ticketsCacheRef = useRef<Set<number>>(new Set());
 
-  // Update ref whenever cache changes
   useEffect(() => {
     ticketsCacheRef.current = new Set(Object.keys(ticketsCache).map(Number));
   }, [ticketsCache]);
   
-  // 3. Loading States
   const [loadingSummaries, setLoadingSummaries] = useState<boolean>(true);
   const [loadingWOs, setLoadingWOs] = useState<Record<number, boolean>>({}); 
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 4. UI State
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms delay
-  // State to control open accordions
+  const debouncedSearchTerm = useDebounce(searchTerm, 500); 
   const [openWorkOrders, setOpenWorkOrders] = useState<string[]>([]);
-  const [openTickets, setOpenTickets] = useState<Record<string, string>>({}); // { [wo_number]: ticketId }
+  const [openTickets, setOpenTickets] = useState<Record<string, string>>({}); 
   
   const { userRole, userId } = useAuth();
-  const [searchResult, setSearchResult] = useState<Ticket[] | null>(null);
-  const [searchTags, setSearchTags] = useState<string[]>([]);
+  
+  const hasRole = (targetRole: string) => {
+    return String(userRole || "").toLowerCase() === targetRole.toLowerCase();
+  };
 
-  const [statusFilter, setStatusFilter] = useState<string>('0,1');//::::
-  // Load saved status filter
+  const [statusFilter, setStatusFilter] = useState<string>('0,1');
+
   useEffect(() => {
     const saved = localStorage.getItem("ticketStatusFilter");
     if (saved) setStatusFilter(saved);
   }, []);
+
   useEffect(() => {
-  localStorage.setItem("ticketStatusFilter", statusFilter);
+    localStorage.setItem("ticketStatusFilter", statusFilter);
   }, [statusFilter]);
   
   useEffect(() => {
-  // Close all accordions
-  setOpenWorkOrders([]);
-  setOpenTickets({});
+    setOpenWorkOrders([]);
+    setOpenTickets({});
   }, [statusFilter]);
-  //attempting to make the ticket status easier to call
+
   const statusFilterRef = useRef(statusFilter);
 
   useEffect(() => {
@@ -123,27 +98,25 @@ const TicketList: React.FC = () => {
   }, [statusFilter]);
 
   const buildUrl = (path: string, params: Record<string, any> = {}) => {
-  const url = new URL(`http://localhost:3000${path}`);
-  
-  if (statusFilterRef.current) {
-    url.searchParams.set("status", statusFilterRef.current);
-  }
-
-  Object.entries(params).forEach(([key, val]) => {
-    if (val !== undefined && val !== null) {
-      url.searchParams.set(key, String(val));
+    const url = new URL(`http://localhost:3000${path}`);
+    
+    if (statusFilterRef.current) {
+      url.searchParams.set("status", statusFilterRef.current);
     }
-  });
 
-  return url.toString();
-};
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null) {
+        url.searchParams.set(key, String(val));
+      }
+    });
 
+    return url.pathname + url.search;
+  };
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
-  // Track scroll & Mobile View
   const [lastScrollPosition, setLastScrollPosition] = useState<number | null>(null);
   const [mobileDetailTicket, setMobileDetailTicket] = useState<Ticket | null>(null);
   const openMobileTicketDetail = (ticket: Ticket) => setMobileDetailTicket(ticket);
@@ -164,8 +137,7 @@ const TicketList: React.FC = () => {
           View Details
         </Button>
 
-        {/* Admin: Delete */}
-        {userRole?.toLowerCase() === 'admin' && (
+        {hasRole('admin') && (
           <>
             <Button
               variant="destructive"
@@ -180,11 +152,10 @@ const TicketList: React.FC = () => {
           </>
         )}
 
-        {/* Editor: close ticket only */}
-        {userRole?.toLowerCase() === 'editor' && (
+        {hasRole('editor') && (
           <Button
               variant="destructive"
-              onClick={() => navigate('/tickets/${ticket.ticketId}?close=true')}
+              onClick={() => navigate(`/tickets/${ticket.ticketId}?close=true`)}
               className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
             >
               Close Ticket
@@ -193,7 +164,6 @@ const TicketList: React.FC = () => {
       </div>
 
       <div className="space-y-6">
-        {/* --- Description --- */}
         <div className="lg:col-span-3 space-y-2">
           <h4 className="text-sm font-bold text-gray-900">Description</h4>
           <div className="p-3 bg-gray-50 rounded border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap break-words">
@@ -208,7 +178,6 @@ const TicketList: React.FC = () => {
           </div>
         </div>
 
-        {/* --- Context & Classification --- */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-gray-50 p-3 rounded border border-gray-100">
             <div className="space-y-3">
@@ -229,19 +198,17 @@ const TicketList: React.FC = () => {
           </div>
         </div>
 
-        {/* --- Resolution (Cleaned: No Legacy Fallback) --- */}
         {ticket.closures && ticket.closures.length > 0 && (
             <div className="space-y-4">
                {ticket.closures
-                 .slice() // Copy before sorting
-                 .sort((a, b) => new Date(b.cycleCloseDate).getTime() - new Date(a.cycleCloseDate).getTime()) // Newest first
+                 .slice() 
+                 .sort((a, b) => new Date(b.cycleCloseDate).getTime() - new Date(a.cycleCloseDate).getTime()) 
                  .map((closure, idx) => (
                   <div key={closure.id || idx} className="bg-blue-50 p-3 rounded border border-blue-100 relative">
                     <h4 className="text-sm font-bold text-blue-900 border-b border-blue-200 pb-1 mb-2">
                         Resolution Cycle {ticket.closures && ticket.closures.length > 1 ? `#${ticket.closures.length - idx}` : ''}
                     </h4>
                     
-                    {/* Date Badge */}
                     <div className="absolute top-3 right-3 text-xs text-blue-600 font-medium bg-blue-100 px-2 py-0.5 rounded-full">
                          {closure.cycleStartDate ? `${new Date(closure.cycleStartDate).toLocaleDateString()} — ` : ''}
                          {new Date(closure.cycleCloseDate).toLocaleDateString()}
@@ -265,7 +232,6 @@ const TicketList: React.FC = () => {
     </>
   );
   
-  // Archive/Edit Modal States
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [ticketToArchive, setTicketToArchive] = useState<{id: number, woId?: number} | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -298,22 +264,13 @@ const TicketList: React.FC = () => {
 
   // --- API HANDLERS ---
 
-  // 1. Initial Load: Get Summary (with counts)
   const fetchWOSummaries = async () => {
     if (dashboardData.length === 0) setLoadingSummaries(true);
     
     try {
-      const token = localStorage.getItem('token'); // <--- Get Token
-      const response = await fetch(buildUrl("/api/work-orders-summary"), {
-            headers: { 
-                'Cache-Control': 'no-cache', 
-                'Pragma': 'no-cache',
-                'Authorization': `Bearer ${token}` // <--- Add Header
-            },
-        });
-      if (!response.ok) throw new Error(`Status: ${response.status}`);
-      const data: WorkOrderSummary[] = await response.json();
-      setDashboardData(data);
+      const url = buildUrl("/work-orders-summary");
+      const response = await api.get<WorkOrderSummary[]>(url);
+      setDashboardData(response.data);
     } catch (err) {
       console.error(err);
       if (dashboardData.length === 0) setError("Failed to fetch dashboard data.");
@@ -324,7 +281,6 @@ const TicketList: React.FC = () => {
 
   useEffect(() => {fetchWOSummaries();}, [debouncedSearchTerm, statusFilter]);
 
-  // 2. Search Handler
   useEffect(() => {
     const performSearch = async () => {
         if (!debouncedSearchTerm) {
@@ -335,14 +291,9 @@ const TicketList: React.FC = () => {
 
         setIsSearching(true);
         try {
-        
-        const response = await fetch(buildUrl('/api/work-orders-summary', { search: debouncedSearchTerm }));
-        
-          if (!response.ok) throw new Error("Search failed");
-          
-          const results: WorkOrderSummary[] = await response.json();
-          setSearchResults(results);
-            
+        const url = buildUrl('/work-orders-summary', { search: debouncedSearchTerm });
+        const response = await api.get<WorkOrderSummary[]>(url);
+        setSearchResults(response.data);
         } catch (e) {
             console.error(e);
             setSearchResults([]);
@@ -353,29 +304,17 @@ const TicketList: React.FC = () => {
     performSearch();
   }, [debouncedSearchTerm]);
 
-  // 3. Lazy Load Tickets
   const fetchTicketsForWO = async (woId: number, forceRefresh = false) => {
     if (!forceRefresh && ticketsCache[woId]) return;
 
     setLoadingWOs(prev => ({ ...prev, [woId]: true }));
     try {
-        const token = localStorage.getItem('token'); // <--- Get Token
-        const response = await fetch(
-        buildUrl(`/api/work-orders/${woId}/tickets`),
-        {
-          headers: { 
-              'Cache-Control': 'no-cache',
-              'Authorization': `Bearer ${token}` // <--- Add Header
-          },
-        }
-        );
-
-      if (!response.ok) throw new Error("Failed to fetch tickets");
-      const data: Ticket[] = await response.json();
+        const url = buildUrl(`/work-orders/${woId}/tickets`);
+        const response = await api.get<Ticket[]>(url);
       
       setTicketsCache(prev => ({
       ...prev,
-      [woId]: data
+      [woId]: response.data
       }));
 
     } catch (err) {
@@ -384,7 +323,7 @@ const TicketList: React.FC = () => {
         setLoadingWOs(prev => ({ ...prev, [woId]: false }));
     }
   };
-    // refresh tickets when statusFilter changes
+    
   useEffect(() => {
     openWorkOrders.forEach((woNumber) => {
       const woId = dashboardData.find((wo) => wo.wo_number === woNumber)?.wo_id;
@@ -392,36 +331,24 @@ const TicketList: React.FC = () => {
     });
   }, [statusFilter, openWorkOrders]);
 
-  // 4. SSE REAL-TIME UPDATES
   useEffect(() => {
-    const token = localStorage.getItem('token'); // <--- Get Token
-    
-    // Pass token in URL query string
+    const token = localStorage.getItem('token'); 
     const eventSource = new EventSource(`http://localhost:3000/api/tickets/events?token=${token}`);
     
     eventSource.onopen = () => console.log("SSE Connected");
 
     const handleCreateOrUpdate = (e: MessageEvent) => {
         const ticket = JSON.parse(e.data);
-        console.log("SSE Event:", e.type);
-
-        // A. Always refresh the summaries to update counts
         fetchWOSummaries();
-
-        // B. If this ticket's WO is currently expanded (cached), refresh the tickets list
         const woId = ticket.wo?.woId;
         if (woId && ticketsCacheRef.current.has(woId)) {
-            fetchTicketsForWO(woId, true); // Force refresh
+            fetchTicketsForWO(woId, true); 
         }
     };
 
     const handleDelete = (e: MessageEvent) => {
         const { id } = JSON.parse(e.data);
-        
-        // A. Refresh Summaries
         fetchWOSummaries();
-
-        // B. Manually remove from cache if present (since we don't have WO ID easily in event)
         setTicketsCache(prev => {
             const newCache = { ...prev };
             let found = false;
@@ -442,12 +369,10 @@ const TicketList: React.FC = () => {
     eventSource.addEventListener('delete-ticket', handleDelete);
 
     return () => {
-        console.log("Closing SSE");
         eventSource.close();
     };
   }, []);
 
-  // Scroll margin logic
   useEffect(() => {
     const setTicketMargins = () => {
       const header = document.querySelector('nav, header, .navbar') || document.querySelector('[class*="bg-muted"]');
@@ -464,13 +389,12 @@ const TicketList: React.FC = () => {
     return () => { observer.disconnect(); window.removeEventListener('resize', setTicketMargins); };
   }, [isMobile, ticketsCache]); 
 
-  // --- EDIT FORM DATA FETCHING ---
-
   const fetchGlobalDropdownData = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<any[]>>, search: string = '') => {
     try {
-      const url = search ? `http://localhost:3000/api/${endpoint}?search=${search}` : `http://localhost:3000/api/${endpoint}`;
-      const response = await fetch(url);
-      if (response.ok) setter(await response.json());
+      const url = search ? `/${endpoint}?search=${search}` : `/${endpoint}`;
+      const response = await api.get(url);
+      // [FIX] Explicit cast to any[]
+      setter(response.data as any[]);
     } catch (error) { console.error(`Failed to fetch ${endpoint}:`, error); }
   };
 
@@ -490,43 +414,37 @@ const TicketList: React.FC = () => {
         }
         try {
             const [deptRes, nonConRes, unitRes, seqRes] = await Promise.all([
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/labor-departments`),
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/nonconformances`),
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/units`),
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/sequences`)
+                api.get(`/work-orders/${editFields.workOrderId}/labor-departments`),
+                api.get(`/work-orders/${editFields.workOrderId}/nonconformances`),
+                api.get(`/work-orders/${editFields.workOrderId}/units`),
+                api.get(`/work-orders/${editFields.workOrderId}/sequences`)
             ]);
-            if (deptRes.ok) setLaborDepts(await deptRes.json());
-            if (nonConRes.ok) setNonconformances(await nonConRes.json());
-            if (unitRes.ok) setUnits(await unitRes.json());
-            if (seqRes.ok) setSequences(await seqRes.json());
+            // [FIX] Explicit casts to correct types
+            setLaborDepts(deptRes.data as LaborDepartment[]);
+            setNonconformances(nonConRes.data as Nonconformance[]);
+            setUnits(unitRes.data as Unit[]);
+            setSequences(seqRes.data as Sequence[]);
         } catch (error) { console.error("Failed to fetch filtered data", error); }
     };
     fetchFilteredData();
   }, [editFields.workOrderId, isEditing]);
 
-  // --- ACTIONS ---
-
   const handleArchive = async (ticketId: number, woId?: number) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/tickets/${ticketId}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error(`Status: ${response.status}`);
+      await api.delete(`/tickets/${ticketId}`);
+      
       toast({ title: "Success", description: `Ticket has been archived.` });
 
-    // Use cache to lookup WO string
-    const ticketList = ticketsCache[woId ?? -1];
-    const archivedTicket = ticketList?.find(t => t.ticketId === ticketId);
-    const woNum = archivedTicket?.wo?.wo;
+      const ticketList = ticketsCache[woId ?? -1];
+      const archivedTicket = ticketList?.find(t => t.ticketId === ticketId);
+      const woNum = archivedTicket?.wo?.wo;
 
-    if (woNum) {
-      if (userId && woNum) { 
-          await logAudit(userId, "Archive", ticketId, parseInt(woNum, 10));
-        }
-    } else {
-      console.warn("Could not find woNumber for audit log");
-    }
+      if (woNum) {
+        if (userId && woNum) { 
+            await logAudit(userId, "Archive", ticketId, parseInt(woNum, 10));
+          }
+      }
 
-    const woNumber = archivedTicket?.wo?.wo; // human-friendly WO string
-      // SSE will handle updates
     } catch (err: any) {
       toast({ variant: "destructive", title: "Archive Failed", description: err.message });
     }
@@ -589,17 +507,10 @@ const TicketList: React.FC = () => {
         ...(editFields.seqID && { sequence: parseInt(editFields.seqID) }),
       };
 
-      const response = await fetch(`http://localhost:3000/api/tickets/${editingTicket.ticketId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) throw new Error(`Failed to update ticket.`);
+      await api.put(`/tickets/${editingTicket.ticketId}`, payload);
 
       toast({ title: "Success", description: `Ticket ${editingTicket.qualityTicketId} has been updated.` });  
       await logAudit(userId, "Edit", editingTicket.ticketId, parseInt(editingTicket.wo?.wo));   
-      // SSE will handle updates
       setIsEditing(false);
       setEditingTicket(null);
     } catch (err: any) {
@@ -607,9 +518,6 @@ const TicketList: React.FC = () => {
     }
   };
 
-  // --- RENDER ---
-  
-  // Decide what to display: Search Results OR Dashboard Data
   const displayedData = searchResults ?? dashboardData;
   const sortedWOs = [...displayedData].sort((a, b) => a.wo_number.localeCompare(b.wo_number));
 
@@ -618,7 +526,6 @@ const TicketList: React.FC = () => {
 
   return (
     <div>
-      {/* --- SEARCH BAR --- */}
       <div className="flex items-center gap-4 mb-6">
         <Input
           type="text"
@@ -628,15 +535,15 @@ const TicketList: React.FC = () => {
           className="max-w-sm bg-white"
         />
         <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-white border border-gray-300 rounded-md p-2"
-            >
-                <option value="0,1">Open & In-Progress</option>
-                <option value="2">Closed</option>
-                <option value="0">Open</option>
-                <option value="1">In-Progress</option>
-            </select>
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-white border border-gray-300 rounded-md p-2"
+        >
+            <option value="0,1">Open & In-Progress</option>
+            <option value="2">Closed</option>
+            <option value="0">Open</option>
+            <option value="1">In-Progress</option>
+        </select>
         {isSearching && <ScaleLoader color="#3b82f6" height={20} />}
       </div>
       <div className="space-y-4">
@@ -696,7 +603,7 @@ const TicketList: React.FC = () => {
                                 >
                                     <AccordionTrigger 
                                         className="px-4 py-3 hover:bg-gray-50 hover:no-underline"
-                                        onMouseDown={(e) => { // Use onMouseDown to prevent focus race conditions
+                                        onMouseDown={(e) => { 
                                             if (isMobile) {
                                                 e.preventDefault(); e.stopPropagation();
                                                 openMobileTicketDetail(ticket); return;

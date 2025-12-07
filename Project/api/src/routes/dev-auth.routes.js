@@ -27,15 +27,20 @@ router.post("/login", async (req, res) => {
             return res.status(404).json({ message: `User with ID ${userId} not found.` });
         }
 
+        // FIX: Correctly map Database Roles to String Roles
+        // 1=Viewer, 2=Editor, 3=Admin
+        const roleString = targetUser.role === 3 ? 'Admin' 
+                         : targetUser.role === 2 ? 'Editor' 
+                         : 'Viewer';
+
         const userPayload = {
             id: targetUser.id,
             name: targetUser.name,
             email: targetUser.email,
-            role: targetUser.role === 2 ? 'Admin' : targetUser.role === 1 ? 'Editor' : 'Viewer'
+            role: targetUser.role
         };
 
         // Sign with secret
-        // FIX: Use a fallback secret if the environment variable is not defined
         const secret = process.env.JWT_SECRET || 'dev-fallback-secret-123-unblock-dev';
 
         const token = jwt.sign(userPayload, secret, { expiresIn: '1h' });

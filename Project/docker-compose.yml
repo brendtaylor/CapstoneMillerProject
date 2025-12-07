@@ -5,15 +5,15 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DB_HOST: sql-server-db
-      DB_PORT: "1433"
-      DB_USERNAME: sa
-      DB_PASSWORD: "TestPassword!2025"
-      DB_NAME: TICKET_SYSTEM
-      NODE_ENV: development
-      JWT_SECRET: TEST_KEY
-      MAKE_WEBHOOK_URL: "https://hook.us2.make.com/yw5a0ags1tf7tyjpg22y9hpxgc36tg5c"
-      MAKE_SIGNING_SECRET: "f92a3e0b7b4c1d6f8c0e92e2b61c475f0ad3d9c41b82f6a3f0e4a5b7c6d8e9f2b1a0c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      NODE_ENV: ${NODE_ENV}
+      JWT_SECRET: ${JWT_SECRET}
+      MAKE_WEBHOOK_URL: ${MAKE_WEBHOOK_URL}
+      MAKE_SIGNING_SECRET: ${MAKE_SIGNING_SECRET}
     depends_on:
       sql-server-db:
         condition: service_healthy
@@ -28,18 +28,17 @@ services:
       - "1433:1433"
     environment:
       ACCEPT_EULA: "Y"
-      SA_PASSWORD: "TestPassword!2025"
+      SA_PASSWORD: ${DB_PASSWORD}
       MSSQL_PID: Developer
     volumes:
       - sql_server_data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'TestPassword!2025' -C -Q 'SELECT 1' || exit 1"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD}' -C -Q 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
 
-  # New service to initialize the database
   db-init:
     container_name: db-init
     build:
@@ -49,8 +48,7 @@ services:
       sql-server-db:
         condition: service_healthy
     environment:
-      SQLCMDPASSWORD: "TestPassword!2025"
-    # We don't need 'volumes' anymore because we COPIED the files in
+      SQLCMDPASSWORD: ${DB_PASSWORD}
     command:
       - -c
       - |
@@ -59,10 +57,11 @@ services:
         sleep 30
         echo "Checking files in /scripts (should verify init.sql exists)..."
         ls -la /scripts
-        echo "Creating database TICKET_SYSTEM..."
-        /opt/mssql-tools18/bin/sqlcmd -S sql-server-db -U sa -C -Q "CREATE DATABASE TICKET_SYSTEM"
+        echo "Creating database ${DB_NAME}..."
+        /opt/mssql-tools18/bin/sqlcmd -S sql-server-db -U sa -C -Q "CREATE DATABASE ${DB_NAME}"
         echo "Running init script..."
         /opt/mssql-tools18/bin/sqlcmd -S sql-server-db -U sa -C -i /scripts/init.sql
         echo "Database initialized successfully"
+
 volumes:
   sql_server_data:

@@ -10,6 +10,7 @@ class TicketService {
         this.workOrderRepository = AppDataSource.getRepository("WorkOrder");
         this.closureRepository = AppDataSource.getRepository("TicketClosure"); 
         this.noteRepository = AppDataSource.getRepository("Note");
+        this.auditRepository = AppDataSource.getRepository("AuditLog");
         this.sseEmitter = new EventEmitter(); 
         logger.info("TicketService initialized");
     
@@ -22,7 +23,6 @@ class TicketService {
         ];
 
         // Relations for ARCHIVED tickets
-        // Excludes 'files' and 'closures' which don't exist on the archive entity
         this.archiveRelations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
@@ -56,72 +56,37 @@ class TicketService {
         await queryRunner.startTransaction();
 
         try {
-            // Get WO number for Quality Ticket ID generation
             const workOrder = await queryRunner.manager.findOne("WorkOrder", {
                 where: { woId: ticketData.wo }
             });
-            if (!workOrder) {
-                throw new Error(`Work Order with ID ${ticketData.wo} not found.`);
-            }
+            if (!workOrder) throw new Error(`Work Order with ID ${ticketData.wo} not found.`);
             const woNumber = workOrder.wo;
 
-            // Generate Quality Ticket ID
-            // Count Active Tickets for this WO
-            const activeCount = await queryRunner.manager.count("Ticket", {
-                where: { wo: { woId: ticketData.wo } } 
-            });
+            const activeCount = await queryRunner.manager.count("Ticket", { where: { wo: { woId: ticketData.wo } } });
+            const archivedCount = await queryRunner.manager.count("ArchivedTicket", { where: { wo: { woId: ticketData.wo } } });
 
-            // Count Archived Tickets for this WO
-            const archivedCount = await queryRunner.manager.count("ArchivedTicket", {
-                where: { wo: { woId: ticketData.wo } } 
-            });
-
-            // Add them together so archiving doesn't reset the sequence
             const totalCount = activeCount + archivedCount;
             const newTicketNum = (totalCount + 1).toString().padStart(3, '0');
-            
             const qualityTicketId = `${woNumber}-${newTicketNum}`;
-            logger.info(`Generated new Quality Ticket ID: ${qualityTicketId}`);
 
-            // Create Ticket
             const newTicket = queryRunner.manager.create("Ticket", {
                 ...ticketData,
                 qualityTicketId: qualityTicketId,
                 openDate: new Date(),
-                status: 0,
+                status: 0, 
             });
             
-            // Save the raw ticket
             const savedTicket = await queryRunner.manager.save("Ticket", newTicket);
             await queryRunner.commitTransaction();
 
-            // FETCH COMPLETE TICKET 
-            // fetch the full entity with relations so the UI receives { wo: { woId: ... } }
             const completeTicket = await this.getTicketById(savedTicket.ticketId);
-
-            // Emit Events using the COMPLETE ticket
             this.sseEmitter.emit('new-ticket', completeTicket); 
+            this.triggerWebhook('ticket.create', completeTicket);
             
-            try {
-                const makeRs = await emitToMake('ticket.create', { ticket: completeTicket });
-        
-                // Check for success signal from Make.com
-                if (makeRs?.status === 'success' || makeRs === 'Accepted') {
-                    logger.info(`Email sent successfully for ticket.create`);
-                } else {
-                    logger.warn(`Email webhook sent, but Make returned: ${JSON.stringify(makeRs)}`);
-                }
-            } catch (err) {
-                logger.error(`Failed to emit new-ticket webhook: ${err.message}`);
-            }
-            
-            logger.info(`Ticket created with ID: ${savedTicket.qualityTicketId}`);
             return completeTicket;
 
         } catch (error) {
-            if (queryRunner.isTransactionActive) {
-                await queryRunner.rollbackTransaction();
-            }
+            if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
             logger.error(`Error in createTicket transaction: ${error.message}`);
             throw error;
         } finally {
@@ -131,121 +96,134 @@ class TicketService {
 
     async updateTicket(id, ticketData) {
         logger.info(`Updating ticket ID: ${id}`);
+        const { status, assignedTo, ...allowedUpdates } = ticketData;
+
+        await this.ticketRepository.update(id, allowedUpdates);
         
-        // Fetch the current state of the ticket to check for status transitions
+        const updatedTicket = await this.getTicketById(id);
+        this.sseEmitter.emit('update-ticket', updatedTicket); 
+        this.triggerWebhook('ticket.update', updatedTicket);
+        
+        logger.info(`Ticket ${id} updated (General Fields)`);
+        return updatedTicket;
+    }
+
+    async updateTicketStatus(id, newStatus, user) {
+        logger.info(`Updating Status for ticket ID: ${id} to ${newStatus}`);
+
+        // [FIX] Load 'status' and 'wo' relations so we can read them safely
         const currentTicket = await this.ticketRepository.findOne({ 
             where: { ticketId: id },
-            relations: ["closures"] 
+            relations: ["status", "wo", "closures"] 
         });
 
-        if (!currentTicket) {
-            logger.error(`Ticket ${id} not found.`);
-            throw new Error("Ticket not found");
-        }
+        if (!currentTicket) throw new Error("Ticket not found");
 
-        const updatePayload = { ...ticketData };
-        
-        // Check for Status Transitions
-        const isClosing = (updatePayload.status === 2 && currentTicket.status !== 2);
-        const isReopening = (updatePayload.status !== 2 && currentTicket.status === 2);
+        // Use safe access (?. just in case, though relations should exist)
+        const currentStatusId = currentTicket.status?.statusId;
 
-        // --- LOGIC: CLOSING A TICKET ---
-        if (isClosing) {
-            updatePayload.closeDate = new Date();
-            logger.info(`Ticket ${id} is being closed. Saving cycle to history.`);
-
-            // Determine the Start Date for THIS cycle.
-            const cycleStart = currentTicket.lastReopenDate || currentTicket.openDate;
-
-            // Create a snapshot "batch" record in the history
-            const closureRecord = this.closureRepository.create({
+        // Logic for Closing
+        if (newStatus === 2 && currentStatusId !== 2) {
+             const cycleStart = currentTicket.lastReopenDate || currentTicket.openDate;
+             
+             const closureRecord = this.closureRepository.create({
                 ticket: { ticketId: id },
                 cycleStartDate: cycleStart,
-                cycleCloseDate: updatePayload.closeDate,
-                correctiveAction: updatePayload.correctiveAction || currentTicket.correctiveAction,
-                materialsUsed: updatePayload.materialsUsed || currentTicket.materialsUsed,
-                estimatedLaborHours: updatePayload.estimatedLaborHours || currentTicket.estimatedLaborHours,
-                // closedBy: updatePayload.assignedTo ? { id: updatePayload.assignedTo } : null 
+                cycleCloseDate: new Date(),
+                correctiveAction: currentTicket.correctiveAction,
+                materialsUsed: currentTicket.materialsUsed,
+                estimatedLaborHours: currentTicket.estimatedLaborHours,
+                closedBy: { id: user.id } 
             });
-            
             await this.closureRepository.save(closureRecord);
         }
 
-        // --- LOGIC: RE-OPENING A TICKET ---
-        if (isReopening) {
-            logger.info(`Ticket ${id} is being re-opened.`);
-            // Mark the start of a new cycle
+        // Logic for Re-opening
+        let updatePayload = { status: newStatus };
+        if (newStatus !== 2 && currentStatusId === 2) {
             updatePayload.lastReopenDate = new Date();
-            // We do not clear the old resolution fields, allowing UI to see previous data until overwrite.
+        }
+        if (newStatus === 2) {
+            updatePayload.closeDate = new Date();
         }
 
-        // Perform the Update on the Main Table
         await this.ticketRepository.update(id, updatePayload);
         
-        // Fetch the fully updated entity
+        // Log Audit (safe access to woId)
+        await this.logAudit(user, id, currentTicket.wo?.woId, `Updated Status to ${newStatus}`);
+
         const updatedTicket = await this.getTicketById(id);
-        
-        // Emit Events
         this.sseEmitter.emit('update-ticket', updatedTicket); 
-        
-        try {
-            const makeRs = await emitToMake('ticket.update', { ticket: updatedTicket });
-        
-            if (makeRs?.status === 'success' || makeRs === 'Accepted') {
-                logger.info(`Email sent successfully for ticket.update`);
-            } else {
-                logger.warn(`Email webhook sent, but Make returned: ${JSON.stringify(makeRs)}`);
-            }
-        } catch (err) {
-            logger.error(`Failed to emit update-ticket webhook: ${err.message}`);
-        }
-        
-        logger.info(`Ticket ${id} updated`);
+        this.triggerWebhook('ticket.update', updatedTicket);
+
+        return updatedTicket;
+    }
+
+    async assignTicketUser(id, targetUserId, actingUser) {
+        logger.info(`Assigning ticket ${id} to user ${targetUserId}`);
+
+        await this.ticketRepository.update(id, { assignedTo: targetUserId });
+
+        await this.logAudit(actingUser, id, null, `Assigned User ${targetUserId} to Ticket`);
+
+        const updatedTicket = await this.getTicketById(id);
+        this.sseEmitter.emit('update-ticket', updatedTicket);
+        this.triggerWebhook('ticket.update', updatedTicket);
+
         return updatedTicket;
     }
 
     async deleteTicket(id) {
         logger.info(`Archiving ticket ID: ${id}`);
         const ticketToArchive = await this.getTicketById(id);
-        if (!ticketToArchive) {
-            logger.error(`Ticket ${id} not found for deletion.`);
-            throw new Error("Ticket not found");
-        }
+        if (!ticketToArchive) throw new Error("Ticket not found");
 
         const archivedTicket = this.archivedRepository.create(ticketToArchive);
-        
-        try {
-            await this.archivedRepository.save(archivedTicket);
-        } catch (error) {
-            logger.error(`Error saving to archive: ${error.message}`);
-            throw error;
-        }
-
+        await this.archivedRepository.save(archivedTicket);
         await this.ticketRepository.delete(id);
         
-        // Emit events
-        this.sseEmitter.emit('delete-ticket', { id: parseInt(id, 10) }); // For frontend SSE
-        
-        logger.info(`Ticket ${id} archived and deleted`);
+        this.sseEmitter.emit('delete-ticket', { id: parseInt(id, 10) }); 
         return { id: id, message: "Ticket archived successfully" };
     }
 
+    async logAudit(user, ticketId, woId, action) {
+        try {
+            const log = this.auditRepository.create({
+                userId: user.id,
+                userRole: user.role,
+                ticketId: ticketId,
+                woId: woId,
+                action: action,
+                timestamp: new Date()
+            });
+            await this.auditRepository.save(log);
+        } catch (err) {
+            logger.error(`Failed to create audit log: ${err.message}`);
+        }
+    }
+
+    async triggerWebhook(event, payload) {
+        try {
+            const makeRs = await emitToMake(event, { ticket: payload });
+            if (makeRs?.status === 'success' || makeRs === 'Accepted') {
+                logger.info(`Webhook sent for ${event}`);
+            }
+        } catch (err) {
+            logger.error(`Failed to emit webhook: ${err.message}`);
+        }
+    }
+
     async getAllArchivedTickets() {
-        logger.info("Fetching all archived tickets");
-        return await this.archivedRepository.find({
-            relations: this.archiveRelations 
-        });
+        return await this.archivedRepository.find({ relations: this.archiveRelations });
     }
 
     async getArchivedTicketById(id) {
-        logger.info(`Fetching archived ticket by ID: ${id}`);
         return await this.archivedRepository.findOne({
             where: { ticketId: parseInt(id) },
             relations: this.archiveRelations 
         });
     }
 
-    // SSE functions
     async connectSSE(req, res) {
         logger.info("SSE client connected");
         res.setHeader('Content-Type', 'text/event-stream');
@@ -267,7 +245,6 @@ class TicketService {
         this.sseEmitter.on('delete-ticket', deleteTicketHandler);
 
         req.on('close', () => {
-            logger.info("SSE client disconnected");
             this.sseEmitter.removeListener('new-ticket', newTicketHandler);
             this.sseEmitter.removeListener('update-ticket', updateTicketHandler);
             this.sseEmitter.removeListener('delete-ticket', deleteTicketHandler);
@@ -283,24 +260,14 @@ class TicketService {
     }
 
     async addNote(ticketId, noteText, authorId) {
-        logger.info(`Adding note to ticket ${ticketId} by user ${authorId}`);
-        
         const note = this.noteRepository.create({
             text: noteText,
             ticket: { ticketId: parseInt(ticketId) },
             author: { id: parseInt(authorId) },
             createdAt: new Date()
         });
-
         await this.noteRepository.save(note);
-        
-        // Retrieve the full note with author info to return to UI
-        const savedNote = await this.noteRepository.findOne({
-            where: { noteId: note.noteId },
-            relations: ["author"]
-        });
-
-        return savedNote;
+        return await this.noteRepository.findOne({ where: { noteId: note.noteId }, relations: ["author"] });
     }
 }
 
