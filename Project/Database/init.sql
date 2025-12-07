@@ -346,9 +346,9 @@ GO
 -- Users
 INSERT INTO dbo.MiHub_Quality_Users (ID, ROLE, NAME, EMAIL)
 VALUES 
-    (1001, 1, 'NROACH', 'nroach@miller.inc'),
-    (1002, 1, 'CPORRETT', 'cporrett@miller.inc'),
-    (1003, 2, 'OSARTELE', 'osartele@miller.inc'),
+    (1001, 3, 'NROACH', 'nroach@miller.inc'),
+    (1002, 2, 'CPORRETT', 'cporrett@miller.inc'),
+    (1003, 1, 'OSARTELE', 'osartele@miller.inc'),
     (1004, 2, 'ASTOCKFORD', 'astockford@miller.inc'),
     (1005, 2, 'SMCCARTHY', 'smccarthy@miller.inc')
 GO
