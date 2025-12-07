@@ -164,20 +164,9 @@ const TicketList: React.FC = () => {
           View Details
         </Button>
 
-        {/* Admin: Edit + Delete */}
-        {userRole === 'admin' && (
+        {/* Admin: Delete */}
+        {userRole?.toLowerCase() === 'admin' && (
           <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                closeMobileTicketDetail();
-                handleEdit(ticket);
-              }}
-              className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
-            >
-              Edit Ticket
-            </Button>
-            
             <Button
               variant="destructive"
               onClick={() => {
@@ -192,7 +181,7 @@ const TicketList: React.FC = () => {
         )}
 
         {/* Editor: close ticket only */}
-        {userRole === 'editor' && (
+        {userRole?.toLowerCase() === 'editor' && (
           <Button
               variant="destructive"
               onClick={() => navigate('/tickets/${ticket.ticketId}?close=true')}

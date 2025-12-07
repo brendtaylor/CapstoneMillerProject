@@ -613,7 +613,7 @@ const TicketDetails: React.FC = () => {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Ticket Details</CardTitle>
             {/* --- ADDED ROLE CHECK: Only Editor/Admin can access general Edit/PUT --- */}
-            {!isArchived && (userRole === 'admin' || userRole === 'editor') && (
+            {!isArchived && (userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'editor') && (
               <Button variant="secondary" onClick={handleEdit}>
                 Edit Ticket
               </Button>
@@ -687,7 +687,7 @@ const TicketDetails: React.FC = () => {
         {/* Status Update - Hide if Archived */}
         {/* Status Update - Hide if Archived OR if user is Viewer (Editor/Admin only) */}
         {/* --- UPDATED ROLE CHECK: Only Editor/Admin can change status --- */}
-        {!isArchived && (userRole === 'editor' || userRole === 'admin') && (
+        {!isArchived && (userRole?.toLowerCase() === 'editor' || userRole?.toLowerCase() === 'admin') && (
           <Card>
             <CardHeader>
               <CardTitle>Update Status</CardTitle>

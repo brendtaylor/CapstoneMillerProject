@@ -6,14 +6,14 @@ const UserSchema = require("../entities/user.entity");
 const mapRoleStringToId = (roleString) => {
     switch (roleString) {
         case 'Admin':
-            return 2;
+            return 3;
         case 'Editor':
-            return 1;
+            return 2;
         case 'Viewer':
-            return 0;
+            return 1;
         default:
             // Fallback for unexpected roles, you may adjust this as needed
-            return 0; 
+            return 1; 
     }
 }
 
