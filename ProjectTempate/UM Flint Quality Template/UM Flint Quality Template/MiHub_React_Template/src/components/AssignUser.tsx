@@ -3,6 +3,7 @@ import { api } from "../api";
 import { useDebounce } from "../hooks/use-debounce";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "./ui/button";
+import { useAuth } from "./AuthContext"; // Import useAuth
 
 // Use the User interface to handle the object data correctly
 interface User {
@@ -20,6 +21,9 @@ interface Props {
 
 export default function AssignUser({ ticketId, currentAssigned, onAssignmentSuccess }: Props) {
   const { toast } = useToast();
+  // Get current user ID and Role for assignment logic
+  const { userId, userRole } = useAuth(); 
+  
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [userSearchText, setUserSearchText] = useState(currentAssigned || "");
@@ -33,6 +37,8 @@ export default function AssignUser({ ticketId, currentAssigned, onAssignmentSucc
   useEffect(() => {
     async function fetchUsers() {
       try {
+        // NOTE: Assumes the backend '/users' endpoint is protected by auth.middleware 
+        // and handles the necessary token injection via an axios interceptor (or similar).
         const { data } = await api.get<User[]>(`/users?search=${encodeURIComponent(debouncedUserSearch)}`);
         setUsers(data);
       } catch (err) {
@@ -60,6 +66,15 @@ export default function AssignUser({ ticketId, currentAssigned, onAssignmentSucc
       });
       return;
     }
+    
+    // Explicit Role Check: Viewers cannot assign
+    if (userRole === 'viewer') {
+        return toast({
+            variant: "destructive",
+            title: "Authorization Failed",
+            description: "Viewers are not allowed to assign tickets.",
+        });
+    }
 
     setShowConfirm(true);
   }
@@ -67,30 +82,45 @@ export default function AssignUser({ ticketId, currentAssigned, onAssignmentSucc
   async function executeAssign() {
     if (!selectedUserId) return;
 
+    const selectedId = parseInt(selectedUserId, 10);
+    const isAssigningSelf = selectedId === userId;
+    let endpoint = '';
+    
+    // Editors can assign themselves, Admins can assign anyone
+    if (isAssigningSelf) {
+        // Use the dedicated self-assign endpoint
+        endpoint = `/tickets/${ticketId}/assign/self`;
+    } else {
+        // Use the dedicated admin-assign endpoint
+        // The backend authorize middleware will ensure only Admins can hit this.
+        endpoint = `/tickets/${ticketId}/assign/${selectedUserId}`;
+    }
+
     try {
-      // Use the generic update route '/tickets/:id'
-      await api.put(`/tickets/${ticketId}`, {
-        assignedTo: parseInt(selectedUserId), 
-      });
+      // Use the new PATCH call
+      await api.patch(endpoint); 
 
       toast({
         title: "Success!",
-        description: "Ticket has been assigned.",
+        description: `Ticket has been assigned to ${selectedUserName}.`,
       });
 
       // Notify parent component to refetch data
       if (onAssignmentSuccess) {
         onAssignmentSuccess();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to assign ticket", error);
+      const errorMessage = error.response?.data?.message || "Could not assign ticket. Check console for details.";
       toast({
         variant: "destructive",
         title: "Assignment Failed",
-        description: "Could not assign ticket. Check console for details.",
+        description: errorMessage,
       });
     }
   }
+
+  const isAssignButtonDisabled = !selectedUserId || selectedUserName === currentAssigned || userRole === 'viewer';
 
   return (
     <>
@@ -112,7 +142,10 @@ export default function AssignUser({ ticketId, currentAssigned, onAssignmentSucc
             {users.map((u) => <option key={u.id} value={u.name} />)}
           </datalist>
         </div>
-        <Button onClick={handleAssign} disabled={!selectedUserId || selectedUserName === currentAssigned}>
+        <Button 
+          onClick={handleAssign} 
+          disabled={isAssignButtonDisabled}
+        >
           Assign
         </Button>
       </div>

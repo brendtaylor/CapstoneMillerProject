@@ -68,6 +68,64 @@ async function updateTicket(req, res) {
     }
 }
 
+async function updateTicketStatus(req, res) {
+    try {
+        // req.body should only contain the new status value
+        const { status } = req.body;
+        if (status === undefined) {
+            return res.status(400).json({ message: "Status is required." });
+        }
+        
+        // Pass the user entity (which contains the role) for audit logging or further checks
+        const updatedTicket = await ticketService.updateTicketStatus(req.params.id, status, req.user); 
+        
+        if (updatedTicket) {
+            res.json(updatedTicket);
+        } else {
+            res.status(404).json({ message: "Ticket not found" });
+        }
+    } catch (error) {
+        console.error("Error updating ticket status:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+async function assignTicketSelf(req, res) {
+    try {
+        // req.user is guaranteed to exist and contains the ID of the authenticated user
+        const userId = req.user.id; 
+        
+        const updatedTicket = await ticketService.assignTicketUser(req.params.id, userId, req.user);
+        
+        if (updatedTicket) {
+            res.json(updatedTicket);
+        } else {
+            res.status(404).json({ message: "Ticket not found" });
+        }
+    } catch (error) {
+        console.error("Error assigning ticket to self:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+
+async function assignTicketUser(req, res) {
+    try {
+        const { userId } = req.params; // Get the ID from the URL parameter
+        
+        const updatedTicket = await ticketService.assignTicketUser(req.params.id, userId, req.user);
+        
+        if (updatedTicket) {
+            res.json(updatedTicket);
+        } else {
+            res.status(404).json({ message: "Ticket not found" });
+        }
+    } catch (error) {
+        console.error("Error assigning ticket to user:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
 //Controller for deleting (archiving) a ticket
 async function deleteTicket(req, res) { 
     try {
@@ -151,5 +209,8 @@ module.exports = {
     getArchivedTicketByID,
     connectSSE,
     getTicketNotes,
-    addTicketNote    
+    addTicketNote,
+    updateTicketStatus,
+    assignTicketSelf,
+    assignTicketUser    
 };

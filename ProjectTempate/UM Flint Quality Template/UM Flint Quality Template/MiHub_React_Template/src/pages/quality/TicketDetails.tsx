@@ -38,11 +38,17 @@ interface Note {
 const TicketDetails: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { userId, userRole } = useAuth();
+  const { userId, userRole, token } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
   const [showUploadModal, setShowUploadModal] = useState(false);
   
+// Helper for Authorization Header
+  const AUTH_HEADERS = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}` 
+  };
+// --- END AUTH HELPER ---
 
   // Detect Archive Mode based on URL path
   const isArchived = location.pathname.includes("/archived/");
@@ -99,6 +105,7 @@ const TicketDetails: React.FC = () => {
   const resetToPreviousStatus = () => setStatus(previousStatus);
 
   // Load Ticket Info
+  // Load Ticket Info
   const fetchTicket = async () => {
     try {
       // Switch endpoint based on mode
@@ -106,7 +113,10 @@ const TicketDetails: React.FC = () => {
         ? `http://localhost:3000/api/tickets/archived/${id}`
         : `http://localhost:3000/api/tickets/${id}`;
 
-      const response = await fetch(endpoint);
+      // --- ADDED AUTH HEADER ---
+      const response = await fetch(endpoint, {
+          headers: { "Authorization": `Bearer ${token}` }
+      });
       if (!response.ok) throw new Error("Ticket not found");
       
       const data: Ticket = await response.json();
@@ -134,7 +144,10 @@ const TicketDetails: React.FC = () => {
   // Load Notes
   const fetchNotes = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/tickets/${id}/notes`);
+      // --- ADDED AUTH HEADER ---
+      const response = await fetch(`http://localhost:3000/api/tickets/${id}/notes`, {
+          headers: { "Authorization": `Bearer ${token}` }
+      });
       if (response.ok) {
         const data = await response.json();
         setNotes(data);
@@ -167,9 +180,10 @@ const TicketDetails: React.FC = () => {
     }
 
     try {
+      // --- ADDED AUTH HEADER to POST NOTES ---
       await fetch(`http://localhost:3000/api/tickets/${id}/notes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: AUTH_HEADERS,
         body: JSON.stringify({ note: noteText, authorId: userId }),
       });
 
@@ -193,9 +207,10 @@ const TicketDetails: React.FC = () => {
   // Update Status (can be called directly or after assignment)
   const performStatusUpdate = async (statusToUpdate: number, extraFields?: object) => {
     try {
-      await fetch(`http://localhost:3000/api/tickets/${id}`, { 
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      // --- UPDATED ENDPOINT AND METHOD FOR STATUS CHANGE ---
+      await fetch(`http://localhost:3000/api/tickets/${id}/status`, { 
+        method: "PATCH", // Changed from PUT
+        headers: AUTH_HEADERS,
         body: JSON.stringify({ status: statusToUpdate, ...extraFields }),
       });
 
@@ -297,7 +312,7 @@ const TicketDetails: React.FC = () => {
 
     try {
       const payload = {
-        status: parseInt(editFields.status),
+        // --- REMOVED STATUS FROM PAYLOAD (MUST USE DEDICATED PATCH ROUTE) ---
         description: editFields.description,
         drawingNum: editFields.drawingNum, 
         initiator: userId, 
@@ -311,7 +326,7 @@ const TicketDetails: React.FC = () => {
 
       const response = await fetch(`http://localhost:3000/api/tickets/${ticket.ticketId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: AUTH_HEADERS, // --- ADDED AUTH HEADER ---
         body: JSON.stringify(payload),
       });
 
@@ -597,6 +612,7 @@ const TicketDetails: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Ticket Details</CardTitle>
+            {/* --- ADDED ROLE CHECK: Only Editor/Admin can access general Edit/PUT --- */}
             {!isArchived && (userRole === 'admin' || userRole === 'editor') && (
               <Button variant="secondary" onClick={handleEdit}>
                 Edit Ticket
@@ -669,7 +685,9 @@ const TicketDetails: React.FC = () => {
         </Card>
 
         {/* Status Update - Hide if Archived */}
-        {!isArchived && (
+        {/* Status Update - Hide if Archived OR if user is Viewer (Editor/Admin only) */}
+        {/* --- UPDATED ROLE CHECK: Only Editor/Admin can change status --- */}
+        {!isArchived && (userRole === 'editor' || userRole === 'admin') && (
           <Card>
             <CardHeader>
               <CardTitle>Update Status</CardTitle>

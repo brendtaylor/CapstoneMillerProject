@@ -1,6 +1,21 @@
+// Project/api/src/middleware/auth.middleware.js (Corrected)
 const jwt = require("jsonwebtoken");
-const { AppDataSource } = require("../data-source"); //
-const UserSchema = require("../entities/user.entity"); //
+const { AppDataSource } = require("../data-source"); 
+const UserSchema = require("../entities/user.entity"); 
+
+const mapRoleStringToId = (roleString) => {
+    switch (roleString) {
+        case 'Admin':
+            return 2;
+        case 'Editor':
+            return 1;
+        case 'Viewer':
+            return 0;
+        default:
+            // Fallback for unexpected roles, you may adjust this as needed
+            return 0; 
+    }
+}
 
 const authenticateToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -11,10 +26,6 @@ const authenticateToken = async (req, res, next) => {
     jwt.verify(token, process.env.JWT_SECRET, async (err, decodedUser) => {
         if (err) return res.sendStatus(403);
 
-        // SYNC STRATEGY:
-        // The token is valid, so this user IS authenticated by the main app.
-        // We must ensure they exist in our local 'MiHub_Quality_Users' table
-        // so we can link them to Tickets/Notes.
         const userRepository = AppDataSource.getRepository(UserSchema);
         
         let localUser = await userRepository.findOneBy({ id: decodedUser.id });
@@ -25,13 +36,14 @@ const authenticateToken = async (req, res, next) => {
                 id: decodedUser.id,
                 name: decodedUser.name,
                 email: decodedUser.email,
-                role: decodedUser.role === 'Admin' ? 2 : 1 // Map string roles to your tinyint logic
+                role: mapRoleStringToId(decodedUser.role) // Map string roles to int identifiers
             });
             await userRepository.save(localUser);
         } else {
             // Optional: Update local details if they changed in the token
-             if(localUser.name !== decodedUser.name) {
+             if(localUser.name !== decodedUser.name || localUser.role !== mapRoleStringToId(decodedUser.role)) {
                 localUser.name = decodedUser.name;
+                localUser.role = mapRoleStringToId(decodedUser.role);
                 await userRepository.save(localUser);
              }
         }
