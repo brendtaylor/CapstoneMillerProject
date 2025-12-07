@@ -1,12 +1,36 @@
+// ProjectTempate/.../src/components/AuthContext.tsx (CORRECTED GOLDEN COPY)
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
+// Assuming 'jwt-decode' is installed
+import { jwtDecode } from "jwt-decode"; 
+
+// Helper function to extract user data from the JWT
+// NOTE: This assumes the JWT payload contains 'id' (number), 'name' (string), and 'role' (string)
+const decodeToken = (t: string | null) => {
+    if (!t) return { id: null, role: null, name: null };
+    try {
+        // We use 'any' here for simplicity, but a proper interface should be defined for the decoded JWT
+        const decoded: any = jwtDecode(t);
+        return { 
+            id: decoded.id || null, 
+            role: decoded.role || null, // e.g., 'Admin', 'Editor', 'Viewer'
+            name: decoded.name || null
+        };
+    } catch (e) {
+        console.error("Error decoding token:", e);
+        return { id: null, role: null, name: null };
+    }
+}
+
 
 interface AuthContextType {
-  userId: number; 
+  userId: number | null; 
   username: string | null;
   displayName: string | null;
   userRole: string | null; // "Admin", "Editor", "Viewer"
   token: string | null;
-  loginAs: (role: string) => Promise<void>;
+  // --- FIX: loginAs now correctly accepts a number (userId) ---
+  loginAs: (userId: number) => Promise<void>; 
 }
 
 interface AuthProviderProps {
@@ -16,26 +40,32 @@ interface AuthProviderProps {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // 1. STATE MUST BE INSIDE THE COMPONENT
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
-  const [userRole, setUserRole] = useState<string | null>(null);
+  
+  // Initialize state by checking localStorage
+  const initialToken = localStorage.getItem("token");
+  const [token, setToken] = useState<string | null>(initialToken);
+  
+  // Initialize user details from the stored token on load
+  const [user, setUser] = useState(decodeToken(initialToken));
 
-  // 2. THE LOGIN FUNCTION
-  const loginAs = async (role: string) => {
+  // --- UPDATED LOGIN FUNCTION: Accepts userId ---
+  const loginAs = async (targetUserId: number) => {
     try {
-        // Ensure you are hitting the correct URL (check your port!)
+        // Call the new dev login route with the specific userId
         const res = await fetch('http://localhost:3000/api/dev/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role: role, userId: 1003, name: "Dev User" })
+            body: JSON.stringify({ userId: targetUserId }) 
         });
         const data = await res.json();
         
         if (data.token) {
+            const decodedUser = decodeToken(data.token);
             setToken(data.token);
-            setUserRole(role);
+            setUser(decodedUser); // Set the new user details from the token
             localStorage.setItem("token", data.token);
-            // Reload to ensure all components pick up the new token
+            
+            // Reload to ensure all components and route guards pick up the new token
             window.location.reload(); 
         }
     } catch (err) {
@@ -43,9 +73,12 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const userId = 1003; 
-  const username = "dev_user";
-  const displayName = `Dev ${userRole || 'User'}`;
+  // --- Computed values updated to use state derived from token ---
+  const userId = user.id; 
+  // Generate a simple username (e.g., "owen_sartele")
+  const username = user.name ? user.name.toLowerCase().replace(/\s/g, '_') : null;
+  const displayName = user.name;
+  const userRole = user.role;
 
   return (
     <AuthContext.Provider value={{ userId, username, displayName, userRole, token, loginAs }}>

@@ -4,27 +4,32 @@ services:
     build: .
     ports:
       - "3000:3000"
+    # CRITICAL FIX 1: Keep env_file to load all variables (DB credentials, JWT_SECRET)
+    env_file:
+      - .env
+    # --- CRITICAL FIX 2: ONLY keep variables required for service discovery (DB_HOST)
+    # --- and variables needed to confirm the values are set (JWT_SECRET)
     environment:
       DB_HOST: sql-server-db
       DB_PORT: 1433
-      DB_USER: sa
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_DATABASE: ${DB_NAME}
-      NODE_ENV: ${NODE_ENV}
-      MAKE_SIGNING_SECRET: ${MAKE_SIGNING_SECRET}
-      MAKE_WEBHOOK_URL: ${MAKE_WEBHOOK_URL}
+      # DB_USER, DB_PASSWORD, DB_DATABASE, etc. are now INJECTED by env_file and NOT overridden.
+      NODE_ENV: development
+      JWT_SECRET: ${JWT_SECRET} 
+    depends_on:
+      - sql-server-db 
    
-  database:
+  sql-server-db:
     container_name: sql-server-db
     image: mcr.microsoft.com/mssql/server:2022-latest
     ports:
       - "1433:1433"
     environment:
       ACCEPT_EULA: 'Y'
+      # This variable is correctly sourced from the shell via the project's .env file
       SA_PASSWORD: ${DB_PASSWORD}
     volumes:
       - sql_server_data:/var/opt/mssql
-    
+    # NOTE: Add a healthcheck to this service if you didn't, as that prevents the previous race condition.
 
 volumes:
   sql_server_data:

@@ -15,7 +15,17 @@ import { useIsMobile } from '../hooks/use-mobile';
 import { useNavigate } from "react-router-dom";
 import { logAudit } from "./utils/auditLogger";
 
-import { Ticket, WorkOrderSummary } from "../types"; 
+import { 
+  Ticket, 
+  Division, 
+  WorkOrder, 
+  Unit, 
+  Sequence, 
+  LaborDepartment,
+  Nonconformance,
+  WorkOrderSummary
+} from "../types"; 
+import { workerData } from "worker_threads";
 
 
 // --- HELPERS ---
@@ -158,6 +168,17 @@ const TicketList: React.FC = () => {
         {userRole === 'admin' && (
           <>
             <Button
+              variant="secondary"
+              onClick={() => {
+                closeMobileTicketDetail();
+                handleEdit(ticket);
+              }}
+              className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
+            >
+              Edit Ticket
+            </Button>
+            
+            <Button
               variant="destructive"
               onClick={() => {
                 closeMobileTicketDetail();
@@ -173,7 +194,7 @@ const TicketList: React.FC = () => {
         {/* Editor: close ticket only */}
         {userRole === 'editor' && (
           <Button
-              variant="secondary"
+              variant="destructive"
               onClick={() => navigate('/tickets/${ticket.ticketId}?close=true')}
               className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
             >
@@ -258,8 +279,36 @@ const TicketList: React.FC = () => {
   // Archive/Edit Modal States
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [ticketToArchive, setTicketToArchive] = useState<{id: number, woId?: number} | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+
+  // Edit Dropdown Data
+  const [divisions, setDivisions] = useState<Division[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [laborDepts, setLaborDepts] = useState<LaborDepartment[]>([]);
+  const [manNonCons, setNonconformances] = useState<Nonconformance[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [sequences, setSequences] = useState<Sequence[]>([]);
+
+  // Edit Fields
+  const [editFields, setEditFields] = useState({
+    status: '', divisionId: '', workOrderId: '', laborDeptId: '', 
+    manNonConId: '', unitId: '', seqID: '', drawingNum: '', description: '',
+  });
+
+  const [editDivisionSearch, setEditDivisionSearch] = useState('');
+  const [editWorkOrderSearch, setEditWorkOrderSearch] = useState('');
+  const [editLaborDeptText, setEditLaborDeptText] = useState('');
+  const [editNonconformanceText, setEditNonconformanceText] = useState('');
+  const [editUnitText, setEditUnitText] = useState('');
+  const [editSequenceText, setEditSequenceText] = useState('');
+
+  const debouncedEditDivisionSearch = useDebounce(editDivisionSearch, 300);
+  const debouncedEditWorkOrderSearch = useDebounce(editWorkOrderSearch, 300);
 
   // --- API HANDLERS ---
+
   // 1. Initial Load: Get Summary (with counts)
   const fetchWOSummaries = async () => {
     // Only set loading on initial fetch if dashboard is empty, to avoid flashing on updates
@@ -416,34 +465,69 @@ const TicketList: React.FC = () => {
     return () => { observer.disconnect(); window.removeEventListener('resize', setTicketMargins); };
   }, [isMobile, ticketsCache]); 
 
+  // --- EDIT FORM DATA FETCHING ---
+
+  const fetchGlobalDropdownData = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<any[]>>, search: string = '') => {
+    try {
+      const url = search ? `http://localhost:3000/api/${endpoint}?search=${search}` : `http://localhost:3000/api/${endpoint}`;
+      const response = await fetch(url);
+      if (response.ok) setter(await response.json());
+    } catch (error) { console.error(`Failed to fetch ${endpoint}:`, error); }
+  };
+
+  useEffect(() => { 
+    if (isEditing) fetchGlobalDropdownData('divisions', setDivisions, debouncedEditDivisionSearch); 
+  }, [debouncedEditDivisionSearch, isEditing]);
+  
+  useEffect(() => { 
+    if (isEditing) fetchGlobalDropdownData('work-orders', setWorkOrders, debouncedEditWorkOrderSearch); 
+  }, [debouncedEditWorkOrderSearch, isEditing]);
+
+  useEffect(() => {
+    const fetchFilteredData = async () => {
+        if (!isEditing || !editFields.workOrderId) {
+            setLaborDepts([]); setNonconformances([]); setUnits([]); setSequences([]);
+            return;
+        }
+        try {
+            const [deptRes, nonConRes, unitRes, seqRes] = await Promise.all([
+                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/labor-departments`),
+                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/nonconformances`),
+                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/units`),
+                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/sequences`)
+            ]);
+            if (deptRes.ok) setLaborDepts(await deptRes.json());
+            if (nonConRes.ok) setNonconformances(await nonConRes.json());
+            if (unitRes.ok) setUnits(await unitRes.json());
+            if (seqRes.ok) setSequences(await seqRes.json());
+        } catch (error) { console.error("Failed to fetch filtered data", error); }
+    };
+    fetchFilteredData();
+  }, [editFields.workOrderId, isEditing]);
+
   // --- ACTIONS ---
 
   const handleArchive = async (ticketId: number, woId?: number) => {
     try {
       const response = await fetch(`http://localhost:3000/api/tickets/${ticketId}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(`Status: ${response.status}`);
-      toast({ title: "Success", description: `Ticket has been deleted.` });
-      
-      // --- Immediate UI Update ---
-      if (woId) {
-        setTicketsCache(prev => ({
-          ...prev,
-          [woId]: prev[woId]?.filter(t => t.ticketId !== ticketId) || [],
-        }));
+      toast({ title: "Success", description: `Ticket has been archived.` });
 
-        // 2. Decrement the summary count for that WO
-        setDashboardData(prev => prev.map(summary => 
-          summary.wo_id === woId 
-            ? { ...summary, open_ticket_count: Math.max(0, summary.open_ticket_count - 1) }
-            : summary
-        ));
+    // Use cache to lookup WO string
+    const ticketList = ticketsCache[woId ?? -1];
+    const archivedTicket = ticketList?.find(t => t.ticketId === ticketId);
+    const woNum = archivedTicket?.wo?.wo;
 
-        // 3. Log the audit action
-        const woNumber = dashboardData.find(wo => wo.wo_id === woId)?.wo_number;
-        if (woNumber) {
-          await logAudit(userId, "Archive", ticketId, parseInt(woNumber, 10));
+    if (woNum) {
+      if (userId && woNum) { 
+          await logAudit(userId, "Archive", ticketId, parseInt(woNum, 10));
         }
-      }
+    } else {
+      console.warn("Could not find woNumber for audit log");
+    }
+
+    const woNumber = archivedTicket?.wo?.wo; // human-friendly WO string
+      // SSE will handle updates
     } catch (err: any) {
       toast({ variant: "destructive", title: "Archive Failed", description: err.message });
     }
@@ -454,11 +538,75 @@ const TicketList: React.FC = () => {
     setShowArchiveConfirm(true);
   };
 
-  useEffect(() => {
-    document.body.style.overflow = mobileDetailTicket ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [mobileDetailTicket]);
+  const handleEdit = (ticket: Ticket) => {
+    setEditingTicket(ticket);
+    setIsEditing(true);
 
+    setEditFields({
+      status: ticket.status?.statusId?.toString() || '0',
+      divisionId: ticket.division?.divisionId?.toString() || '',
+      workOrderId: ticket.wo?.woId?.toString() || '',
+      laborDeptId: ticket.laborDepartment?.departmentId?.toString() || '',
+      manNonConId: ticket.manNonCon?.nonConId?.toString() || '',
+      unitId: ticket.unit?.unitId?.toString() || '',
+      seqID: ticket.sequence?.seqID?.toString() || '',
+      drawingNum: ticket.drawingNum || '', description: ticket.description || '',
+    });
+
+    setEditDivisionSearch(ticket.division?.divisionName || '');
+    setEditWorkOrderSearch(ticket.wo?.wo || '');
+    setEditLaborDeptText(ticket.laborDepartment?.departmentName || '');
+    setEditNonconformanceText((ticket.manNonCon as any)?.nonCon || '');
+    setEditUnitText(ticket.unit?.unitName || '');
+    setEditSequenceText(ticket.sequence?.seqName || '');
+    
+    fetchGlobalDropdownData('divisions', setDivisions);
+    fetchGlobalDropdownData('work-orders', setWorkOrders);
+  };
+
+  useEffect(() => {
+    document.body.style.overflow = (isEditing || mobileDetailTicket) ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isEditing, mobileDetailTicket]);
+
+  const handleSaveEdit = async () => {
+    if (!editingTicket) return;
+    if (!userId) { toast({ variant: "destructive", title: "Error", description: "User not identified." }); return; }
+    if (!editFields.divisionId || !editFields.workOrderId || !editFields.laborDeptId || !editFields.manNonConId || !editFields.description) { 
+        toast({ variant: "destructive", title: "Validation Error", description: "Fill required fields." }); return; 
+    }
+
+    try {
+      const payload = {
+        status: parseInt(editFields.status),
+        description: editFields.description,
+        drawingNum: editFields.drawingNum, 
+        initiator: userId, 
+        division: parseInt(editFields.divisionId),
+        wo: parseInt(editFields.workOrderId),
+        laborDepartment: parseInt(editFields.laborDeptId),
+        manNonCon: parseInt(editFields.manNonConId),
+        ...(editFields.unitId && { unit: parseInt(editFields.unitId) }),
+        ...(editFields.seqID && { sequence: parseInt(editFields.seqID) }),
+      };
+
+      const response = await fetch(`http://localhost:3000/api/tickets/${editingTicket.ticketId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error(`Failed to update ticket.`);
+
+      toast({ title: "Success", description: `Ticket ${editingTicket.qualityTicketId} has been updated.` });  
+      await logAudit(userId, "Edit", editingTicket.ticketId, parseInt(editingTicket.wo?.wo));   
+      // SSE will handle updates
+      setIsEditing(false);
+      setEditingTicket(null);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Update Failed", description: err.message });
+    }
+  };
 
   // --- RENDER ---
   
@@ -597,7 +745,7 @@ const TicketList: React.FC = () => {
       </div>
 
       {isMobile && mobileDetailTicket && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 p-4" onClick={closeMobileTicketDetail}>
           <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl max-h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <button onClick={closeMobileTicketDetail} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200">X</button>
             <div className="px-4 py-6 space-y-4">
@@ -608,13 +756,63 @@ const TicketList: React.FC = () => {
         </div>
       )}
 
+      {isEditing && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white p-6 rounded-lg w-full max-w-3xl relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setIsEditing(false)} className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center bg-red-600 text-white text-2xl font-bold rounded-lg hover:bg-red-700">✕</button>
+            <h2 className="text-xl font-semibold mb-4">Edit Ticket</h2>
+            <div className="space-y-6">
+                <div>
+                <label className="block text-sm font-medium text-gray-700">Status</label>
+                  
+                    <div className="mt-1 flex items-center">
+                      <span className="text-gray-900 font-medium">{editFields.status === '0' ? 'Open' : editFields.status === '1' ? 'In Progress' : 'Closed'}</span>
+                      <span className="ml-2 text-xs text-gray-500 italic">(Use 'View Details' to change ticket status)</span>
+                    </div>
+                  
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Division *</label>
+                    <input list="edit-div-list" value={editDivisionSearch} onChange={(e) => { setEditDivisionSearch(e.target.value); const s = divisions.find(d => d.divisionName === e.target.value); setEditFields({ ...editFields, divisionId: s ? String(s.divisionId) : '' }); }} className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+                    <datalist id="edit-div-list">{divisions.map(d => <option key={d.divisionId} value={d.divisionName} />)}</datalist>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Work Order *</label>
+                    <input list="edit-wo-list" value={editWorkOrderSearch} onChange={(e) => { setEditWorkOrderSearch(e.target.value); const s = workOrders.find(w => String(w.wo) === e.target.value); setEditFields({ ...editFields, workOrderId: s ? String(s.woId) : '', laborDeptId: '', manNonConId: '', unitId: '', seqID: '' }); setEditLaborDeptText(''); setEditNonconformanceText(''); setEditUnitText(''); setEditSequenceText(''); }} className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+                    <datalist id="edit-wo-list">{workOrders.map(w => <option key={w.woId} value={w.wo} />)}</datalist>
+                </div>
+                {/* Dependent Fields */}
+                <div><label className="block text-sm font-medium text-gray-700">Labor Dept *</label><input list="edit-dept-list" value={editLaborDeptText} disabled={!editFields.workOrderId} onChange={(e) => { setEditLaborDeptText(e.target.value); const s = laborDepts.find(d => d.departmentName === e.target.value); setEditFields({...editFields, laborDeptId: s ? String(s.departmentId) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-dept-list">{laborDepts.map(d => <option key={d.departmentId} value={d.departmentName}/>)}</datalist></div>
+                <div><label className="block text-sm font-medium text-gray-700">Nonconformance *</label><input list="edit-nc-list" value={editNonconformanceText} disabled={!editFields.workOrderId} onChange={(e) => { setEditNonconformanceText(e.target.value); const s = manNonCons.find(m => m.nonCon === e.target.value); setEditFields({...editFields, manNonConId: s ? String(s.nonConId) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-nc-list">{manNonCons.map(m => <option key={m.nonConId} value={m.nonCon}/>)}</datalist></div>
+                <div><label className="block text-sm font-medium text-gray-700">Unit</label><input list="edit-unit-list" value={editUnitText} disabled={!editFields.workOrderId} onChange={(e) => { setEditUnitText(e.target.value); const s = units.find(u => u.unitName === e.target.value); setEditFields({...editFields, unitId: s ? String(s.unitId) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-unit-list">{units.map(u => <option key={u.unitId} value={u.unitName}/>)}</datalist></div>
+                <div><label className="block text-sm font-medium text-gray-700">Sequence</label><input list="edit-seq-list" value={editSequenceText} disabled={!editFields.workOrderId} onChange={(e) => { setEditSequenceText(e.target.value); const s = sequences.find(q => q.seqName === e.target.value); setEditFields({...editFields, seqID: s ? String(s.seqID) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-seq-list">{sequences.map(s => <option key={s.seqID} value={s.seqName}/>)}</datalist></div>
+                <div><label className="block text-sm font-medium text-gray-700">Drawing #</label><input type="text" value={editFields.drawingNum} onChange={(e) => setEditFields({...editFields, drawingNum: e.target.value})} className="mt-1 w-full border border-gray-300 rounded p-2"/></div>
+                <div><label className="block text-sm font-medium text-gray-700">Description *</label><textarea rows={4} value={editFields.description} onChange={(e) => setEditFields({...editFields, description: e.target.value})} className="mt-1 w-full border border-gray-300 rounded p-2"/></div>
+            </div>
+            <div className="flex justify-end mt-6"><button onClick={() => setShowSubmitConfirm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Save</button></div>
+            {showSubmitConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+                        <h3 className="text-lg font-semibold mb-2">Confirm</h3>
+                        <p className="text-sm text-gray-700 mb-4">Submit changes?</p>
+                        <div className="flex justify-end space-x-3">
+                            <button onClick={() => setShowSubmitConfirm(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded">Cancel</button>
+                            <button onClick={async () => { setShowSubmitConfirm(false); await handleSaveEdit(); }} className="px-4 py-2 bg-blue-600 text-white rounded">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    </div>
+    )}
+
       {showArchiveConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
-                <h3 className="text-lg font-semibold mb-2">Delete Ticket?</h3>
+                <h3 className="text-lg font-semibold mb-2">Archive Ticket</h3>
                 <div className="flex justify-end space-x-3">
                     <button onClick={() => { setShowArchiveConfirm(false); setTicketToArchive(null); }} className="px-4 py-2 bg-gray-600 text-white rounded">Cancel</button>
-                    <button onClick={() => { if (ticketToArchive) { handleArchive(ticketToArchive.id, ticketToArchive.woId); setShowArchiveConfirm(false); setTicketToArchive(null); } }} className="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
+                    <button onClick={() => { if (ticketToArchive) { handleArchive(ticketToArchive.id, ticketToArchive.woId); setShowArchiveConfirm(false); setTicketToArchive(null); } }} className="px-4 py-2 bg-red-600 text-white rounded">Archive</button>
                 </div>
             </div>
         </div>

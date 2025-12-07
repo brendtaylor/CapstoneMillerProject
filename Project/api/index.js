@@ -1,7 +1,9 @@
+// Project/api/index.js (CLEANED VERSION)
+
 //Description: This file is the bridge between the application and the database. It also provides access to the entity files
 
 // load environment variables
-require('dotenv').config();
+require('dotenv').config(); // No path import needed, let Docker handle it
 const express = require("express");
 const cors = require('cors');
 
