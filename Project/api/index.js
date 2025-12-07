@@ -32,7 +32,7 @@ AppDataSource.initialize()
         }));
 
         // Mount the audit routes under /api
-        app.use("/api", auditRouter);
+        app.use("/api/audit", auditRouter);
 
         // main router
         app.use('/api', mainApiRouter);

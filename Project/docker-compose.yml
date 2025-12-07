@@ -42,20 +42,27 @@ services:
   # New service to initialize the database
   db-init:
     container_name: db-init
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    build:
+      context: .
+      dockerfile: Dockerfile.dbinit
     depends_on:
       sql-server-db:
         condition: service_healthy
-    volumes:
-      - ./Database:/scripts
-    command: >
-      /bin/bash -c "
-      echo 'Creating database...';
-      /opt/mssql-tools18/bin/sqlcmd -S sql-server-db -U sa -P 'TestPassword!2025' -C -Q 'CREATE DATABASE TICKET_SYSTEM';
-      echo 'Running init script...';
-      /opt/mssql-tools18/bin/sqlcmd -S sql-server-db -U sa -P 'TestPassword!2025' -C -i /scripts/init.sql;
-      echo 'Database initialized successfully';
-      "
-
+    environment:
+      SQLCMDPASSWORD: "TestPassword!2025"
+    # We don't need 'volumes' anymore because we COPIED the files in
+    command:
+      - -c
+      - |
+        set -e
+        echo "Waiting 30s for SQL Server to be ready..."
+        sleep 30
+        echo "Checking files in /scripts (should verify init.sql exists)..."
+        ls -la /scripts
+        echo "Creating database TICKET_SYSTEM..."
+        /opt/mssql-tools18/bin/sqlcmd -S sql-server-db -U sa -C -Q "CREATE DATABASE TICKET_SYSTEM"
+        echo "Running init script..."
+        /opt/mssql-tools18/bin/sqlcmd -S sql-server-db -U sa -C -i /scripts/init.sql
+        echo "Database initialized successfully"
 volumes:
   sql_server_data:

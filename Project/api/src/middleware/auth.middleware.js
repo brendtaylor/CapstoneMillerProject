@@ -18,8 +18,13 @@ const mapRoleStringToId = (roleString) => {
 }
 
 const authenticateToken = async (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
+    // 1. Try to get token from Header
+    let token = req.headers['authorization'] && req.headers['authorization'].split(' ')[1];
+
+    // 2. Fallback: Try to get token from Query String (Required for SSE)
+    if (!token && req.query.token) {
+        token = req.query.token;
+    }
 
     if (!token) return res.sendStatus(401);
 
@@ -27,28 +32,19 @@ const authenticateToken = async (req, res, next) => {
         if (err) return res.sendStatus(403);
 
         const userRepository = AppDataSource.getRepository(UserSchema);
-        
         let localUser = await userRepository.findOneBy({ id: decodedUser.id });
 
         if (!localUser) {
-            // User exists in MiHub but not here yet. Create them.
             localUser = userRepository.create({
                 id: decodedUser.id,
                 name: decodedUser.name,
                 email: decodedUser.email,
-                role: mapRoleStringToId(decodedUser.role) // Map string roles to int identifiers
+                role: mapRoleStringToId(decodedUser.role)
             });
             await userRepository.save(localUser);
-        } else {
-            // Optional: Update local details if they changed in the token
-             if(localUser.name !== decodedUser.name || localUser.role !== mapRoleStringToId(decodedUser.role)) {
-                localUser.name = decodedUser.name;
-                localUser.role = mapRoleStringToId(decodedUser.role);
-                await userRepository.save(localUser);
-             }
         }
 
-        req.user = localUser; // Attach the full DB entity to the request
+        req.user = localUser; 
         next();
     });
 };

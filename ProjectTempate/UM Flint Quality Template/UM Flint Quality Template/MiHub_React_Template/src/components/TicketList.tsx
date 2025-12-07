@@ -311,12 +311,16 @@ const TicketList: React.FC = () => {
 
   // 1. Initial Load: Get Summary (with counts)
   const fetchWOSummaries = async () => {
-    // Only set loading on initial fetch if dashboard is empty, to avoid flashing on updates
     if (dashboardData.length === 0) setLoadingSummaries(true);
     
     try {
+      const token = localStorage.getItem('token'); // <--- Get Token
       const response = await fetch(buildUrl("/api/work-orders-summary"), {
-            headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+            headers: { 
+                'Cache-Control': 'no-cache', 
+                'Pragma': 'no-cache',
+                'Authorization': `Bearer ${token}` // <--- Add Header
+            },
         });
       if (!response.ok) throw new Error(`Status: ${response.status}`);
       const data: WorkOrderSummary[] = await response.json();
@@ -366,11 +370,14 @@ const TicketList: React.FC = () => {
 
     setLoadingWOs(prev => ({ ...prev, [woId]: true }));
     try {
-        
+        const token = localStorage.getItem('token'); // <--- Get Token
         const response = await fetch(
         buildUrl(`/api/work-orders/${woId}/tickets`),
         {
-          headers: { 'Cache-Control': 'no-cache' },
+          headers: { 
+              'Cache-Control': 'no-cache',
+              'Authorization': `Bearer ${token}` // <--- Add Header
+          },
         }
         );
 
@@ -398,7 +405,10 @@ const TicketList: React.FC = () => {
 
   // 4. SSE REAL-TIME UPDATES
   useEffect(() => {
-    const eventSource = new EventSource('http://localhost:3000/api/tickets/events');
+    const token = localStorage.getItem('token'); // <--- Get Token
+    
+    // Pass token in URL query string
+    const eventSource = new EventSource(`http://localhost:3000/api/tickets/events?token=${token}`);
     
     eventSource.onopen = () => console.log("SSE Connected");
 

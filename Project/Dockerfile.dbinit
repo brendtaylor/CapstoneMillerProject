@@ -1,0 +1,17 @@
+FROM mcr.microsoft.com/mssql/server:2022-latest
+
+# Run as root to ensure we have permission to copy and modify files
+USER root
+
+# Create the directory
+RUN mkdir -p /scripts
+
+# Copy the database scripts from your host into the container
+# This assumes your 'Database' folder is in the same directory as this Dockerfile
+COPY ./Database /scripts
+
+# Give execute permissions to everyone just to be safe
+RUN chmod -R 777 /scripts
+
+# Switch back to the default entrypoint behavior (we will override it in compose)
+ENTRYPOINT ["/bin/bash"]
