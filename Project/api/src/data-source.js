@@ -23,12 +23,12 @@ const Note = require("./entities/note.entity");
 
 const AppDataSource = new DataSource({
     type: "mssql",
-    //read .env file
+    // FIXED: Match the variable names in your .env file
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT, 10),
-    username: process.env.DB_USER,
+    username: process.env.DB_USERNAME,    // ✅ Changed from DB_USER
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
+    database: process.env.DB_NAME,        // ✅ Changed from DB_DATABASE
     
     entities: [
         Ticket,
@@ -62,4 +62,3 @@ const AppDataSource = new DataSource({
 
 
 module.exports = { AppDataSource };
-
