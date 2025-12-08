@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
 import { jwtDecode } from "jwt-decode"; 
-import { API_BASE_URL } from "../api";
+import { api } from "../api";
 
 // Map Database Role IDs to UI String Roles
 const ROLE_MAP: Record<number, string> = {
@@ -54,12 +54,8 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loginAs = async (targetUserId: number) => {
     try {
-        const res = await fetch(`${API_BASE_URL}/dev/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: targetUserId }) 
-        });
-        const data = await res.json();
+        const res = await api.post<{ token: string }>('/dev/login', { userId: targetUserId });
+        const data = res.data;
         
         if (data.token) {
             // Decode the new token immediately to get the correct role string

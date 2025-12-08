@@ -5,7 +5,7 @@ import { useDebounce } from '../hooks/use-debounce';
 import { logAudit } from './utils/auditLogger';
 import { getFileIcon } from "./utils/fileHelper";
 import { useFileHelper } from "../hooks/useFileHelper";
-import { API_BASE_URL } from "../api";
+import { api } from "../api";
 
 import {
     Division,
@@ -127,11 +127,9 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     // --- Data Fetching: Global Lists ---
     const fetchGlobalDropdownData = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<any[]>>, search: string = '') => {
         try {
-            const url = search ? `${API_BASE_URL}/${endpoint}?search=${search}` : `${API_BASE_URL}/${endpoint}`;
-            const response = await fetch(url);
-            if (response.ok) {
-                setter(await response.json());
-            }
+            const url = search ? `/${endpoint}?search=${search}` : `/${endpoint}`;
+            const response = await api.get<any[]>(url);
+            setter(response.data);
         } catch (error) {
             console.error(`Failed to fetch ${endpoint}:`, error);
         }
@@ -165,16 +163,16 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             try {
                 // Fetch all dependencies in parallel
                 const [deptRes, nonConRes, unitRes, seqRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/work-orders/${workOrderId}/labor-departments`),
-                    fetch(`${API_BASE_URL}/work-orders/${workOrderId}/nonconformances`),
-                    fetch(`${API_BASE_URL}/work-orders/${workOrderId}/units`),
-                    fetch(`${API_BASE_URL}/work-orders/${workOrderId}/sequences`)
+                    api.get<LaborDepartment[]>(`/work-orders/${workOrderId}/labor-departments`),
+                    api.get<Nonconformance[]>(`/work-orders/${workOrderId}/nonconformances`),
+                    api.get<Unit[]>(`/work-orders/${workOrderId}/units`),
+                    api.get<Sequence[]>(`/work-orders/${workOrderId}/sequences`)
                 ]);
 
-                if (deptRes.ok) setLaborDepts(await deptRes.json());
-                if (nonConRes.ok) setManNonCons(await nonConRes.json());
-                if (unitRes.ok) setUnits(await unitRes.json());
-                if (seqRes.ok) setSequences(await seqRes.json());
+                setLaborDepts(deptRes.data);
+                setManNonCons(nonConRes.data);
+                setUnits(unitRes.data);
+                setSequences(seqRes.data);
 
             } catch (error) {
                 console.error("Failed to fetch filtered data for Work Order:", error);
@@ -226,16 +224,8 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/tickets`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(ticketPayload),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to create ticket.');
-            }
-            const newTicket = await response.json();
+            const response = await api.post<any>('/tickets', ticketPayload);
+            const newTicket = response.data;
             toast({ title: "Success!", description: `Ticket ${newTicket.qualityTicketId} has been created.` });
 
             // --- Upload Multiple Files ---
@@ -249,22 +239,9 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             formData.append("imageFile", f.file);                         // raw File object
 
             try {
-                const res = await fetch(`${API_BASE_URL}/files/upload`, {
-                method: "POST",
-                body: formData,
+                await api.post('/files/upload', formData, {
+                    headers: { "Content-Type": "multipart/form-data" }
                 });
-
-                const contentType = res.headers.get("content-type");
-                let data;
-                if (contentType && contentType.includes("application/json")) {
-                    data = await res.json();
-                } 
-                else {
-                    const text = await res.text();
-                    throw new Error(`Unexpected response: ${text}`);
-                }
-
-                
 
                 setFiles(prev =>
                 prev.map(file =>
@@ -272,7 +249,8 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                 )
                 );
             } catch (err: any) {
-                toast({ variant: "destructive", title: "Upload Failed", description: err.message });
+                const errMsg = err.response?.data?.message || err.message || "Upload Failed";
+                toast({ variant: "destructive", title: "Upload Failed", description: errMsg });
             }
             }
             
@@ -285,7 +263,8 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             setShowPostCreate(true);
 
         } catch (error: any) {
-            toast({ variant: "destructive", title: "Save Failed", description: error.message });
+            const errMsg = error.response?.data?.message || error.message || "Save Failed";
+            toast({ variant: "destructive", title: "Save Failed", description: errMsg });
             console.error("Failed to save ticket:", error);
         } finally {
             setIsSaving(false);
