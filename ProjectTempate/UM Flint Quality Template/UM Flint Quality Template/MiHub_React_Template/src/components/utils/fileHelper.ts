@@ -1,6 +1,6 @@
-// fileHelper.ts
-// src/utils/fileHelper.ts
+// src/components/utils/fileHelper.ts
 import { FileText, FileImage, FileArchive, FileSpreadsheet, FileType, File } from "lucide-react";
+import { api, API_BASE_URL } from "../../api"; 
 
 export const getFileIcon = (previewType: string) => {
   switch (previewType) {
@@ -31,18 +31,17 @@ export async function uploadFile(ticketId: number, file: File) {
   formData.append("fileKey", uniqueKey);
   formData.append("imageFile", file);
 
-  const res = await fetch("http://localhost:3000/api/files/upload", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`File upload failed: ${text}`);
+  try {
+    const res = await api.post("/files/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return { ...(res.data as any), fileKey: uniqueKey };
+  } catch (error: any) {
+    const msg = error.response?.data?.message || error.message || "Upload failed";
+    throw new Error(`File upload failed: ${msg}`);
   }
-
-  const data = await res.json();
-  return { ...data, fileKey: uniqueKey };
 }
 
 export async function uploadFiles(ticketId: number, files: File[]) {
@@ -55,5 +54,5 @@ export async function uploadFiles(ticketId: number, files: File[]) {
 }
 
 export function getImageUrl(imageKey: string): string {
-  return `http://localhost:3000/api/images/${encodeURIComponent(imageKey)}`;
+  return `${API_BASE_URL}/images/${encodeURIComponent(imageKey)}`;
 }

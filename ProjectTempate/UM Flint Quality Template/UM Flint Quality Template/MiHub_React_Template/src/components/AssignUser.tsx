@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
-import { api } from "../api";
+import { api } from "../api"; 
 import { useDebounce } from "../hooks/use-debounce";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "./ui/button";
+import { useAuth } from "./AuthContext"; 
 
-// Use the User interface to handle the object data correctly
 interface User {
   id: number;
   name: string;
@@ -15,11 +15,13 @@ interface User {
 interface Props {
   ticketId: number;
   currentAssigned?: string;
-  onAssignmentSuccess?: () => void; // Callback for parent component
+  onAssignmentSuccess?: () => void; 
 }
 
 export default function AssignUser({ ticketId, currentAssigned, onAssignmentSuccess }: Props) {
   const { toast } = useToast();
+  const { userId, userRole } = useAuth(); 
+  
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [userSearchText, setUserSearchText] = useState(currentAssigned || "");
@@ -42,10 +44,8 @@ export default function AssignUser({ ticketId, currentAssigned, onAssignmentSucc
     fetchUsers();
   }, [debouncedUserSearch]);
 
-  // Set initial state from props
   useEffect(() => { setUserSearchText(currentAssigned || ""); }, [currentAssigned]);
 
-  // When the user list or search text changes, re-evaluate the selected user ID.
   useEffect(() => {
     const selected = users.find(u => u.name === userSearchText);
     setSelectedUserId(selected ? selected.id.toString() : "");
@@ -53,12 +53,18 @@ export default function AssignUser({ ticketId, currentAssigned, onAssignmentSucc
 
   async function handleAssign() {
     if (!selectedUserId) {
-      toast({
-        variant: "destructive",
-        title: "No User Selected",
-        description: "Please choose a user before assigning.",
-      });
+      toast({ variant: "destructive", title: "No User Selected", description: "Please choose a user." });
       return;
+    }
+    
+    // Check for Viewer Role
+    if (userRole?.toLowerCase() === 'viewer') {
+        return toast({ variant: "destructive", title: "Authorization Failed", description: "Viewers cannot assign tickets." });
+    }
+    
+    // Check for Editor Role (Can only assign self)
+    if (userRole?.toLowerCase() === 'editor' && selectedUserId !== String(userId)) {
+        return toast({ variant: "destructive", title: "Authorization Failed", description: "Editor can only assign themselves." });
     }
 
     setShowConfirm(true);
@@ -67,44 +73,36 @@ export default function AssignUser({ ticketId, currentAssigned, onAssignmentSucc
   async function executeAssign() {
     if (!selectedUserId) return;
 
+    const selectedId = parseInt(selectedUserId, 10);
+    const isAssigningSelf = selectedId === userId;
+    let endpoint = isAssigningSelf 
+        ? `/tickets/${ticketId}/assign/self` 
+        : `/tickets/${ticketId}/assign/${selectedUserId}`;
+
     try {
-      // Use the generic update route '/tickets/:id'
-      await api.put(`/tickets/${ticketId}`, {
-        assignedTo: parseInt(selectedUserId), 
-      });
+      await api.patch(endpoint); 
 
-      toast({
-        title: "Success!",
-        description: "Ticket has been assigned.",
-      });
-
-      // Notify parent component to refetch data
-      if (onAssignmentSuccess) {
-        onAssignmentSuccess();
-      }
-    } catch (error) {
+      toast({ title: "Success!", description: `Ticket assigned to ${selectedUserName}.` });
+      if (onAssignmentSuccess) onAssignmentSuccess();
+    } catch (error: any) {
       console.error("Failed to assign ticket", error);
-      toast({
-        variant: "destructive",
-        title: "Assignment Failed",
-        description: "Could not assign ticket. Check console for details.",
-      });
+      const errorMessage = error.response?.data?.message || "Could not assign ticket.";
+      toast({ variant: "destructive", title: "Assignment Failed", description: errorMessage });
     }
   }
+
+  const isAssignButtonDisabled = !selectedUserId || selectedUserName === currentAssigned || userRole?.toLowerCase() === 'viewer';
 
   return (
     <>
       <div className="flex items-end gap-2">
         <div className="flex-grow">
-          <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 mb-1">
-            Assigned To:
-          </label>
+          <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 mb-1">Assigned To:</label>
           <input
             id="user-search"
             list="user-list"
             value={userSearchText}
             onChange={(e) => setUserSearchText(e.target.value)}
-            onInput={(e: React.ChangeEvent<HTMLInputElement>) => setUserSearchText(e.target.value)}
             placeholder="Search for a user..."
             className="mt-1 block w-full border border-gray-300 rounded-md p-2"
           />
@@ -112,9 +110,7 @@ export default function AssignUser({ ticketId, currentAssigned, onAssignmentSucc
             {users.map((u) => <option key={u.id} value={u.name} />)}
           </datalist>
         </div>
-        <Button onClick={handleAssign} disabled={!selectedUserId || selectedUserName === currentAssigned}>
-          Assign
-        </Button>
+        <Button onClick={handleAssign} disabled={isAssignButtonDisabled}>Assign</Button>
       </div>
 
       {showConfirm && (

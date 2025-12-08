@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ScaleLoader } from "react-spinners";
+import { api } from "../api"; 
 
 interface AuditLogEntry {
   logId: number;
@@ -35,28 +36,26 @@ const AuditLog: React.FC = () => {
     return () => clearTimeout(timerId);
   }, [searchTerm]);
 
-  // Map numeric role to readable string
+  // Mapping to match Database/Backend (1=Viewer, 2=Editor, 3=Admin)
   function getRoleName(role: number | null): string {
     switch (role) {
-      case 0:
-        return "Viewer";
       case 1:
-        return "Editor";
+        return "Viewer";
       case 2:
+        return "Editor";
+      case 3:
         return "Admin";
       default:
-        return "—"; // Other
+        return "—"; 
     }
   }
 
   function formatTicketId(ticketId: number): string {
     // Make it Positive
     const positiveValue = Math.abs(999-ticketId);
-
     // Pad to 3 digits
     return positiveValue.toString().padStart(3, "0");
   }
-
 
   const handleSearch = async (term: string) => {
     setLoading(true);
@@ -64,18 +63,14 @@ const AuditLog: React.FC = () => {
     setIsSearching(true);
 
     try {
-      const url = term
-        ? `http://localhost:3000/api/audit?search=${encodeURIComponent(term.toLowerCase())}`
-        : `http://localhost:3000/api/audit`;
+      // This automatically handles the Base URL and Authorization Header.
+      const endpoint = term
+        ? `/audit?search=${encodeURIComponent(term.toLowerCase())}`
+        : `/audit`;
 
-      const response = await fetch(url, {
-        headers: { "Content-Type": "application/json" }
-      });
+      const response = await api.get<any[]>(endpoint);
 
-      if (!response.ok) throw new Error("Could not Fetch Audit Logs");
-
-      const data = await response.json();
-      const mapped: AuditLogEntry[] = data.map((row: any) => ({
+      const mapped: AuditLogEntry[] = response.data.map((row: any) => ({
         logId: row.logId,
         userId: row.userId ?? null,
         userRole: row.userRole ?? null,
