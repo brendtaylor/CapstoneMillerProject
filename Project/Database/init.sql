@@ -351,6 +351,24 @@ REFERENCES [dbo].[MiHub_WO] ([WO_ID])
 GO
 
 -- ######################################################################
+-- # PERFORMANCE INDEXES
+-- ######################################################################
+
+-- Foreign Key Indexes for Ticket Table (Critical for Joins)
+CREATE INDEX IX_Tickets_WO ON dbo.MiHubWeb_Quality_Tickets(WO);
+CREATE INDEX IX_Tickets_Unit ON dbo.MiHubWeb_Quality_Tickets(UNIT);
+CREATE INDEX IX_Tickets_Status ON dbo.MiHubWeb_Quality_Tickets(STATUS);
+CREATE INDEX IX_Tickets_Division ON dbo.MiHubWeb_Quality_Tickets(DIVISION);
+CREATE INDEX IX_Tickets_Sequence ON dbo.MiHubWeb_Quality_Tickets(SEQUENCE);
+CREATE INDEX IX_Tickets_Initiator ON dbo.MiHubWeb_Quality_Tickets(INITIATOR);
+CREATE INDEX IX_Tickets_AssignedTo ON dbo.MiHubWeb_Quality_Tickets(ASSIGNED_TO);
+
+-- Foreign Key Indexes for Work Order Linking Tables
+CREATE INDEX IX_WO_Labor_Dept ON dbo.WorkOrder_LaborDepartments(DEPARTMENT_ID);
+CREATE INDEX IX_WO_Units_Unit ON dbo.WorkOrder_Units(UNIT_ID);
+GO
+
+-- ######################################################################
 -- # SEED DATA
 -- ######################################################################
 
@@ -439,4 +457,42 @@ VALUES
     (3, 1), (3, 2), (3, 3), (3, 4),
     (4, 1), (4, 2), (4, 3), (4, 4),
     (5, 1), (5, 2), (5, 3), (5, 4)
+GO
+
+-- WORK ORDER 3 (341118)
+-- =============================================
+-- Assign Departments: Welding (1) and Electrical (4)
+INSERT INTO dbo.WorkOrder_LaborDepartments (WO_ID, DEPARTMENT_ID) VALUES (3, 1), (3, 4);
+GO
+-- Assign Units: A3 (103) and B3 (108)
+INSERT INTO dbo.WorkOrder_Units (WO_ID, UNIT_ID) VALUES (3, 103), (3, 108);
+GO
+-- Assign Sequences: LMN-12345 (105) and ABC-67890 (106)
+INSERT INTO dbo.WorkOrder_Sequences (WO_ID, SEQUENCE_ID) VALUES (3, 105), (3, 106);
+GO
+
+-- =============================================
+-- WORK ORDER 4 (253233)
+-- =============================================
+-- Assign Departments: Assembly (2) and Paint (3)
+INSERT INTO dbo.WorkOrder_LaborDepartments (WO_ID, DEPARTMENT_ID) VALUES (4, 2), (4, 3);
+GO
+-- Assign Units: A4 (104) and B4 (109)
+INSERT INTO dbo.WorkOrder_Units (WO_ID, UNIT_ID) VALUES (4, 104), (4, 109);
+GO
+-- Assign Sequences: REW-00300 (101) and 019000 (104)
+INSERT INTO dbo.WorkOrder_Sequences (WO_ID, SEQUENCE_ID) VALUES (4, 101), (4, 104);
+GO
+
+-- =============================================
+-- WORK ORDER 5 (289933)
+-- =============================================
+-- Assign Departments: Detailing (5)
+INSERT INTO dbo.WorkOrder_LaborDepartments (WO_ID, DEPARTMENT_ID) VALUES (5, 5);
+GO
+-- Assign Units: A5 (105) and B5 (110)
+INSERT INTO dbo.WorkOrder_Units (WO_ID, UNIT_ID) VALUES (5, 105), (5, 110);
+GO
+-- Assign Sequences: 000400 (102) and DSA-20019 (103)
+INSERT INTO dbo.WorkOrder_Sequences (WO_ID, SEQUENCE_ID) VALUES (5, 102), (5, 103);
 GO
