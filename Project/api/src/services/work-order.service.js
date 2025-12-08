@@ -2,7 +2,7 @@ const { AppDataSource } = require("../data-source");
 const { In } = require("typeorm"); 
 const logger = require("../../logger");
 
-// Repositories for all our new entities
+// Repositories for all entities
 const workOrderRepository = AppDataSource.getRepository("WorkOrder");
 const ticketRepository = AppDataSource.getRepository("Ticket");
 const unitLinkRepository = AppDataSource.getRepository("WorkOrderUnit");
