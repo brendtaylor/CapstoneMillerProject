@@ -1,43 +1,54 @@
 const jwt = require("jsonwebtoken");
-const { AppDataSource } = require("../data-source"); //
-const UserSchema = require("../entities/user.entity"); //
+const { AppDataSource } = require("../data-source"); 
+const UserSchema = require("../entities/user.entity"); 
+
+// in-memory cache: { userId: { userObject, timestamp } }
+const userCache = new Map();
+const CACHE_TTL_MS = 60 * 1000; // Cache user for 1 minute
 
 const authenticateToken = async (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
-
+    let token = req.headers['authorization'] && req.headers['authorization'].split(' ')[1];
+    if (!token && req.query.token) token = req.query.token;
     if (!token) return res.sendStatus(401);
 
     jwt.verify(token, process.env.JWT_SECRET, async (err, decodedUser) => {
         if (err) return res.sendStatus(403);
 
-        // SYNC STRATEGY:
-        // The token is valid, so this user IS authenticated by the main app.
-        // We must ensure they exist in our local 'MiHub_Quality_Users' table
-        // so we can link them to Tickets/Notes.
-        const userRepository = AppDataSource.getRepository(UserSchema);
-        
-        let localUser = await userRepository.findOneBy({ id: decodedUser.id });
+        const now = Date.now();
 
-        if (!localUser) {
-            // User exists in MiHub but not here yet. Create them.
-            localUser = userRepository.create({
-                id: decodedUser.id,
-                name: decodedUser.name,
-                email: decodedUser.email,
-                role: decodedUser.role === 'Admin' ? 2 : 1 // Map string roles to your tinyint logic
-            });
-            await userRepository.save(localUser);
-        } else {
-            // Optional: Update local details if they changed in the token
-             if(localUser.name !== decodedUser.name) {
-                localUser.name = decodedUser.name;
-                await userRepository.save(localUser);
-             }
+        // CHECK CACHE FIRST
+        if (userCache.has(decodedUser.id)) {
+            const cached = userCache.get(decodedUser.id);
+            if (now - cached.timestamp < CACHE_TTL_MS) {
+                req.user = cached.user; // Use cached user
+                return next(); 
+            }
         }
 
-        req.user = localUser; // Attach the full DB entity to the request
-        next();
+        try {
+            const userRepository = AppDataSource.getRepository(UserSchema);
+            let localUser = await userRepository.findOneBy({ id: decodedUser.id });
+
+            // If user doesn't exist, create them
+            if (!localUser) {
+                localUser = userRepository.create({
+                    id: decodedUser.id,
+                    name: decodedUser.name,
+                    email: decodedUser.email,
+                    role: mapRoleStringToId(decodedUser.role)
+                });
+                await userRepository.save(localUser);
+            }
+
+            // SAVE TO CACHE
+            userCache.set(decodedUser.id, { user: localUser, timestamp: now });
+
+            req.user = localUser; 
+            next();
+        } catch (dbError) {
+            console.error("Auth DB Error:", dbError);
+            res.sendStatus(500);
+        }
     });
 };
 

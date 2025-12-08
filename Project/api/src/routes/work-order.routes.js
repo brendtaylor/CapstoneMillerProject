@@ -9,6 +9,8 @@ const {
     getLaborDepartmentsByWorkOrder,
     getNonconformancesByWorkOrder
 } = require("../controllers/work-order.controller");
+const authorize = require("../middleware/authorize");
+const { authenticateToken } = require("../middleware/auth.middleware");
 
 const router = Router();
 
@@ -16,7 +18,7 @@ const router = Router();
 router.get("/work-orders-summary", getWorkOrderSummary);
 
 // Route for the Archive dashboard
-router.get("/work-orders/archived-summary", getArchivedWorkOrderSummary);
+router.get("/work-orders/archived-summary", authenticateToken, authorize(['Admin']), getArchivedWorkOrderSummary);
 
 // Route to get all tickets for a single WO
 router.get("/work-orders/:wo_id/tickets", getTicketsByWorkOrder);
