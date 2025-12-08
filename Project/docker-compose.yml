@@ -5,26 +5,63 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DB_HOST: sql-server-db
-      DB_PORT: 1433
-      DB_USER: sa
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      DB_DATABASE: ${DB_NAME}
+      DB_NAME: ${DB_NAME}
       NODE_ENV: ${NODE_ENV}
-      MAKE_SIGNING_SECRET: ${MAKE_SIGNING_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
       MAKE_WEBHOOK_URL: ${MAKE_WEBHOOK_URL}
+      MAKE_SIGNING_SECRET: ${MAKE_SIGNING_SECRET}
+    depends_on:
+      sql-server-db:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
    
-  database:
+  sql-server-db:
     container_name: sql-server-db
     image: mcr.microsoft.com/mssql/server:2022-latest
     ports:
       - "1433:1433"
     environment:
-      ACCEPT_EULA: 'Y'
+      ACCEPT_EULA: "Y"
       SA_PASSWORD: ${DB_PASSWORD}
+      MSSQL_PID: Developer
     volumes:
       - sql_server_data:/var/opt/mssql
-    
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD}' -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  db-init:
+    container_name: db-init
+    build:
+      context: .
+      dockerfile: Dockerfile.dbinit
+    depends_on:
+      sql-server-db:
+        condition: service_healthy
+    environment:
+      SQLCMDPASSWORD: ${DB_PASSWORD}
+    command:
+      - -c
+      - |
+        set -e
+        echo "Waiting 30s for SQL Server to be ready..."
+        sleep 30
+        echo "Checking files in /scripts (should verify init.sql exists)..."
+        ls -la /scripts
+        echo "Creating database ${DB_NAME}..."
+        /opt/mssql-tools18/bin/sqlcmd -S sql-server-db -U sa -C -Q "CREATE DATABASE ${DB_NAME}"
+        echo "Running init script..."
+        /opt/mssql-tools18/bin/sqlcmd -S sql-server-db -U sa -C -i /scripts/init.sql
+        echo "Database initialized successfully"
 
 volumes:
   sql_server_data:
