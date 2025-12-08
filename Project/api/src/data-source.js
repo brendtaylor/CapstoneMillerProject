@@ -31,7 +31,7 @@ const AppDataSource = new DataSource({
     
     extra: {
         pool: {
-            max: 50,  // Allow up to 50 concurrent DB connections
+            max: 120,  // Allow up to 50 concurrent DB connections
             min: 5,   // Keep 5 ready at all times
             idleTimeoutMillis: 30000 
         }

@@ -608,8 +608,8 @@ const TicketDetails: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Ticket Details</CardTitle>
-            {/* ROLE CHECK: Only Editor/Admin can access general Edit/PUT*/}
-            {!isArchived && (userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'editor') && (
+            {/* ROLE CHECK: Viewer/Editor/Admin can access general Edit/PUT*/}
+            {!isArchived && (userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'editor' || userRole?.toLowerCase() === 'viewer') && (
               <Button variant="secondary" onClick={handleEdit}>
                 Edit Ticket
               </Button>
