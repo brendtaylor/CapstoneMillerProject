@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ScaleLoader } from "react-spinners";
-import { api } from "../api"; // [FIX] Import the axios instance
+import { api } from "../api"; 
 
 interface AuditLogEntry {
   logId: number;
@@ -36,7 +36,7 @@ const AuditLog: React.FC = () => {
     return () => clearTimeout(timerId);
   }, [searchTerm]);
 
-  // [FIX] Updated mapping to match Database/Backend (1=Viewer, 2=Editor, 3=Admin)
+  // Mapping to match Database/Backend (1=Viewer, 2=Editor, 3=Admin)
   function getRoleName(role: number | null): string {
     switch (role) {
       case 1:
@@ -63,7 +63,6 @@ const AuditLog: React.FC = () => {
     setIsSearching(true);
 
     try {
-      // [FIX] Use 'api.get' instead of fetch. 
       // This automatically handles the Base URL and Authorization Header.
       const endpoint = term
         ? `/audit?search=${encodeURIComponent(term.toLowerCase())}`

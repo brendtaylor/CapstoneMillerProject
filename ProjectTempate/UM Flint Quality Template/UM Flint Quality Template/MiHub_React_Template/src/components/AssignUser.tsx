@@ -1,6 +1,5 @@
-// ProjectTempate/.../src/components/AssignUser.tsx
 import { useEffect, useState, useMemo } from "react";
-import { api } from "../api"; // Now this has the interceptor!
+import { api } from "../api"; 
 import { useDebounce } from "../hooks/use-debounce";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "./ui/button";
@@ -21,7 +20,6 @@ interface Props {
 
 export default function AssignUser({ ticketId, currentAssigned, onAssignmentSuccess }: Props) {
   const { toast } = useToast();
-  // [CLEANUP] No need to get 'token' here anymore
   const { userId, userRole } = useAuth(); 
   
   const [users, setUsers] = useState<User[]>([]);
@@ -37,7 +35,6 @@ export default function AssignUser({ ticketId, currentAssigned, onAssignmentSucc
   useEffect(() => {
     async function fetchUsers() {
       try {
-        // [CLEANUP] Headers are now automatic!
         const { data } = await api.get<User[]>(`/users?search=${encodeURIComponent(debouncedUserSearch)}`);
         setUsers(data);
       } catch (err) {
@@ -59,9 +56,17 @@ export default function AssignUser({ ticketId, currentAssigned, onAssignmentSucc
       toast({ variant: "destructive", title: "No User Selected", description: "Please choose a user." });
       return;
     }
+    
+    // Check for Viewer Role
     if (userRole?.toLowerCase() === 'viewer') {
         return toast({ variant: "destructive", title: "Authorization Failed", description: "Viewers cannot assign tickets." });
     }
+    
+    // Check for Editor Role (Can only assign self)
+    if (userRole?.toLowerCase() === 'editor' && selectedUserId !== String(userId)) {
+        return toast({ variant: "destructive", title: "Authorization Failed", description: "Editor can only assign themselves." });
+    }
+
     setShowConfirm(true);
   }
 
@@ -75,7 +80,6 @@ export default function AssignUser({ ticketId, currentAssigned, onAssignmentSucc
         : `/tickets/${ticketId}/assign/${selectedUserId}`;
 
     try {
-      // [CLEANUP] Headers are automatic!
       await api.patch(endpoint); 
 
       toast({ title: "Success!", description: `Ticket assigned to ${selectedUserName}.` });

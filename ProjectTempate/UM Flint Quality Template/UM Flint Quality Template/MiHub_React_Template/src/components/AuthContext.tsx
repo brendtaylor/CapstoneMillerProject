@@ -1,9 +1,7 @@
-// ProjectTempate/.../src/components/AuthContext.tsx
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
 import { jwtDecode } from "jwt-decode"; 
 
-// [FIX] Map Database Role IDs to UI String Roles
+// Map Database Role IDs to UI String Roles
 const ROLE_MAP: Record<number, string> = {
     1: 'Viewer',
     2: 'Editor',
@@ -15,7 +13,7 @@ const decodeToken = (t: string | null) => {
     try {
         const decoded: any = jwtDecode(t);
         
-        // [FIX] Translate ID to String if it is a number
+        // Translate ID to String if it is a number
         let roleName = decoded.role;
         if (typeof decoded.role === 'number') {
             roleName = ROLE_MAP[decoded.role] || 'Viewer';

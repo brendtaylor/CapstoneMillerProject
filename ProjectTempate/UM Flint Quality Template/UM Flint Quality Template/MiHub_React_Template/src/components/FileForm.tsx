@@ -166,7 +166,6 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     useEffect(() => {
         const fetchFilteredData = async () => {
             if (!workOrderId) {
-                // ... (existing clear logic)
                 return;
             }
 
@@ -246,7 +245,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}` // <--- Fix for Ticket Creation
+                    'Authorization': `Bearer ${localStorage.getItem('token')}` 
                 },
                 body: JSON.stringify(ticketPayload),
             });
@@ -272,7 +271,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
                     const res = await fetch("http://localhost:3000/api/files/upload", {
                         method: "POST",
                         headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}` // <--- Fix for File Upload
+                            'Authorization': `Bearer ${localStorage.getItem('token')}` 
                         },
                         body: formData,
                     });

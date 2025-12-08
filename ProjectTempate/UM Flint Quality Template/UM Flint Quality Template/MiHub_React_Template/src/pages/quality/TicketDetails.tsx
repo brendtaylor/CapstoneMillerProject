@@ -43,12 +43,12 @@ const TicketDetails: React.FC = () => {
   const { toast } = useToast();
   const [showUploadModal, setShowUploadModal] = useState(false);
   
-// Helper for Authorization Header
+  // Helper for Authorization Header
   const AUTH_HEADERS = {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}` 
   };
-// --- END AUTH HELPER ---
+
 
   // Detect Archive Mode based on URL path
   const isArchived = location.pathname.includes("/archived/");
@@ -100,11 +100,10 @@ const TicketDetails: React.FC = () => {
   const debouncedEditDivisionSearch = useDebounce(editDivisionSearch, 300);
   const debouncedEditWorkOrderSearch = useDebounce(editWorkOrderSearch, 300);
 
-  // --- End Edit State ---
+  
 
   const resetToPreviousStatus = () => setStatus(previousStatus);
 
-  // Load Ticket Info
   // Load Ticket Info
   const fetchTicket = async () => {
     try {
@@ -113,7 +112,7 @@ const TicketDetails: React.FC = () => {
         ? `http://localhost:3000/api/tickets/archived/${id}`
         : `http://localhost:3000/api/tickets/${id}`;
 
-      // --- ADDED AUTH HEADER ---
+      // --- AUTH HEADER ---
       const response = await fetch(endpoint, {
           headers: { "Authorization": `Bearer ${token}` }
       });
@@ -126,12 +125,7 @@ const TicketDetails: React.FC = () => {
       setStatus(currentStatus);
       setPreviousStatus(currentStatus);
       
-      // Pre-fill closing fields if they already exist
-      setClosingFields({
-        correctiveAction: data.correctiveAction || "",
-        materialsUsed: data.materialsUsed || "",
-        estimatedLaborHours: data.estimatedLaborHours?.toString() || "",
-      });
+
     } catch {
       toast({
         variant: "destructive",
@@ -144,7 +138,6 @@ const TicketDetails: React.FC = () => {
   // Load Notes
   const fetchNotes = async () => {
     try {
-      // --- ADDED AUTH HEADER ---
       const response = await fetch(`http://localhost:3000/api/tickets/${id}/notes`, {
           headers: { "Authorization": `Bearer ${token}` }
       });
@@ -180,12 +173,14 @@ const TicketDetails: React.FC = () => {
     }
 
     try {
-      // --- ADDED AUTH HEADER to POST NOTES ---
-      await fetch(`http://localhost:3000/api/tickets/${id}/notes`, {
+      const response = await fetch(`http://localhost:3000/api/tickets/${id}/notes`, {
         method: "POST",
         headers: AUTH_HEADERS,
         body: JSON.stringify({ note: noteText, authorId: userId }),
       });
+
+      // Check for success before showing toast
+      if (!response.ok) throw new Error("Failed to add note");
 
       setNoteText("");
       fetchNotes();
@@ -199,7 +194,7 @@ const TicketDetails: React.FC = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add note.",
+        description: "Failed to add note. Viewers may not have permission.",
       });
     }
   };
@@ -207,9 +202,8 @@ const TicketDetails: React.FC = () => {
   // Update Status (can be called directly or after assignment)
   const performStatusUpdate = async (statusToUpdate: number, extraFields?: object) => {
     try {
-      // --- UPDATED ENDPOINT AND METHOD FOR STATUS CHANGE ---
       await fetch(`http://localhost:3000/api/tickets/${id}/status`, { 
-        method: "PATCH", // Changed from PUT
+        method: "PATCH", 
         headers: AUTH_HEADERS,
         body: JSON.stringify({ status: statusToUpdate, ...extraFields }),
       });
@@ -262,6 +256,11 @@ const TicketDetails: React.FC = () => {
     if (newStatusId === 1 && !ticket?.assignedTo) {
       setShowAssignmentPrompt(true);
     } else if (newStatusId === 2) { // If new status is "Closed" (ID 2), show closing prompt.
+      setClosingFields({
+        correctiveAction: "",
+        materialsUsed: "",
+        estimatedLaborHours: "",
+      });
       setShowClosingPrompt(true);
     }
   };
@@ -312,7 +311,6 @@ const TicketDetails: React.FC = () => {
 
     try {
       const payload = {
-        // --- REMOVED STATUS FROM PAYLOAD (MUST USE DEDICATED PATCH ROUTE) ---
         description: editFields.description,
         drawingNum: editFields.drawingNum, 
         initiator: userId, 
@@ -326,7 +324,7 @@ const TicketDetails: React.FC = () => {
 
       const response = await fetch(`http://localhost:3000/api/tickets/${ticket.ticketId}`, {
         method: "PUT",
-        headers: AUTH_HEADERS, // --- ADDED AUTH HEADER ---
+        headers: AUTH_HEADERS, 
         body: JSON.stringify(payload),
       });
 
@@ -344,7 +342,7 @@ const TicketDetails: React.FC = () => {
   const fetchGlobalDropdownData = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<any[]>>, search: string = '') => {
     try {
       const url = search ? `http://localhost:3000/api/${endpoint}?search=${search}` : `http://localhost:3000/api/${endpoint}`;
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: AUTH_HEADERS });
       if (response.ok) setter(await response.json());
     } catch (error) { console.error(`Failed to fetch ${endpoint}:`, error); }
   };
@@ -360,10 +358,10 @@ const TicketDetails: React.FC = () => {
         }
         try {
             const [deptRes, nonConRes, unitRes, seqRes] = await Promise.all([
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/labor-departments`),
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/nonconformances`),
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/units`),
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/sequences`)
+                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/labor-departments`, { headers: AUTH_HEADERS }),
+                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/nonconformances`, { headers: AUTH_HEADERS }),
+                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/units`, { headers: AUTH_HEADERS }),
+                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/sequences`, { headers: AUTH_HEADERS })
             ]);
             if (deptRes.ok) setLaborDepts(await deptRes.json());
             if (nonConRes.ok) setNonconformances(await nonConRes.json());
@@ -373,14 +371,13 @@ const TicketDetails: React.FC = () => {
     };
     fetchFilteredData();
   }, [editFields.workOrderId, isEditing]);
-  // --- END EDIT LOGIC ---
+ 
 
   // Handle assignment success: refetch and update status if needed
   const handleAssignmentSuccess = async () => {
     await fetchTicket(); // Refetch to get the latest ticket data
     // If the ticket was 'Open' (statusId 0), automatically set it to 'In Progress'
     if (ticket?.status?.statusId === 0) {
-      // We can skip confirmation here as it's a logical next step
       handleStatusUpdate("1", undefined, { skipConfirmation: true });
     }
   };
@@ -612,7 +609,7 @@ const TicketDetails: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Ticket Details</CardTitle>
-            {/* --- ADDED ROLE CHECK: Only Editor/Admin can access general Edit/PUT --- */}
+            {/* ROLE CHECK: Only Editor/Admin can access general Edit/PUT*/}
             {!isArchived && (userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'editor') && (
               <Button variant="secondary" onClick={handleEdit}>
                 Edit Ticket
@@ -684,9 +681,8 @@ const TicketDetails: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Status Update - Hide if Archived */}
-        {/* Status Update - Hide if Archived OR if user is Viewer (Editor/Admin only) */}
-        {/* --- UPDATED ROLE CHECK: Only Editor/Admin can change status --- */}
+        {/* Status Update - Hide if Archived OR if user is Viewer role */}
+        {/* --- ROLE CHECK: Only Editor/Admin can change status --- */}
         {!isArchived && (userRole?.toLowerCase() === 'editor' || userRole?.toLowerCase() === 'admin') && (
           <Card>
             <CardHeader>

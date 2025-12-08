@@ -108,10 +108,9 @@ class TicketService {
         return updatedTicket;
     }
 
-    async updateTicketStatus(id, newStatus, user) {
+    async updateTicketStatus(id, newStatus, extraData, user) {
         logger.info(`Updating Status for ticket ID: ${id} to ${newStatus}`);
 
-        // [FIX] Load 'status' and 'wo' relations so we can read them safely
         const currentTicket = await this.ticketRepository.findOne({ 
             where: { ticketId: id },
             relations: ["status", "wo", "closures"] 
@@ -119,7 +118,6 @@ class TicketService {
 
         if (!currentTicket) throw new Error("Ticket not found");
 
-        // Use safe access (?. just in case, though relations should exist)
         const currentStatusId = currentTicket.status?.statusId;
 
         // Logic for Closing
@@ -130,9 +128,9 @@ class TicketService {
                 ticket: { ticketId: id },
                 cycleStartDate: cycleStart,
                 cycleCloseDate: new Date(),
-                correctiveAction: currentTicket.correctiveAction,
-                materialsUsed: currentTicket.materialsUsed,
-                estimatedLaborHours: currentTicket.estimatedLaborHours,
+                correctiveAction: extraData.correctiveAction, 
+                materialsUsed: extraData.materialsUsed,       
+                estimatedLaborHours: extraData.estimatedLaborHours, 
                 closedBy: { id: user.id } 
             });
             await this.closureRepository.save(closureRecord);
@@ -149,7 +147,6 @@ class TicketService {
 
         await this.ticketRepository.update(id, updatePayload);
         
-        // Log Audit (safe access to woId)
         await this.logAudit(user, id, currentTicket.wo?.woId, `Updated Status to ${newStatus}`);
 
         const updatedTicket = await this.getTicketById(id);

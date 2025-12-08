@@ -11,7 +11,7 @@ import { Input } from "../../components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useDebounce } from "../../hooks/use-debounce";
 import { Ticket, WorkOrderSummary } from "../../types";
-import { api } from "../../api"; // [FIX] Import Axios Instance
+import { api } from "../../api"; 
 
 const DetailRow = ({ label, value }: { label: string; value?: string | number | null }) => (
   <div className="flex flex-col sm:flex-row sm:justify-between border-b border-gray-100 pb-1 mb-1 last:border-0">
@@ -53,7 +53,6 @@ const ArchiveList: React.FC = () => {
           ? `/work-orders/archived-summary?search=${debouncedSearchTerm}`
           : `/work-orders/archived-summary`;
 
-        // [FIX] Use api.get to send auth token
         const response = await api.get<WorkOrderSummary[]>(url);
         
         if (debouncedSearchTerm) {
@@ -78,7 +77,6 @@ const ArchiveList: React.FC = () => {
 
     setLoadingWOs(prev => ({ ...prev, [woId]: true }));
     try {
-        // [FIX] Use api.get to send auth token
         const response = await api.get<Ticket[]>(`/work-orders/${woId}/archived-tickets`);
         setTicketsCache(prev => ({ ...prev, [woId]: response.data }));
     } catch (err) {

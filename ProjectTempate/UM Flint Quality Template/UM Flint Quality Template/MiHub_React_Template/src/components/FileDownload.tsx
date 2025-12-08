@@ -1,6 +1,5 @@
-// ProjectTempate/UM Flint Quality Template/UM Flint Quality Template/MiHub_React_Template/src/components/FileDownload.tsx
 import React, { useEffect, useState } from "react";
-import { api } from "../api"; // Import your Axios instance
+import { api } from "../api"; 
 import {
   FileText, FileImage, FileArchive, FileSpreadsheet, FileType, File,
 } from "lucide-react";
@@ -45,7 +44,7 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId }) => {
         try {
             const response = await api.get(`/files/${fileKey}`, { responseType: 'blob' });
             
-            // [FIX] Cast response.data as Blob to satisfy TypeScript
+            
             const blob = response.data as Blob;
             
             const url = window.URL.createObjectURL(blob);
@@ -100,7 +99,6 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId }) => {
         try {
             const response = await api.get(`/files/${file.fileKey}`, { responseType: 'blob' });
             
-            // [FIX] Cast response.data as Blob
             const blob = response.data as Blob;
             
             const url = URL.createObjectURL(blob);

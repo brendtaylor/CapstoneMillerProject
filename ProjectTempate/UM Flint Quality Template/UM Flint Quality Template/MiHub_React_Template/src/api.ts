@@ -1,4 +1,3 @@
-// ProjectTempate/UM Flint Quality Template/UM Flint Quality Template/MiHub_React_Template/src/api.ts
 import axios from "axios";
 
 // This is the base URL for your backend API

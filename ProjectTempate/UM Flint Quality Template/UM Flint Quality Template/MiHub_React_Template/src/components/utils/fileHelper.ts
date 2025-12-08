@@ -37,8 +37,6 @@ export async function uploadFile(ticketId: number, file: File) {
         "Content-Type": "multipart/form-data",
       },
     });
-
-    // [FIX] Cast res.data to 'any' to allow spreading
     return { ...(res.data as any), fileKey: uniqueKey };
   } catch (error: any) {
     const msg = error.response?.data?.message || error.message || "Upload failed";

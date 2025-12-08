@@ -70,14 +70,14 @@ async function updateTicket(req, res) {
 
 async function updateTicketStatus(req, res) {
     try {
-        // req.body should only contain the new status value
-        const { status } = req.body;
+        // Extract status and the rest of the body (closing fields)
+        const { status, ...extraData } = req.body;
+        
         if (status === undefined) {
             return res.status(400).json({ message: "Status is required." });
         }
         
-        // Pass the user entity (which contains the role) for audit logging or further checks
-        const updatedTicket = await ticketService.updateTicketStatus(req.params.id, status, req.user); 
+        const updatedTicket = await ticketService.updateTicketStatus(req.params.id, status, extraData, req.user); 
         
         if (updatedTicket) {
             res.json(updatedTicket);
@@ -92,7 +92,6 @@ async function updateTicketStatus(req, res) {
 
 async function assignTicketSelf(req, res) {
     try {
-        // req.user is guaranteed to exist and contains the ID of the authenticated user
         const userId = req.user.id; 
         
         const updatedTicket = await ticketService.assignTicketUser(req.params.id, userId, req.user);

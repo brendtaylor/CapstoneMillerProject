@@ -151,16 +151,6 @@ const TicketList: React.FC = () => {
             </Button>
           </>
         )}
-
-        {hasRole('editor') && (
-          <Button
-              variant="destructive"
-              onClick={() => navigate(`/tickets/${ticket.ticketId}?close=true`)}
-              className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
-            >
-              Close Ticket
-            </Button>
-          )}
       </div>
 
       <div className="space-y-6">
@@ -393,7 +383,6 @@ const TicketList: React.FC = () => {
     try {
       const url = search ? `/${endpoint}?search=${search}` : `/${endpoint}`;
       const response = await api.get(url);
-      // [FIX] Explicit cast to any[]
       setter(response.data as any[]);
     } catch (error) { console.error(`Failed to fetch ${endpoint}:`, error); }
   };
@@ -419,7 +408,6 @@ const TicketList: React.FC = () => {
                 api.get(`/work-orders/${editFields.workOrderId}/units`),
                 api.get(`/work-orders/${editFields.workOrderId}/sequences`)
             ]);
-            // [FIX] Explicit casts to correct types
             setLaborDepts(deptRes.data as LaborDepartment[]);
             setNonconformances(nonConRes.data as Nonconformance[]);
             setUnits(unitRes.data as Unit[]);

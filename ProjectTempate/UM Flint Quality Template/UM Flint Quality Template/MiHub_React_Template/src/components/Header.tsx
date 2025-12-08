@@ -1,5 +1,3 @@
-// ProjectTempate/.../src/components/Header.tsx
-
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "./AuthContext";
 import { LogOut } from "lucide-react";
@@ -185,7 +183,6 @@ const Header: React.FC = () => {
                     <div className="px-2 py-1">
                       <h4 className="text-lg font-semibold">{displayName || ""}</h4>
                       <h5 className="text-sm text-gray-700 font-semibold">
-                         {/* [FIX] Ensure userRole is treated as a string to prevent crashes */}
                         {userRole ? String(userRole).charAt(0).toUpperCase() + String(userRole).slice(1) : ""}
                       </h5>
                       <h6 className="text-sm text-gray-500 mt-1">{username+"@millc.com" || ""}</h6>
