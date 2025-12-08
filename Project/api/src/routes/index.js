@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { createGenericController } = require('../controllers/generic.controller');
+const { authenticateToken } = require("../middleware/auth.middleware");
+
+const devAuthRoutes = require("./dev-auth.routes");
+
+router.use("/dev", devAuthRoutes);
+
+router.use(authenticateToken);
 
 // --- Specialized Routes ---
 const ticketRoutes = require("./ticket.routes");
