@@ -22,6 +22,7 @@ import FileDownload from "../../components/FileDownload";
 import { logAudit } from "../../components/utils/auditLogger";
 import { useDebounce } from "../../hooks/use-debounce";
 import UploadModal from "../../components/UploadModal";
+import { api } from "../../api";
 
 interface Note {
   noteId: number;
@@ -36,17 +37,11 @@ interface Note {
 const TicketDetails: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { userId, userRole, token } = useAuth();
+  const { userId, userRole } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
-  
-  // Helper for Authorization Header
-  const AUTH_HEADERS = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}` 
-  };
 
 
   // Detect Archive Mode based on URL path
@@ -108,16 +103,11 @@ const TicketDetails: React.FC = () => {
     try {
       // Switch endpoint based on mode
       const endpoint = isArchived 
-        ? `http://localhost:3000/api/tickets/archived/${id}`
-        : `http://localhost:3000/api/tickets/${id}`;
-
-      // --- AUTH HEADER ---
-      const response = await fetch(endpoint, {
-          headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (!response.ok) throw new Error("Ticket not found");
+        ? `/tickets/archived/${id}`
+        : `/tickets/${id}`;
       
-      const data: Ticket = await response.json();
+      const response = await api.get<Ticket>(endpoint);
+      const data = response.data;
       setTicket(data);
       
       const currentStatus = data.status?.statusId?.toString() || "0";
@@ -137,13 +127,8 @@ const TicketDetails: React.FC = () => {
   // Load Notes
   const fetchNotes = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/tickets/${id}/notes`, {
-          headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setNotes(data);
-      }
+      const response = await api.get<Note[]>(`/tickets/${id}/notes`);
+      setNotes(response.data);
     } catch (err) {
       console.error(err);
     }
@@ -172,14 +157,7 @@ const TicketDetails: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/api/tickets/${id}/notes`, {
-        method: "POST",
-        headers: AUTH_HEADERS,
-        body: JSON.stringify({ note: noteText, authorId: userId }),
-      });
-
-      // Check for success before showing toast
-      if (!response.ok) throw new Error("Failed to add note");
+      await api.post(`/tickets/${id}/notes`, { note: noteText, authorId: userId });
 
       setNoteText("");
       fetchNotes();
@@ -201,11 +179,7 @@ const TicketDetails: React.FC = () => {
   // Update Status (can be called directly or after assignment)
   const performStatusUpdate = async (statusToUpdate: number, extraFields?: object) => {
     try {
-      await fetch(`http://localhost:3000/api/tickets/${id}/status`, { 
-        method: "PATCH", 
-        headers: AUTH_HEADERS,
-        body: JSON.stringify({ status: statusToUpdate, ...extraFields }),
-      });
+      await api.patch(`/tickets/${id}/status`, { status: statusToUpdate, ...extraFields });
 
       toast({ title: "Success", description: "Status updated." });
       fetchTicket();
@@ -321,13 +295,7 @@ const TicketDetails: React.FC = () => {
         ...(editFields.seqID && { sequence: parseInt(editFields.seqID) }),
       };
 
-      const response = await fetch(`http://localhost:3000/api/tickets/${ticket.ticketId}`, {
-        method: "PUT",
-        headers: AUTH_HEADERS, 
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) throw new Error(`Failed to update ticket.`);
+      await api.put(`/tickets/${ticket.ticketId}`, payload);
 
       toast({ title: "Success", description: `Ticket ${ticket.qualityTicketId} has been updated.` });  
       await logAudit(userId, "Edit", ticket.ticketId, parseInt(ticket.wo?.wo));   
@@ -340,10 +308,13 @@ const TicketDetails: React.FC = () => {
 
   const fetchGlobalDropdownData = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<any[]>>, search: string = '') => {
     try {
-      const url = search ? `http://localhost:3000/api/${endpoint}?search=${search}` : `http://localhost:3000/api/${endpoint}`;
-      const response = await fetch(url, { headers: AUTH_HEADERS });
-      if (response.ok) setter(await response.json());
-    } catch (error) { console.error(`Failed to fetch ${endpoint}:`, error); }
+      const url = search ? `/${endpoint}?search=${search}` : `/${endpoint}`;
+      const response = await api.get<any[]>(url);
+      setter(response.data);
+    } catch (error) { 
+      console.error(`Failed to fetch ${endpoint}:`, error);
+      toast({ variant: "destructive", title: "Error", description: `Failed to load ${endpoint}.` });
+    }
   };
 
   useEffect(() => { if (isEditing) fetchGlobalDropdownData('divisions', setDivisions, debouncedEditDivisionSearch); }, [debouncedEditDivisionSearch, isEditing]);
@@ -357,16 +328,19 @@ const TicketDetails: React.FC = () => {
         }
         try {
             const [deptRes, nonConRes, unitRes, seqRes] = await Promise.all([
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/labor-departments`, { headers: AUTH_HEADERS }),
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/nonconformances`, { headers: AUTH_HEADERS }),
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/units`, { headers: AUTH_HEADERS }),
-                fetch(`http://localhost:3000/api/work-orders/${editFields.workOrderId}/sequences`, { headers: AUTH_HEADERS })
+                api.get<LaborDepartment[]>(`/work-orders/${editFields.workOrderId}/labor-departments`),
+                api.get<Nonconformance[]>(`/work-orders/${editFields.workOrderId}/nonconformances`),
+                api.get<Unit[]>(`/work-orders/${editFields.workOrderId}/units`),
+                api.get<Sequence[]>(`/work-orders/${editFields.workOrderId}/sequences`)
             ]);
-            if (deptRes.ok) setLaborDepts(await deptRes.json());
-            if (nonConRes.ok) setNonconformances(await nonConRes.json());
-            if (unitRes.ok) setUnits(await unitRes.json());
-            if (seqRes.ok) setSequences(await seqRes.json());
-        } catch (error) { console.error("Failed to fetch filtered data", error); }
+            setLaborDepts(deptRes.data);
+            setNonconformances(nonConRes.data);
+            setUnits(unitRes.data);
+            setSequences(seqRes.data);
+        } catch (error) { 
+          console.error("Failed to fetch filtered data", error);
+          toast({ variant: "destructive", title: "Error", description: "Failed to fetch filtered data." });
+        }
     };
     fetchFilteredData();
   }, [editFields.workOrderId, isEditing]);
@@ -623,6 +597,7 @@ const TicketDetails: React.FC = () => {
             <p><b>Status:</b> {ticket.status?.statusDescription}</p>
             <p className="break-words"><b>Description:</b> {ticket.description}</p>
             <p><b>Work Order:</b> {ticket.wo?.wo}</p>
+            <p><b>Labor Dept:</b> {ticket.laborDepartment?.departmentName}</p>
             <p><b>Division:</b> {ticket.division?.divisionName}</p>
             <p><b>Drawing #:</b> {ticket.drawingNum}</p>
             <p><b>Unit:</b> {ticket.unit?.unitName}</p>
