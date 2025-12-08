@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import FilePreviewModal, { PreviewType } from "./FilePreviewModal";
 import { useToast } from "../hooks/use-toast";
+import { logAudit } from "./utils/auditLogger";
 
 
 interface FileMeta {
