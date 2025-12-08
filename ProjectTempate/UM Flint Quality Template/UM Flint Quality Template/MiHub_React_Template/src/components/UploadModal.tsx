@@ -63,14 +63,14 @@ export default function UploadModal({ show, onClose, ticketId, workOrderSearch }
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-lg p-6 w-full max-w-lg mx-4"
+        className="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-semibold mb-4">Upload Files</h3>
 
         {/* Upload UI */}
         <div
-          className="flex flex-col items-center justify-center space-y-2 border-2 border-dashed border-gray-300 p-6 rounded cursor-pointer"
+          className="flex flex-col items-center justify-center space-y-2 border-2 border-dashed border-gray-300 p-6 rounded cursor-pointer "
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();

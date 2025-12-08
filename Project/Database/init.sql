@@ -351,6 +351,24 @@ REFERENCES [dbo].[MiHub_WO] ([WO_ID])
 GO
 
 -- ######################################################################
+-- # PERFORMANCE INDEXES
+-- ######################################################################
+
+-- Foreign Key Indexes for Ticket Table (Critical for Joins)
+CREATE INDEX IX_Tickets_WO ON dbo.MiHubWeb_Quality_Tickets(WO);
+CREATE INDEX IX_Tickets_Unit ON dbo.MiHubWeb_Quality_Tickets(UNIT);
+CREATE INDEX IX_Tickets_Status ON dbo.MiHubWeb_Quality_Tickets(STATUS);
+CREATE INDEX IX_Tickets_Division ON dbo.MiHubWeb_Quality_Tickets(DIVISION);
+CREATE INDEX IX_Tickets_Sequence ON dbo.MiHubWeb_Quality_Tickets(SEQUENCE);
+CREATE INDEX IX_Tickets_Initiator ON dbo.MiHubWeb_Quality_Tickets(INITIATOR);
+CREATE INDEX IX_Tickets_AssignedTo ON dbo.MiHubWeb_Quality_Tickets(ASSIGNED_TO);
+
+-- Foreign Key Indexes for Work Order Linking Tables
+CREATE INDEX IX_WO_Labor_Dept ON dbo.WorkOrder_LaborDepartments(DEPARTMENT_ID);
+CREATE INDEX IX_WO_Units_Unit ON dbo.WorkOrder_Units(UNIT_ID);
+GO
+
+-- ######################################################################
 -- # SEED DATA
 -- ######################################################################
 
@@ -379,12 +397,16 @@ GO
 
 -- Labor Departments
 INSERT INTO dbo.MiHub_Labor_Department(DEPARTMENT_ID, DEPARTMENT_NAME)
-VALUES (1, 'Welding'), (2, 'Assembly'), (3, 'Paint'), (4, 'Electrical'), (5, 'Detailing')
+VALUES (1, 'Assebly'), (2, 'Contractor Issue'), (3, 'Electrical'), (4, 'FAB'), (5, 'Laser'),
+	   (6, 'Processing'), (7, 'Paint'), (8, 'Other - (Enter in Description)')
 GO
 
 -- Manufacturing Nonconformances
 INSERT INTO dbo.MiHub_Manufact_Noncon (NONCON_ID, NONCON)
-VALUES (1, 'Material'), (2, 'Design'), (3, 'Assembly'), (4, 'Detailing')
+VALUES (1, 'Customer Caused Delay'), (2, 'Detailing'), (3, 'Detailing Error FlexAir'), (4, 'Detailing Error PFAB'),
+	   (5, 'Engineering'), (6, 'Engineering FlexAir'), (7, 'Handling Damage'), (8, 'Manufacturing Deficiency'), 
+	   (9, 'Operator Error'), (10, 'Project Management FlexAir'), (11, 'Storage Damage'), (12, 'Subcontractor Issue'),
+	   (13, 'Other - (Enter in Description)')
 GO
 
 -- Work Orders
@@ -408,12 +430,12 @@ GO
 
 -- Link WO 1 to Departments
 INSERT INTO dbo.WorkOrder_LaborDepartments (WO_ID, DEPARTMENT_ID)
-VALUES (1, 1), (1, 2)
+VALUES (1, 1), (1, 2), (1,4), (1,7), (1,8)
 GO
 
 -- Link WO 2 to Departments
 INSERT INTO dbo.WorkOrder_LaborDepartments (WO_ID, DEPARTMENT_ID)
-VALUES (2, 3), (2, 5)
+VALUES (2, 3), (2, 5), (2, 8)
 GO
 
 -- Link WO 1 to Units
@@ -434,9 +456,47 @@ GO
 -- Link All WOs to All Nonconformances
 INSERT INTO dbo.WorkOrder_Nonconformances (WO_ID, NONCON_ID)
 VALUES
-    (1, 1), (1, 2), (1, 3), (1, 4),
-    (2, 1), (2, 2), (2, 3), (2, 4),
-    (3, 1), (3, 2), (3, 3), (3, 4),
-    (4, 1), (4, 2), (4, 3), (4, 4),
-    (5, 1), (5, 2), (5, 3), (5, 4)
+    (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13),
+    (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10), (2, 11), (2, 12), (2, 13),
+    (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (3, 9), (3, 10), (3, 11), (3, 12), (3, 13),
+    (4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (4, 6), (4, 7), (4, 8), (4, 9), (4, 10), (4, 11), (4, 12), (4, 13),
+    (5, 1), (5, 2), (5, 3), (5, 4), (5, 5), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (5, 12), (5, 13),
+GO
+
+-- WORK ORDER 3 (341118)
+-- =============================================
+-- Assign Departments: Welding (1) and Electrical (4)
+INSERT INTO dbo.WorkOrder_LaborDepartments (WO_ID, DEPARTMENT_ID) VALUES (3, 1), (3, 4), (3, 7), (3, 8);
+GO
+-- Assign Units: A3 (103) and B3 (108)
+INSERT INTO dbo.WorkOrder_Units (WO_ID, UNIT_ID) VALUES (3, 103), (3, 108);
+GO
+-- Assign Sequences: LMN-12345 (105) and ABC-67890 (106)
+INSERT INTO dbo.WorkOrder_Sequences (WO_ID, SEQUENCE_ID) VALUES (3, 105), (3, 106);
+GO
+
+-- =============================================
+-- WORK ORDER 4 (253233)
+-- =============================================
+-- Assign Departments: Assembly (2) and Paint (3)
+INSERT INTO dbo.WorkOrder_LaborDepartments (WO_ID, DEPARTMENT_ID) VALUES (4, 2), (4, 3), (4, 6), (4, 8);
+GO
+-- Assign Units: A4 (104) and B4 (109)
+INSERT INTO dbo.WorkOrder_Units (WO_ID, UNIT_ID) VALUES (4, 104), (4, 109);
+GO
+-- Assign Sequences: REW-00300 (101) and 019000 (104)
+INSERT INTO dbo.WorkOrder_Sequences (WO_ID, SEQUENCE_ID) VALUES (4, 101), (4, 104);
+GO
+
+-- =============================================
+-- WORK ORDER 5 (289933)
+-- =============================================
+-- Assign Departments: Detailing (5)
+INSERT INTO dbo.WorkOrder_LaborDepartments (WO_ID, DEPARTMENT_ID) VALUES (5, 5), (5, 6), (5, 7), (5, 8);
+GO
+-- Assign Units: A5 (105) and B5 (110)
+INSERT INTO dbo.WorkOrder_Units (WO_ID, UNIT_ID) VALUES (5, 105), (5, 110);
+GO
+-- Assign Sequences: 000400 (102) and DSA-20019 (103)
+INSERT INTO dbo.WorkOrder_Sequences (WO_ID, SEQUENCE_ID) VALUES (5, 102), (5, 103);
 GO

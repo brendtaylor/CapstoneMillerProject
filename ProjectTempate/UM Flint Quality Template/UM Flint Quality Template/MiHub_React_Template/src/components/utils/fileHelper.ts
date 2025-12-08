@@ -56,3 +56,13 @@ export async function uploadFiles(ticketId: number, files: File[]) {
 export function getImageUrl(imageKey: string): string {
   return `${API_BASE_URL}/images/${encodeURIComponent(imageKey)}`;
 }
+
+export async function deleteFile(fileKey: string) {
+  try {
+    const res = await api.delete(`/files/${encodeURIComponent(fileKey)}`);
+    return res.data;
+  } catch (error: any) {
+    const msg = error.response?.data?.message || error.message || "Delete failed";
+    throw new Error(`File delete failed: ${msg}`);
+  }
+}

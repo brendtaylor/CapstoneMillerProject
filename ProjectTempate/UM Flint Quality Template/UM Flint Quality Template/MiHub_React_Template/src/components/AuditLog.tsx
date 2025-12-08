@@ -111,7 +111,7 @@ const AuditLog: React.FC = () => {
           <span className="ml-2">Loading audit logs...</span>
         </div>
       ) : error ? (
-        <div className="text-red-500 text-center p-4">Could not Fetch Audit Logs</div>
+        <div className="text-red-500 text-center p-4">Failed to Fetch Audit Logs</div>
       ) : logs.length === 0 ? (
         searchTerm ? (
           <div className="text-gray-500 text-center p-4">

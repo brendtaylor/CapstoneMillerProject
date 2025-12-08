@@ -33,8 +33,6 @@ interface Note {
   };
 }
 
-
-
 const TicketDetails: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -42,6 +40,7 @@ const TicketDetails: React.FC = () => {
   const location = useLocation();
   const { toast } = useToast();
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [deleteMode, setDeleteMode] = useState(false);
   
   // Helper for Authorization Header
   const AUTH_HEADERS = {
@@ -609,8 +608,8 @@ const TicketDetails: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Ticket Details</CardTitle>
-            {/* ROLE CHECK: Only Editor/Admin can access general Edit/PUT*/}
-            {!isArchived && (userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'editor') && (
+            {/* ROLE CHECK: Viewer/Editor/Admin can access general Edit/PUT*/}
+            {!isArchived && (userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'editor' || userRole?.toLowerCase() === 'viewer') && (
               <Button variant="secondary" onClick={handleEdit}>
                 Edit Ticket
               </Button>
@@ -660,24 +659,36 @@ const TicketDetails: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Uploaded Files</CardTitle>
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Upload File
-            </button>
 
-            {/* Upload Modal */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeleteMode(prev => !prev)}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                {deleteMode ? "Exit Delete Mode" : "Delete File"}
+              </button>
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Upload File
+              </button>
+            </div>
+
             <UploadModal
               show={showUploadModal}
               onClose={() => setShowUploadModal(false)}
-              ticketId={ticket.ticketId} 
+              ticketId={ticket.ticketId}
               workOrderSearch={ticket?.wo?.wo}
             />
           </CardHeader>
 
           <CardContent>
-            <FileDownload ticketId={ticket.ticketId} />
+            <FileDownload
+              ticketId={ticket.ticketId}
+              deleteMode={deleteMode}
+              setDeleteMode={setDeleteMode}
+            />
           </CardContent>
         </Card>
 

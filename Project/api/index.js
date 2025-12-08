@@ -1,3 +1,5 @@
+// Project/api/index.js
+
 //Description: This file is the bridge between the application and the database. It also provides access to the entity files
 
 require('dotenv').config(); 
