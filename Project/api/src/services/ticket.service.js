@@ -208,7 +208,7 @@ class TicketService {
         const updatedTicket = await this.getTicketById(id);
         
         this.broadcast('update-ticket', updatedTicket); 
-        this.triggerWebhook('ticket.update', updatedTicket);
+        this.triggerWebhook('ticket.status', updatedTicket);
 
         return updatedTicket;
     }
@@ -220,7 +220,7 @@ class TicketService {
         const updatedTicket = await this.getTicketById(id);
         
         this.broadcast('update-ticket', updatedTicket);
-        this.triggerWebhook('ticket.update', updatedTicket);
+        this.triggerWebhook('ticket.assign', updatedTicket);
 
         return updatedTicket;
     }
