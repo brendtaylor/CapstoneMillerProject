@@ -1,5 +1,3 @@
-// Project/api/src/routes/dev-auth.routes.js 
-
 const { Router } = require("express");
 const jwt = require("jsonwebtoken");
 const { AppDataSource } = require("../data-source"); 
@@ -27,7 +25,6 @@ router.post("/login", async (req, res) => {
             return res.status(404).json({ message: `User with ID ${userId} not found.` });
         }
 
-        // FIX: Correctly map Database Roles to String Roles
         // 1=Viewer, 2=Editor, 3=Admin
         const roleString = targetUser.role === 3 ? 'Admin' 
                          : targetUser.role === 2 ? 'Editor' 

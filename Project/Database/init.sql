@@ -117,6 +117,13 @@ PRIMARY KEY CLUSTERED ([ID] ASC)
 ) ON [PRIMARY]
 GO
 
+CREATE TABLE [dbo].[Ticket_Counters](
+    [WO_ID] [int] NOT NULL,
+    [LAST_TICKET_NUM] [int] NOT NULL DEFAULT 0,
+    PRIMARY KEY CLUSTERED ([WO_ID] ASC)
+) ON [PRIMARY]
+GO
+
 CREATE TABLE [dbo].[MiHubWeb_Quality_Tickets](
 	[TICKETID] [int] IDENTITY(1000,1) NOT NULL,
 	[QUALITY_TICKET_ID] [nvarchar](100) NULL,
@@ -275,6 +282,10 @@ GO
 
 ALTER TABLE [dbo].[WorkOrder_Nonconformances] WITH CHECK ADD FOREIGN KEY([NONCON_ID])
 REFERENCES [dbo].[MiHub_Manufact_Noncon] ([NONCON_ID])
+GO
+
+ALTER TABLE [dbo].[Ticket_Counters] WITH CHECK ADD FOREIGN KEY([WO_ID])
+REFERENCES [dbo].[MiHub_WO] ([WO_ID])
 GO
 
 -- ######################################################################

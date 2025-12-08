@@ -23,13 +23,20 @@ const Note = require("./entities/note.entity");
 
 const AppDataSource = new DataSource({
     type: "mssql",
-    // FIXED: Match the variable names in your .env file
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT, 10),
-    username: process.env.DB_USERNAME,    // ✅ Changed from DB_USER
+    username: process.env.DB_USERNAME,    
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,        // ✅ Changed from DB_DATABASE
+    database: process.env.DB_NAME,        
     
+    extra: {
+        pool: {
+            max: 50,  // Allow up to 50 concurrent DB connections
+            min: 5,   // Keep 5 ready at all times
+            idleTimeoutMillis: 30000 
+        }
+    },
+
     entities: [
         Ticket,
         User,

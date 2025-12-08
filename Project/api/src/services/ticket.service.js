@@ -1,6 +1,5 @@
 const { AppDataSource } = require("../data-source");
 const { emitToMake } = require("../utils/makeEmitter"); 
-const { EventEmitter } = require("events"); 
 const logger = require("../../logger");
 
 class TicketService {
@@ -11,18 +10,22 @@ class TicketService {
         this.closureRepository = AppDataSource.getRepository("TicketClosure"); 
         this.noteRepository = AppDataSource.getRepository("Note");
         this.auditRepository = AppDataSource.getRepository("AuditLog");
-        this.sseEmitter = new EventEmitter(); 
+        
+        // Set of response objects
+        this.clients = new Set();
+
+        // Sends a comment line every 30 seconds to keep connections open
+        this.heartbeatInterval = setInterval(() => this.sendHeartbeat(), 30000);
+        
         logger.info("TicketService initialized");
     
-        // Standard relations for ACTIVE tickets
         this.relations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
-            "sequence", "unit", "wo", "assignedTo", "files",
+            "sequence", "unit", "wo", "assignedTo", 
             "closures", "closures.closedBy"
         ];
 
-        // Relations for ARCHIVED tickets
         this.archiveRelations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
@@ -30,27 +33,74 @@ class TicketService {
         ];
     }
 
+    // --- SSE HELPER METHODS ---
+
+    /**
+     * Sends a 'ping' comment to all clients to prevent timeouts.
+     * SSE comments start with a colon (:).
+     */
+    sendHeartbeat() {
+        this.clients.forEach(client => {
+            if (client.writable) {
+                client.write(': ping\n\n');
+            }
+        });
+    }
+
+    /**
+     * Broadcasts a JSON event to all connected clients.
+     */
+    broadcast(event, data) {
+        const message = `event: ${event}\n` +
+                        `data: ${JSON.stringify(data)}\n\n`;
+
+        this.clients.forEach(client => {
+            if (client.writable) {
+                client.write(message);
+            } else {
+                // Cleanup dead connections
+                this.clients.delete(client);
+            }
+        });
+    }
+
+    async connectSSE(req, res) {
+        // Standard SSE Headers
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        // Nginx buffering can block SSE; this header disables it
+        res.setHeader('X-Accel-Buffering', 'no'); 
+        res.flushHeaders(); 
+
+        // Add client to set
+        this.clients.add(res);
+        logger.info(`SSE Client Connected. Total clients: ${this.clients.size}`);
+
+        // Handle disconnect
+        req.on('close', () => {
+            this.clients.delete(res);
+            logger.info(`SSE Client Disconnected. Total clients: ${this.clients.size}`);
+            res.end();
+        });
+    }
+
+    // --- SERVICE METHODS (Updated to use broadcast) ---
+
     async getAllTickets() {
-        logger.info("Fetching all tickets");
         return await this.ticketRepository.find({
             relations: this.relations
         });
     }
 
     async getTicketById(id) {
-        logger.info(`Fetching ticket by ID: ${id}`);
-        const ticket = await this.ticketRepository.findOne({ 
+        return await this.ticketRepository.findOne({ 
             where: { ticketId: id },
             relations: this.relations
         });
-        if (!ticket) {
-            logger.warn(`Ticket ID ${id} not found`);
-        }
-        return ticket;
     }
 
     async createTicket(ticketData) {
-        logger.info("Creating new ticket with transaction");
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
@@ -59,15 +109,24 @@ class TicketService {
             const workOrder = await queryRunner.manager.findOne("WorkOrder", {
                 where: { woId: ticketData.wo }
             });
-            if (!workOrder) throw new Error(`Work Order with ID ${ticketData.wo} not found.`);
+            if (!workOrder) throw new Error(`Work Order ID ${ticketData.wo} not found.`);
             const woNumber = workOrder.wo;
 
-            const activeCount = await queryRunner.manager.count("Ticket", { where: { wo: { woId: ticketData.wo } } });
-            const archivedCount = await queryRunner.manager.count("ArchivedTicket", { where: { wo: { woId: ticketData.wo } } });
+            // Atomic Counter for ID Generation 
+            await queryRunner.query(`
+                IF NOT EXISTS (SELECT 1 FROM Ticket_Counters WHERE WO_ID = @0)
+                INSERT INTO Ticket_Counters (WO_ID, LAST_TICKET_NUM) VALUES (@0, 0)
+            `, [ticketData.wo]);
 
-            const totalCount = activeCount + archivedCount;
-            const newTicketNum = (totalCount + 1).toString().padStart(3, '0');
-            const qualityTicketId = `${woNumber}-${newTicketNum}`;
+            const counterResult = await queryRunner.query(`
+                UPDATE Ticket_Counters
+                SET LAST_TICKET_NUM = LAST_TICKET_NUM + 1
+                OUTPUT INSERTED.LAST_TICKET_NUM
+                WHERE WO_ID = @0
+            `, [ticketData.wo]);
+
+            const nextSeqNum = counterResult[0].LAST_TICKET_NUM;
+            const qualityTicketId = `${woNumber}-${nextSeqNum.toString().padStart(3, '0')}`;
 
             const newTicket = queryRunner.manager.create("Ticket", {
                 ...ticketData,
@@ -80,14 +139,15 @@ class TicketService {
             await queryRunner.commitTransaction();
 
             const completeTicket = await this.getTicketById(savedTicket.ticketId);
-            this.sseEmitter.emit('new-ticket', completeTicket); 
+            
+            this.broadcast('new-ticket', completeTicket); 
             this.triggerWebhook('ticket.create', completeTicket);
             
             return completeTicket;
 
         } catch (error) {
             if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
-            logger.error(`Error in createTicket transaction: ${error.message}`);
+            logger.error(`Error in createTicket: ${error.message}`);
             throw error;
         } finally {
             await queryRunner.release();
@@ -95,22 +155,19 @@ class TicketService {
     }
 
     async updateTicket(id, ticketData) {
-        logger.info(`Updating ticket ID: ${id}`);
         const { status, assignedTo, ...allowedUpdates } = ticketData;
 
         await this.ticketRepository.update(id, allowedUpdates);
         
         const updatedTicket = await this.getTicketById(id);
-        this.sseEmitter.emit('update-ticket', updatedTicket); 
+    
+        this.broadcast('update-ticket', updatedTicket); 
         this.triggerWebhook('ticket.update', updatedTicket);
         
-        logger.info(`Ticket ${id} updated (General Fields)`);
         return updatedTicket;
     }
 
     async updateTicketStatus(id, newStatus, extraData, user) {
-        logger.info(`Updating Status for ticket ID: ${id} to ${newStatus}`);
-
         const currentTicket = await this.ticketRepository.findOne({ 
             where: { ticketId: id },
             relations: ["status", "wo", "closures"] 
@@ -120,7 +177,7 @@ class TicketService {
 
         const currentStatusId = currentTicket.status?.statusId;
 
-        // Logic for Closing
+        // Closing Logic
         if (newStatus === 2 && currentStatusId !== 2) {
              const cycleStart = currentTicket.lastReopenDate || currentTicket.openDate;
              
@@ -136,7 +193,7 @@ class TicketService {
             await this.closureRepository.save(closureRecord);
         }
 
-        // Logic for Re-opening
+        // Re-opening Logic
         let updatePayload = { status: newStatus };
         if (newStatus !== 2 && currentStatusId === 2) {
             updatePayload.lastReopenDate = new Date();
@@ -146,32 +203,29 @@ class TicketService {
         }
 
         await this.ticketRepository.update(id, updatePayload);
-        
         await this.logAudit(user, id, currentTicket.wo?.woId, `Updated Status to ${newStatus}`);
 
         const updatedTicket = await this.getTicketById(id);
-        this.sseEmitter.emit('update-ticket', updatedTicket); 
+        
+        this.broadcast('update-ticket', updatedTicket); 
         this.triggerWebhook('ticket.update', updatedTicket);
 
         return updatedTicket;
     }
 
     async assignTicketUser(id, targetUserId, actingUser) {
-        logger.info(`Assigning ticket ${id} to user ${targetUserId}`);
-
         await this.ticketRepository.update(id, { assignedTo: targetUserId });
-
         await this.logAudit(actingUser, id, null, `Assigned User ${targetUserId} to Ticket`);
 
         const updatedTicket = await this.getTicketById(id);
-        this.sseEmitter.emit('update-ticket', updatedTicket);
+        
+        this.broadcast('update-ticket', updatedTicket);
         this.triggerWebhook('ticket.update', updatedTicket);
 
         return updatedTicket;
     }
 
     async deleteTicket(id) {
-        logger.info(`Archiving ticket ID: ${id}`);
         const ticketToArchive = await this.getTicketById(id);
         if (!ticketToArchive) throw new Error("Ticket not found");
 
@@ -179,10 +233,11 @@ class TicketService {
         await this.archivedRepository.save(archivedTicket);
         await this.ticketRepository.delete(id);
         
-        this.sseEmitter.emit('delete-ticket', { id: parseInt(id, 10) }); 
+        this.broadcast('delete-ticket', { id: parseInt(id, 10) }); 
         return { id: id, message: "Ticket archived successfully" };
     }
 
+    
     async logAudit(user, ticketId, woId, action) {
         try {
             const log = this.auditRepository.create({
@@ -218,33 +273,6 @@ class TicketService {
         return await this.archivedRepository.findOne({
             where: { ticketId: parseInt(id) },
             relations: this.archiveRelations 
-        });
-    }
-
-    async connectSSE(req, res) {
-        logger.info("SSE client connected");
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders(); 
-
-        const sendEvent = (event, data) => {
-            res.write(`event: ${event}\n`);
-            res.write(`data: ${JSON.stringify(data)}\n\n`);
-        };
-
-        const newTicketHandler = (data) => sendEvent('new-ticket', data);
-        const updateTicketHandler = (data) => sendEvent('update-ticket', data);
-        const deleteTicketHandler = (data) => sendEvent('delete-ticket', data);
-
-        this.sseEmitter.on('new-ticket', newTicketHandler);
-        this.sseEmitter.on('update-ticket', updateTicketHandler);
-        this.sseEmitter.on('delete-ticket', deleteTicketHandler);
-
-        req.on('close', () => {
-            this.sseEmitter.removeListener('new-ticket', newTicketHandler);
-            this.sseEmitter.removeListener('update-ticket', updateTicketHandler);
-            this.sseEmitter.removeListener('delete-ticket', deleteTicketHandler);
         });
     }
 

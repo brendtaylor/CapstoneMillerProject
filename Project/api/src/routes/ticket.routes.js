@@ -1,4 +1,3 @@
-// Project/api/src/routes/ticket.routes.js (Updated)
 const { Router } = require("express");
 const router = Router();
 const {
@@ -12,13 +11,12 @@ const {
     connectSSE,
     getTicketNotes,
     addTicketNote,
-    // --- NEW CONTROLLERS IMPORTED ---
     updateTicketStatus,
     assignTicketSelf,
     assignTicketUser
 } = require("../controllers/ticket.controller");
 const authorize = require("../middleware/authorize");
-const { authenticateToken } = require("../middleware/auth.middleware"); // <-- Added Import
+const { authenticateToken } = require("../middleware/auth.middleware");
 
 // --- Static routes must come BEFORE dynamic routes ---
 // This route is for the Server-Sent Events stream
@@ -40,10 +38,10 @@ router.get("/archived/:id", authenticateToken, authorize(['Admin']), getArchived
 router.get("/:id", authenticateToken, authorize(['Viewer', 'Editor', 'Admin']), getTicketById);
 
 // PUT /api/tickets/:id - General update to non-sensitive fields
-// We will restrict this to fields Viewers ARE allowed to edit.
+// Restricted to fields Viewers are allowed to edit.
 router.put("/:id", authenticateToken, authorize(['Viewer', 'Editor', 'Admin']), updateTicket);
 
-// --- NEW GRANULAR ROUTES FOR SENSITIVE ACTIONS ---
+// --- GRANULAR ROUTES FOR SENSITIVE ACTIONS ---
 
 // PATCH /api/tickets/:id/status - Change status of ticket (Editor, Admin)
 router.patch("/:id/status", authenticateToken, authorize(['Editor', 'Admin']), updateTicketStatus);
@@ -61,7 +59,6 @@ router.delete("/:id", authenticateToken, authorize(['Admin']), deleteTicket);
 router.get("/:id/notes", authenticateToken, authorize(['Viewer', 'Editor', 'Admin']), getTicketNotes);
 
 // POST /api/ticket/:id/notes - Add notes to a ticket (Editor, Admin)
-// NOTE: Fixed authorization syntax
 router.post("/:id/notes", authenticateToken, authorize(['Admin', 'Editor']), addTicketNote);
 
 module.exports = router;

@@ -1,4 +1,3 @@
-// Project/api/src/routes/audit.js (Updated)
 const { Router } = require("express");
 const { AppDataSource } = require("../data-source");
 const AuditLog = require("../entities/audit-log.entity.js");
@@ -41,11 +40,9 @@ router.get("/", authenticateToken, authorize(['Admin']), async (req, res) => {
 
 
 // POST /api/audit - record a new audit entry
-// This is typically called internally, but for protection, we ensure the user is authenticated.
 router.post("/", authenticateToken, async (req, res) => {
   const { userId, ticketId, action, timestamp, woId } = req.body;
 
-  // ... (rest of the controller logic is unchanged)
   try {
     const auditRepo = AppDataSource.getRepository("AuditLog");
     const userRepo = AppDataSource.getRepository("User");

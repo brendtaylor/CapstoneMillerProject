@@ -26,7 +26,6 @@ module.exports = new EntitySchema({
             name: "CLOSE_DATE",
             nullable: true,        
         },
-        // [FIX] Added missing column definition
         lastReopenDate: {
             type: "datetime",
             name: "LAST_REOPEN_DATE",
