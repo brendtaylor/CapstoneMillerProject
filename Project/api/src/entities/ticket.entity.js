@@ -26,6 +26,11 @@ module.exports = new EntitySchema({
             name: "CLOSE_DATE",
             nullable: true,        
         },
+        lastReopenDate: {
+            type: "datetime",
+            name: "LAST_REOPEN_DATE",
+            nullable: true,
+        },
         description: {
             type: "nvarchar",
             name: "DESCRIPTION",
@@ -105,9 +110,9 @@ module.exports = new EntitySchema({
             joinColumn: { name: "ASSIGNED_TO" },
         },
         files: {
-            target: "File", // The 'name' from file.entity.js
-            type: "one-to-many", // One Ticket can have Many Images
-            inverseSide: "ticket", // Links to the 'ticket' property in file.entity.js
+            target: "File", 
+            type: "one-to-many", 
+            inverseSide: "ticket", 
         },
         closures: {
             target: "TicketClosure",
