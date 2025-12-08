@@ -2,7 +2,8 @@ const { EntitySchema } = require("typeorm");
 
 module.exports = new EntitySchema({
     name: "User",
-    tableName: "MiHub_Quality_Users", 
+    tableName: "MiHub_Quality_Users", // Revert to just the table name
+    schema: "dbo", 
     columns: {
         id: {
             primary: true,
