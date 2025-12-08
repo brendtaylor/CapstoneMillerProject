@@ -20,7 +20,6 @@ AppDataSource.initialize()
 
         app.use(express.json());
         
-        // [FIX] Added 'PATCH' to the allowed methods
         app.use(cors({
             origin: ['http://localhost:5173', 'http://localhost:4001', 'https://hoppscotch.io', 'https://web.hoppscotch.io'],
             methods: ['GET','POST','PUT','DELETE','OPTIONS','PATCH'], 
