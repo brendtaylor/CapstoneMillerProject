@@ -14,7 +14,7 @@ import { useDebounce } from '../hooks/use-debounce';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useNavigate } from "react-router-dom";
 import { logAudit } from "./utils/auditLogger";
-import { api } from "../api"; 
+import { api, API_BASE_URL } from "../api"; 
 
 import { 
   Ticket, 
@@ -98,7 +98,7 @@ const TicketList: React.FC = () => {
   }, [statusFilter]);
 
   const buildUrl = (path: string, params: Record<string, any> = {}) => {
-    const url = new URL(`http://localhost:3000${path}`);
+    const url = new URL(`${API_BASE_URL}${path}`);
     
     if (statusFilterRef.current) {
       url.searchParams.set("status", statusFilterRef.current);
@@ -110,7 +110,7 @@ const TicketList: React.FC = () => {
       }
     });
 
-    return url.pathname + url.search;
+    return url.toString();
   };
 
   const { toast } = useToast();
@@ -323,7 +323,7 @@ const TicketList: React.FC = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token'); 
-    const eventSource = new EventSource(`http://localhost:3000/api/tickets/events?token=${token}`);
+    const eventSource = new EventSource(`${API_BASE_URL}/tickets/events?token=${token}`);
     
     eventSource.onopen = () => console.log("SSE Connected");
 
