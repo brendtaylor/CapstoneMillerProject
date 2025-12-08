@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
 import { jwtDecode } from "jwt-decode"; 
+import { API_BASE_URL } from "../api";
 
 // Map Database Role IDs to UI String Roles
 const ROLE_MAP: Record<number, string> = {
@@ -53,7 +54,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loginAs = async (targetUserId: number) => {
     try {
-        const res = await fetch('http://localhost:3000/api/dev/login', {
+        const res = await fetch(`${API_BASE_URL}/dev/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: targetUserId }) 
