@@ -397,7 +397,7 @@ GO
 
 -- Labor Departments
 INSERT INTO dbo.MiHub_Labor_Department(DEPARTMENT_ID, DEPARTMENT_NAME)
-VALUES (1, 'Assebly'), (2, 'Contractor Issue'), (3, 'Electrical'), (4, 'FAB'), (5, 'Laser'),
+VALUES (1, 'Assembly'), (2, 'Contractor Issue'), (3, 'Electrical'), (4, 'FAB'), (5, 'Laser'),
 	   (6, 'Processing'), (7, 'Paint'), (8, 'Other - (Enter in Description)')
 GO
 
