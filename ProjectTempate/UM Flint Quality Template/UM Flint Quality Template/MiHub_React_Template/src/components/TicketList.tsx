@@ -14,9 +14,18 @@ import { useDebounce } from '../hooks/use-debounce';
 import { useIsMobile } from '../hooks/use-mobile';
 import { useNavigate } from "react-router-dom";
 import { logAudit } from "./utils/auditLogger";
+import { api } from "../api"; 
 
-import { Ticket, WorkOrderSummary } from "../types"; 
-
+import { 
+  Ticket, 
+  Division, 
+  WorkOrder, 
+  Unit, 
+  Sequence, 
+  LaborDepartment,
+  Nonconformance,
+  WorkOrderSummary
+} from "../types"; 
 
 // --- HELPERS ---
 
@@ -36,76 +45,52 @@ const getStatusBadgeStyle = (statusId?: number): string => {
   }
 };
 
-const ticketMatchesTag = (ticket: Ticket, tag: string): boolean => {
-  const t = tag.toLowerCase();
-
-  return (
-    ticket.ticketId?.toString().includes(t) ||
-    ticket.qualityTicketId?.toLowerCase().includes(t) ||
-    ticket.wo?.wo?.toLowerCase().includes(t) ||
-    ticket.division?.divisionName?.toLowerCase().includes(t) ||
-    ticket.laborDepartment?.departmentName?.toLowerCase().includes(t) ||
-    ticket.sequence?.seqName?.toLowerCase().includes(t) ||
-    ticket.unit?.unitName?.toLowerCase().includes(t) ||
-    ticket.manNonCon?.nonCon?.toLowerCase().includes(t) ||
-    ticket.drawingNum?.toLowerCase().includes(t) ||
-    ticket.description?.toLowerCase().includes(t) ||
-    ticket.initiator?.name?.toLowerCase().includes(t)
-  );
-};
-
-
 const TicketList: React.FC = () => {
   // --- STATE MANAGEMENT ---
   
-  // 1. Data Sources
-  const [dashboardData, setDashboardData] = useState<WorkOrderSummary[]>([]); // The full list with counts
-  const [searchResults, setSearchResults] = useState<WorkOrderSummary[] | null>(null); // The filtered list from search
+  const [dashboardData, setDashboardData] = useState<WorkOrderSummary[]>([]); 
+  const [searchResults, setSearchResults] = useState<WorkOrderSummary[] | null>(null); 
   
-  // 2. Ticket Cache: Key = WorkOrder ID, Value = Array of Tickets
   const [ticketsCache, setTicketsCache] = useState<Record<number, Ticket[]>>({});
   
-  // Ref to track which WOs are cached (for SSE to know what to refresh without breaking closures)
   const ticketsCacheRef = useRef<Set<number>>(new Set());
 
-  // Update ref whenever cache changes
   useEffect(() => {
     ticketsCacheRef.current = new Set(Object.keys(ticketsCache).map(Number));
   }, [ticketsCache]);
   
-  // 3. Loading States
   const [loadingSummaries, setLoadingSummaries] = useState<boolean>(true);
   const [loadingWOs, setLoadingWOs] = useState<Record<number, boolean>>({}); 
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 4. UI State
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms delay
-  // State to control open accordions
+  const debouncedSearchTerm = useDebounce(searchTerm, 500); 
   const [openWorkOrders, setOpenWorkOrders] = useState<string[]>([]);
-  const [openTickets, setOpenTickets] = useState<Record<string, string>>({}); // { [wo_number]: ticketId }
+  const [openTickets, setOpenTickets] = useState<Record<string, string>>({}); 
   
   const { userRole, userId } = useAuth();
-  const [searchResult, setSearchResult] = useState<Ticket[] | null>(null);
-  const [searchTags, setSearchTags] = useState<string[]>([]);
+  
+  const hasRole = (targetRole: string) => {
+    return String(userRole || "").toLowerCase() === targetRole.toLowerCase();
+  };
 
-  const [statusFilter, setStatusFilter] = useState<string>('0,1');//::::
-  // Load saved status filter
+  const [statusFilter, setStatusFilter] = useState<string>('0,1');
+
   useEffect(() => {
     const saved = localStorage.getItem("ticketStatusFilter");
     if (saved) setStatusFilter(saved);
   }, []);
+
   useEffect(() => {
-  localStorage.setItem("ticketStatusFilter", statusFilter);
+    localStorage.setItem("ticketStatusFilter", statusFilter);
   }, [statusFilter]);
   
   useEffect(() => {
-  // Close all accordions
-  setOpenWorkOrders([]);
-  setOpenTickets({});
+    setOpenWorkOrders([]);
+    setOpenTickets({});
   }, [statusFilter]);
-  //attempting to make the ticket status easier to call
+
   const statusFilterRef = useRef(statusFilter);
 
   useEffect(() => {
@@ -113,27 +98,25 @@ const TicketList: React.FC = () => {
   }, [statusFilter]);
 
   const buildUrl = (path: string, params: Record<string, any> = {}) => {
-  const url = new URL(`http://localhost:3000${path}`);
-  
-  if (statusFilterRef.current) {
-    url.searchParams.set("status", statusFilterRef.current);
-  }
-
-  Object.entries(params).forEach(([key, val]) => {
-    if (val !== undefined && val !== null) {
-      url.searchParams.set(key, String(val));
+    const url = new URL(`http://localhost:3000${path}`);
+    
+    if (statusFilterRef.current) {
+      url.searchParams.set("status", statusFilterRef.current);
     }
-  });
 
-  return url.toString();
-};
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null) {
+        url.searchParams.set(key, String(val));
+      }
+    });
 
+    return url.pathname + url.search;
+  };
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
-  // Track scroll & Mobile View
   const [lastScrollPosition, setLastScrollPosition] = useState<number | null>(null);
   const [mobileDetailTicket, setMobileDetailTicket] = useState<Ticket | null>(null);
   const openMobileTicketDetail = (ticket: Ticket) => setMobileDetailTicket(ticket);
@@ -154,8 +137,7 @@ const TicketList: React.FC = () => {
           View Details
         </Button>
 
-        {/* Admin: Edit + Delete */}
-        {userRole === 'admin' && (
+        {hasRole('admin') && (
           <>
             <Button
               variant="destructive"
@@ -169,21 +151,9 @@ const TicketList: React.FC = () => {
             </Button>
           </>
         )}
-
-        {/* Editor: close ticket only */}
-        {userRole === 'editor' && (
-          <Button
-              variant="secondary"
-              onClick={() => navigate('/tickets/${ticket.ticketId}?close=true')}
-              className="flex-1 md:flex-none md:w-auto md:min-w-[120px]"
-            >
-              Close Ticket
-            </Button>
-          )}
       </div>
 
       <div className="space-y-6">
-        {/* --- Description --- */}
         <div className="lg:col-span-3 space-y-2">
           <h4 className="text-sm font-bold text-gray-900">Description</h4>
           <div className="p-3 bg-gray-50 rounded border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap break-words">
@@ -198,7 +168,6 @@ const TicketList: React.FC = () => {
           </div>
         </div>
 
-        {/* --- Context & Classification --- */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-gray-50 p-3 rounded border border-gray-100">
             <div className="space-y-3">
@@ -219,19 +188,17 @@ const TicketList: React.FC = () => {
           </div>
         </div>
 
-        {/* --- Resolution (Cleaned: No Legacy Fallback) --- */}
         {ticket.closures && ticket.closures.length > 0 && (
             <div className="space-y-4">
                {ticket.closures
-                 .slice() // Copy before sorting
-                 .sort((a, b) => new Date(b.cycleCloseDate).getTime() - new Date(a.cycleCloseDate).getTime()) // Newest first
+                 .slice() 
+                 .sort((a, b) => new Date(b.cycleCloseDate).getTime() - new Date(a.cycleCloseDate).getTime()) 
                  .map((closure, idx) => (
                   <div key={closure.id || idx} className="bg-blue-50 p-3 rounded border border-blue-100 relative">
                     <h4 className="text-sm font-bold text-blue-900 border-b border-blue-200 pb-1 mb-2">
                         Resolution Cycle {ticket.closures && ticket.closures.length > 1 ? `#${ticket.closures.length - idx}` : ''}
                     </h4>
                     
-                    {/* Date Badge */}
                     <div className="absolute top-3 right-3 text-xs text-blue-600 font-medium bg-blue-100 px-2 py-0.5 rounded-full">
                          {closure.cycleStartDate ? `${new Date(closure.cycleStartDate).toLocaleDateString()} — ` : ''}
                          {new Date(closure.cycleCloseDate).toLocaleDateString()}
@@ -255,23 +222,45 @@ const TicketList: React.FC = () => {
     </>
   );
   
-  // Archive/Edit Modal States
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [ticketToArchive, setTicketToArchive] = useState<{id: number, woId?: number} | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+
+  // Edit Dropdown Data
+  const [divisions, setDivisions] = useState<Division[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [laborDepts, setLaborDepts] = useState<LaborDepartment[]>([]);
+  const [manNonCons, setNonconformances] = useState<Nonconformance[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [sequences, setSequences] = useState<Sequence[]>([]);
+
+  // Edit Fields
+  const [editFields, setEditFields] = useState({
+    status: '', divisionId: '', workOrderId: '', laborDeptId: '', 
+    manNonConId: '', unitId: '', seqID: '', drawingNum: '', description: '',
+  });
+
+  const [editDivisionSearch, setEditDivisionSearch] = useState('');
+  const [editWorkOrderSearch, setEditWorkOrderSearch] = useState('');
+  const [editLaborDeptText, setEditLaborDeptText] = useState('');
+  const [editNonconformanceText, setEditNonconformanceText] = useState('');
+  const [editUnitText, setEditUnitText] = useState('');
+  const [editSequenceText, setEditSequenceText] = useState('');
+
+  const debouncedEditDivisionSearch = useDebounce(editDivisionSearch, 300);
+  const debouncedEditWorkOrderSearch = useDebounce(editWorkOrderSearch, 300);
 
   // --- API HANDLERS ---
-  // 1. Initial Load: Get Summary (with counts)
+
   const fetchWOSummaries = async () => {
-    // Only set loading on initial fetch if dashboard is empty, to avoid flashing on updates
     if (dashboardData.length === 0) setLoadingSummaries(true);
     
     try {
-      const response = await fetch(buildUrl("/api/work-orders-summary"), {
-            headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
-        });
-      if (!response.ok) throw new Error(`Status: ${response.status}`);
-      const data: WorkOrderSummary[] = await response.json();
-      setDashboardData(data);
+      const url = buildUrl("/work-orders-summary");
+      const response = await api.get<WorkOrderSummary[]>(url);
+      setDashboardData(response.data);
     } catch (err) {
       console.error(err);
       if (dashboardData.length === 0) setError("Failed to fetch dashboard data.");
@@ -282,7 +271,6 @@ const TicketList: React.FC = () => {
 
   useEffect(() => {fetchWOSummaries();}, [debouncedSearchTerm, statusFilter]);
 
-  // 2. Search Handler
   useEffect(() => {
     const performSearch = async () => {
         if (!debouncedSearchTerm) {
@@ -293,14 +281,9 @@ const TicketList: React.FC = () => {
 
         setIsSearching(true);
         try {
-        
-        const response = await fetch(buildUrl('/api/work-orders-summary', { search: debouncedSearchTerm }));
-        
-          if (!response.ok) throw new Error("Search failed");
-          
-          const results: WorkOrderSummary[] = await response.json();
-          setSearchResults(results);
-            
+        const url = buildUrl('/work-orders-summary', { search: debouncedSearchTerm });
+        const response = await api.get<WorkOrderSummary[]>(url);
+        setSearchResults(response.data);
         } catch (e) {
             console.error(e);
             setSearchResults([]);
@@ -311,26 +294,17 @@ const TicketList: React.FC = () => {
     performSearch();
   }, [debouncedSearchTerm]);
 
-  // 3. Lazy Load Tickets
   const fetchTicketsForWO = async (woId: number, forceRefresh = false) => {
     if (!forceRefresh && ticketsCache[woId]) return;
 
     setLoadingWOs(prev => ({ ...prev, [woId]: true }));
     try {
-        
-        const response = await fetch(
-        buildUrl(`/api/work-orders/${woId}/tickets`),
-        {
-          headers: { 'Cache-Control': 'no-cache' },
-        }
-        );
-
-      if (!response.ok) throw new Error("Failed to fetch tickets");
-      const data: Ticket[] = await response.json();
+        const url = buildUrl(`/work-orders/${woId}/tickets`);
+        const response = await api.get<Ticket[]>(url);
       
       setTicketsCache(prev => ({
       ...prev,
-      [woId]: data
+      [woId]: response.data
       }));
 
     } catch (err) {
@@ -339,7 +313,7 @@ const TicketList: React.FC = () => {
         setLoadingWOs(prev => ({ ...prev, [woId]: false }));
     }
   };
-    // refresh tickets when statusFilter changes
+    
   useEffect(() => {
     openWorkOrders.forEach((woNumber) => {
       const woId = dashboardData.find((wo) => wo.wo_number === woNumber)?.wo_id;
@@ -347,33 +321,24 @@ const TicketList: React.FC = () => {
     });
   }, [statusFilter, openWorkOrders]);
 
-  // 4. SSE REAL-TIME UPDATES
   useEffect(() => {
-    const eventSource = new EventSource('http://localhost:3000/api/tickets/events');
+    const token = localStorage.getItem('token'); 
+    const eventSource = new EventSource(`http://localhost:3000/api/tickets/events?token=${token}`);
     
     eventSource.onopen = () => console.log("SSE Connected");
 
     const handleCreateOrUpdate = (e: MessageEvent) => {
         const ticket = JSON.parse(e.data);
-        console.log("SSE Event:", e.type);
-
-        // A. Always refresh the summaries to update counts
         fetchWOSummaries();
-
-        // B. If this ticket's WO is currently expanded (cached), refresh the tickets list
         const woId = ticket.wo?.woId;
         if (woId && ticketsCacheRef.current.has(woId)) {
-            fetchTicketsForWO(woId, true); // Force refresh
+            fetchTicketsForWO(woId, true); 
         }
     };
 
     const handleDelete = (e: MessageEvent) => {
         const { id } = JSON.parse(e.data);
-        
-        // A. Refresh Summaries
         fetchWOSummaries();
-
-        // B. Manually remove from cache if present (since we don't have WO ID easily in event)
         setTicketsCache(prev => {
             const newCache = { ...prev };
             let found = false;
@@ -394,12 +359,10 @@ const TicketList: React.FC = () => {
     eventSource.addEventListener('delete-ticket', handleDelete);
 
     return () => {
-        console.log("Closing SSE");
         eventSource.close();
     };
   }, []);
 
-  // Scroll margin logic
   useEffect(() => {
     const setTicketMargins = () => {
       const header = document.querySelector('nav, header, .navbar') || document.querySelector('[class*="bg-muted"]');
@@ -416,34 +379,60 @@ const TicketList: React.FC = () => {
     return () => { observer.disconnect(); window.removeEventListener('resize', setTicketMargins); };
   }, [isMobile, ticketsCache]); 
 
-  // --- ACTIONS ---
+  const fetchGlobalDropdownData = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<any[]>>, search: string = '') => {
+    try {
+      const url = search ? `/${endpoint}?search=${search}` : `/${endpoint}`;
+      const response = await api.get(url);
+      setter(response.data as any[]);
+    } catch (error) { console.error(`Failed to fetch ${endpoint}:`, error); }
+  };
+
+  useEffect(() => { 
+    if (isEditing) fetchGlobalDropdownData('divisions', setDivisions, debouncedEditDivisionSearch); 
+  }, [debouncedEditDivisionSearch, isEditing]);
+  
+  useEffect(() => { 
+    if (isEditing) fetchGlobalDropdownData('work-orders', setWorkOrders, debouncedEditWorkOrderSearch); 
+  }, [debouncedEditWorkOrderSearch, isEditing]);
+
+  useEffect(() => {
+    const fetchFilteredData = async () => {
+        if (!isEditing || !editFields.workOrderId) {
+            setLaborDepts([]); setNonconformances([]); setUnits([]); setSequences([]);
+            return;
+        }
+        try {
+            const [deptRes, nonConRes, unitRes, seqRes] = await Promise.all([
+                api.get(`/work-orders/${editFields.workOrderId}/labor-departments`),
+                api.get(`/work-orders/${editFields.workOrderId}/nonconformances`),
+                api.get(`/work-orders/${editFields.workOrderId}/units`),
+                api.get(`/work-orders/${editFields.workOrderId}/sequences`)
+            ]);
+            setLaborDepts(deptRes.data as LaborDepartment[]);
+            setNonconformances(nonConRes.data as Nonconformance[]);
+            setUnits(unitRes.data as Unit[]);
+            setSequences(seqRes.data as Sequence[]);
+        } catch (error) { console.error("Failed to fetch filtered data", error); }
+    };
+    fetchFilteredData();
+  }, [editFields.workOrderId, isEditing]);
 
   const handleArchive = async (ticketId: number, woId?: number) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/tickets/${ticketId}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error(`Status: ${response.status}`);
-      toast({ title: "Success", description: `Ticket has been deleted.` });
+      await api.delete(`/tickets/${ticketId}`);
       
-      // --- Immediate UI Update ---
-      if (woId) {
-        setTicketsCache(prev => ({
-          ...prev,
-          [woId]: prev[woId]?.filter(t => t.ticketId !== ticketId) || [],
-        }));
+      toast({ title: "Success", description: `Ticket has been archived.` });
 
-        // 2. Decrement the summary count for that WO
-        setDashboardData(prev => prev.map(summary => 
-          summary.wo_id === woId 
-            ? { ...summary, open_ticket_count: Math.max(0, summary.open_ticket_count - 1) }
-            : summary
-        ));
+      const ticketList = ticketsCache[woId ?? -1];
+      const archivedTicket = ticketList?.find(t => t.ticketId === ticketId);
+      const woNum = archivedTicket?.wo?.wo;
 
-        // 3. Log the audit action
-        const woNumber = dashboardData.find(wo => wo.wo_id === woId)?.wo_number;
-        if (woNumber) {
-          await logAudit(userId, "Archive", ticketId, parseInt(woNumber, 10));
-        }
+      if (woNum) {
+        if (userId && woNum) { 
+            await logAudit(userId, "Archive", ticketId, parseInt(woNum, 10));
+          }
       }
+
     } catch (err: any) {
       toast({ variant: "destructive", title: "Archive Failed", description: err.message });
     }
@@ -454,15 +443,69 @@ const TicketList: React.FC = () => {
     setShowArchiveConfirm(true);
   };
 
+  const handleEdit = (ticket: Ticket) => {
+    setEditingTicket(ticket);
+    setIsEditing(true);
+
+    setEditFields({
+      status: ticket.status?.statusId?.toString() || '0',
+      divisionId: ticket.division?.divisionId?.toString() || '',
+      workOrderId: ticket.wo?.woId?.toString() || '',
+      laborDeptId: ticket.laborDepartment?.departmentId?.toString() || '',
+      manNonConId: ticket.manNonCon?.nonConId?.toString() || '',
+      unitId: ticket.unit?.unitId?.toString() || '',
+      seqID: ticket.sequence?.seqID?.toString() || '',
+      drawingNum: ticket.drawingNum || '', description: ticket.description || '',
+    });
+
+    setEditDivisionSearch(ticket.division?.divisionName || '');
+    setEditWorkOrderSearch(ticket.wo?.wo || '');
+    setEditLaborDeptText(ticket.laborDepartment?.departmentName || '');
+    setEditNonconformanceText((ticket.manNonCon as any)?.nonCon || '');
+    setEditUnitText(ticket.unit?.unitName || '');
+    setEditSequenceText(ticket.sequence?.seqName || '');
+    
+    fetchGlobalDropdownData('divisions', setDivisions);
+    fetchGlobalDropdownData('work-orders', setWorkOrders);
+  };
+
   useEffect(() => {
-    document.body.style.overflow = mobileDetailTicket ? 'hidden' : '';
+    document.body.style.overflow = (isEditing || mobileDetailTicket) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [mobileDetailTicket]);
+  }, [isEditing, mobileDetailTicket]);
 
+  const handleSaveEdit = async () => {
+    if (!editingTicket) return;
+    if (!userId) { toast({ variant: "destructive", title: "Error", description: "User not identified." }); return; }
+    if (!editFields.divisionId || !editFields.workOrderId || !editFields.laborDeptId || !editFields.manNonConId || !editFields.description) { 
+        toast({ variant: "destructive", title: "Validation Error", description: "Fill required fields." }); return; 
+    }
 
-  // --- RENDER ---
-  
-  // Decide what to display: Search Results OR Dashboard Data
+    try {
+      const payload = {
+        status: parseInt(editFields.status),
+        description: editFields.description,
+        drawingNum: editFields.drawingNum, 
+        initiator: userId, 
+        division: parseInt(editFields.divisionId),
+        wo: parseInt(editFields.workOrderId),
+        laborDepartment: parseInt(editFields.laborDeptId),
+        manNonCon: parseInt(editFields.manNonConId),
+        ...(editFields.unitId && { unit: parseInt(editFields.unitId) }),
+        ...(editFields.seqID && { sequence: parseInt(editFields.seqID) }),
+      };
+
+      await api.put(`/tickets/${editingTicket.ticketId}`, payload);
+
+      toast({ title: "Success", description: `Ticket ${editingTicket.qualityTicketId} has been updated.` });  
+      await logAudit(userId, "Edit", editingTicket.ticketId, parseInt(editingTicket.wo?.wo));   
+      setIsEditing(false);
+      setEditingTicket(null);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Update Failed", description: err.message });
+    }
+  };
+
   const displayedData = searchResults ?? dashboardData;
   const sortedWOs = [...displayedData].sort((a, b) => a.wo_number.localeCompare(b.wo_number));
 
@@ -471,7 +514,6 @@ const TicketList: React.FC = () => {
 
   return (
     <div>
-      {/* --- SEARCH BAR --- */}
       <div className="flex items-center gap-4 mb-6">
         <Input
           type="text"
@@ -481,15 +523,15 @@ const TicketList: React.FC = () => {
           className="max-w-sm bg-white"
         />
         <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-white border border-gray-300 rounded-md p-2"
-            >
-                <option value="0,1">Open & In-Progress</option>
-                <option value="2">Closed</option>
-                <option value="0">Open</option>
-                <option value="1">In-Progress</option>
-            </select>
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-white border border-gray-300 rounded-md p-2"
+        >
+            <option value="0,1">Open & In-Progress</option>
+            <option value="2">Closed</option>
+            <option value="0">Open</option>
+            <option value="1">In-Progress</option>
+        </select>
         {isSearching && <ScaleLoader color="#3b82f6" height={20} />}
       </div>
       <div className="space-y-4">
@@ -549,7 +591,7 @@ const TicketList: React.FC = () => {
                                 >
                                     <AccordionTrigger 
                                         className="px-4 py-3 hover:bg-gray-50 hover:no-underline"
-                                        onMouseDown={(e) => { // Use onMouseDown to prevent focus race conditions
+                                        onMouseDown={(e) => { 
                                             if (isMobile) {
                                                 e.preventDefault(); e.stopPropagation();
                                                 openMobileTicketDetail(ticket); return;
@@ -597,7 +639,7 @@ const TicketList: React.FC = () => {
       </div>
 
       {isMobile && mobileDetailTicket && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 p-4" onClick={closeMobileTicketDetail}>
           <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl max-h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <button onClick={closeMobileTicketDetail} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200">X</button>
             <div className="px-4 py-6 space-y-4">
@@ -608,13 +650,63 @@ const TicketList: React.FC = () => {
         </div>
       )}
 
+      {isEditing && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white p-6 rounded-lg w-full max-w-3xl relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setIsEditing(false)} className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center bg-red-600 text-white text-2xl font-bold rounded-lg hover:bg-red-700">✕</button>
+            <h2 className="text-xl font-semibold mb-4">Edit Ticket</h2>
+            <div className="space-y-6">
+                <div>
+                <label className="block text-sm font-medium text-gray-700">Status</label>
+                  
+                    <div className="mt-1 flex items-center">
+                      <span className="text-gray-900 font-medium">{editFields.status === '0' ? 'Open' : editFields.status === '1' ? 'In Progress' : 'Closed'}</span>
+                      <span className="ml-2 text-xs text-gray-500 italic">(Use 'View Details' to change ticket status)</span>
+                    </div>
+                  
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Division *</label>
+                    <input list="edit-div-list" value={editDivisionSearch} onChange={(e) => { setEditDivisionSearch(e.target.value); const s = divisions.find(d => d.divisionName === e.target.value); setEditFields({ ...editFields, divisionId: s ? String(s.divisionId) : '' }); }} className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+                    <datalist id="edit-div-list">{divisions.map(d => <option key={d.divisionId} value={d.divisionName} />)}</datalist>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Work Order *</label>
+                    <input list="edit-wo-list" value={editWorkOrderSearch} onChange={(e) => { setEditWorkOrderSearch(e.target.value); const s = workOrders.find(w => String(w.wo) === e.target.value); setEditFields({ ...editFields, workOrderId: s ? String(s.woId) : '', laborDeptId: '', manNonConId: '', unitId: '', seqID: '' }); setEditLaborDeptText(''); setEditNonconformanceText(''); setEditUnitText(''); setEditSequenceText(''); }} className="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+                    <datalist id="edit-wo-list">{workOrders.map(w => <option key={w.woId} value={w.wo} />)}</datalist>
+                </div>
+                {/* Dependent Fields */}
+                <div><label className="block text-sm font-medium text-gray-700">Labor Dept *</label><input list="edit-dept-list" value={editLaborDeptText} disabled={!editFields.workOrderId} onChange={(e) => { setEditLaborDeptText(e.target.value); const s = laborDepts.find(d => d.departmentName === e.target.value); setEditFields({...editFields, laborDeptId: s ? String(s.departmentId) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-dept-list">{laborDepts.map(d => <option key={d.departmentId} value={d.departmentName}/>)}</datalist></div>
+                <div><label className="block text-sm font-medium text-gray-700">Nonconformance *</label><input list="edit-nc-list" value={editNonconformanceText} disabled={!editFields.workOrderId} onChange={(e) => { setEditNonconformanceText(e.target.value); const s = manNonCons.find(m => m.nonCon === e.target.value); setEditFields({...editFields, manNonConId: s ? String(s.nonConId) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-nc-list">{manNonCons.map(m => <option key={m.nonConId} value={m.nonCon}/>)}</datalist></div>
+                <div><label className="block text-sm font-medium text-gray-700">Unit</label><input list="edit-unit-list" value={editUnitText} disabled={!editFields.workOrderId} onChange={(e) => { setEditUnitText(e.target.value); const s = units.find(u => u.unitName === e.target.value); setEditFields({...editFields, unitId: s ? String(s.unitId) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-unit-list">{units.map(u => <option key={u.unitId} value={u.unitName}/>)}</datalist></div>
+                <div><label className="block text-sm font-medium text-gray-700">Sequence</label><input list="edit-seq-list" value={editSequenceText} disabled={!editFields.workOrderId} onChange={(e) => { setEditSequenceText(e.target.value); const s = sequences.find(q => q.seqName === e.target.value); setEditFields({...editFields, seqID: s ? String(s.seqID) : ''})}} className="mt-1 w-full border border-gray-300 rounded p-2 disabled:bg-gray-100"/><datalist id="edit-seq-list">{sequences.map(s => <option key={s.seqID} value={s.seqName}/>)}</datalist></div>
+                <div><label className="block text-sm font-medium text-gray-700">Drawing #</label><input type="text" value={editFields.drawingNum} onChange={(e) => setEditFields({...editFields, drawingNum: e.target.value})} className="mt-1 w-full border border-gray-300 rounded p-2"/></div>
+                <div><label className="block text-sm font-medium text-gray-700">Description *</label><textarea rows={4} value={editFields.description} onChange={(e) => setEditFields({...editFields, description: e.target.value})} className="mt-1 w-full border border-gray-300 rounded p-2"/></div>
+            </div>
+            <div className="flex justify-end mt-6"><button onClick={() => setShowSubmitConfirm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Save</button></div>
+            {showSubmitConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+                        <h3 className="text-lg font-semibold mb-2">Confirm</h3>
+                        <p className="text-sm text-gray-700 mb-4">Submit changes?</p>
+                        <div className="flex justify-end space-x-3">
+                            <button onClick={() => setShowSubmitConfirm(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded">Cancel</button>
+                            <button onClick={async () => { setShowSubmitConfirm(false); await handleSaveEdit(); }} className="px-4 py-2 bg-blue-600 text-white rounded">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    </div>
+    )}
+
       {showArchiveConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
-                <h3 className="text-lg font-semibold mb-2">Delete Ticket?</h3>
+                <h3 className="text-lg font-semibold mb-2">Archive Ticket</h3>
                 <div className="flex justify-end space-x-3">
                     <button onClick={() => { setShowArchiveConfirm(false); setTicketToArchive(null); }} className="px-4 py-2 bg-gray-600 text-white rounded">Cancel</button>
-                    <button onClick={() => { if (ticketToArchive) { handleArchive(ticketToArchive.id, ticketToArchive.woId); setShowArchiveConfirm(false); setTicketToArchive(null); } }} className="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
+                    <button onClick={() => { if (ticketToArchive) { handleArchive(ticketToArchive.id, ticketToArchive.woId); setShowArchiveConfirm(false); setTicketToArchive(null); } }} className="px-4 py-2 bg-red-600 text-white rounded">Archive</button>
                 </div>
             </div>
         </div>

@@ -1,12 +1,42 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
+import { jwtDecode } from "jwt-decode"; 
+
+// Map Database Role IDs to UI String Roles
+const ROLE_MAP: Record<number, string> = {
+    1: 'Viewer',
+    2: 'Editor',
+    3: 'Admin'
+};
+
+const decodeToken = (t: string | null) => {
+    if (!t) return { id: null, role: null, name: null };
+    try {
+        const decoded: any = jwtDecode(t);
+        
+        // Translate ID to String if it is a number
+        let roleName = decoded.role;
+        if (typeof decoded.role === 'number') {
+            roleName = ROLE_MAP[decoded.role] || 'Viewer';
+        }
+
+        return { 
+            id: decoded.id || null, 
+            role: roleName, 
+            name: decoded.name || null
+        };
+    } catch (e) {
+        console.error("Error decoding token:", e);
+        return { id: null, role: null, name: null };
+    }
+}
 
 interface AuthContextType {
-  userId: number; 
+  userId: number | null; 
   username: string | null;
   displayName: string | null;
-  userRole: string | null; // "Admin", "Editor", "Viewer"
+  userRole: string | null; 
   token: string | null;
-  loginAs: (role: string) => Promise<void>;
+  loginAs: (userId: number) => Promise<void>; 
 }
 
 interface AuthProviderProps {
@@ -16,26 +46,26 @@ interface AuthProviderProps {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // 1. STATE MUST BE INSIDE THE COMPONENT
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
-  const [userRole, setUserRole] = useState<string | null>(null);
+  
+  const initialToken = localStorage.getItem("token");
+  const [token, setToken] = useState<string | null>(initialToken);
+  const [user, setUser] = useState(decodeToken(initialToken));
 
-  // 2. THE LOGIN FUNCTION
-  const loginAs = async (role: string) => {
+  const loginAs = async (targetUserId: number) => {
     try {
-        // Ensure you are hitting the correct URL (check your port!)
         const res = await fetch('http://localhost:3000/api/dev/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role: role, userId: 1003, name: "Dev User" })
+            body: JSON.stringify({ userId: targetUserId }) 
         });
         const data = await res.json();
         
         if (data.token) {
+            // Decode the new token immediately to get the correct role string
+            const decodedUser = decodeToken(data.token);
             setToken(data.token);
-            setUserRole(role);
+            setUser(decodedUser); 
             localStorage.setItem("token", data.token);
-            // Reload to ensure all components pick up the new token
             window.location.reload(); 
         }
     } catch (err) {
@@ -43,9 +73,10 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const userId = 1003; 
-  const username = "dev_user";
-  const displayName = `Dev ${userRole || 'User'}`;
+  const userId = user.id; 
+  const username = user.name ? user.name.toLowerCase().replace(/\s/g, '_') : null;
+  const displayName = user.name;
+  const userRole = user.role;
 
   return (
     <AuthContext.Provider value={{ userId, username, displayName, userRole, token, loginAs }}>

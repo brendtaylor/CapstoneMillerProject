@@ -126,10 +126,23 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     // --- Data Fetching: Global Lists ---
     const fetchGlobalDropdownData = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<any[]>>, search: string = '') => {
         try {
+            // RETRIEVE TOKEN
+            const token = localStorage.getItem('token'); 
+            
             const url = search ? `http://localhost:3000/api/${endpoint}?search=${search}` : `http://localhost:3000/api/${endpoint}`;
-            const response = await fetch(url);
+            
+            // ADD HEADERS OBJECT
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
             if (response.ok) {
                 setter(await response.json());
+            } else {
+                console.error(`Error fetching ${endpoint}:`, response.statusText);
             }
         } catch (error) {
             console.error(`Failed to fetch ${endpoint}:`, error);
@@ -153,21 +166,23 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     useEffect(() => {
         const fetchFilteredData = async () => {
             if (!workOrderId) {
-                // Clear filtered lists if no WO is selected
-                setLaborDepts([]);
-                setManNonCons([]);
-                setUnits([]);
-                setSequences([]);
                 return;
             }
 
             try {
-                // Fetch all dependencies in parallel
+                // RETRIEVE TOKEN
+                const token = localStorage.getItem('token');
+                const headers = { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                };
+
+                // ADD HEADERS TO ALL REQUESTS
                 const [deptRes, nonConRes, unitRes, seqRes] = await Promise.all([
-                    fetch(`http://localhost:3000/api/work-orders/${workOrderId}/labor-departments`),
-                    fetch(`http://localhost:3000/api/work-orders/${workOrderId}/nonconformances`),
-                    fetch(`http://localhost:3000/api/work-orders/${workOrderId}/units`),
-                    fetch(`http://localhost:3000/api/work-orders/${workOrderId}/sequences`)
+                    fetch(`http://localhost:3000/api/work-orders/${workOrderId}/labor-departments`, { headers }),
+                    fetch(`http://localhost:3000/api/work-orders/${workOrderId}/nonconformances`, { headers }),
+                    fetch(`http://localhost:3000/api/work-orders/${workOrderId}/units`, { headers }),
+                    fetch(`http://localhost:3000/api/work-orders/${workOrderId}/sequences`, { headers })
                 ]);
 
                 if (deptRes.ok) setLaborDepts(await deptRes.json());
@@ -201,83 +216,87 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
         // --- Check File Limit ---
         if (files.length > MAX_FILES) {
             toast({
-            title: "Upload Limit Reached",
-            description: `You can only upload up to ${MAX_FILES} files.`,
-            variant: "destructive",
+                title: "Upload Limit Reached",
+                description: `You can only upload up to ${MAX_FILES} files.`,
+                variant: "destructive",
             });
             return;
         }
 
         setIsSaving(true);
 
-        // Construct payload based on ticket.entity.js relations
+        // Construct payload
         const ticketPayload = {
             description,
             initiator: userId,
             status: 0,
-            drawingNum: drawingNum, // Passed as string now
+            drawingNum: drawingNum,
             ...(isSet(divisionId) && { division: parseInt(divisionId) }),
             ...(isSet(workOrderId) && { wo: parseInt(workOrderId) }),
-            ...(isSet(laborDeptId) && { laborDepartment: parseInt(laborDeptId) }), // New Field
+            ...(isSet(laborDeptId) && { laborDepartment: parseInt(laborDeptId) }),
             ...(isSet(manNonConId) && { manNonCon: parseInt(manNonConId) }),
             ...(isSet(unitId) && { unit: parseInt(unitId) }),
             ...(isSet(seqID) && { sequence: parseInt(seqID) }),
         };
 
         try {
+            // 1. CREATE TICKET (JSON Request)
             const response = await fetch('http://localhost:3000/api/tickets', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}` 
+                },
                 body: JSON.stringify(ticketPayload),
             });
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Failed to create ticket.');
             }
+            
             const newTicket = await response.json();
             toast({ title: "Success!", description: `Ticket ${newTicket.qualityTicketId} has been created.` });
 
-            // --- Upload Multiple Files ---
+            // 2. UPLOAD FILES (Multipart Request)
             for (const f of files) {
-            if (f.uploaded) continue; // skip already uploaded
+                if (f.uploaded) continue; 
 
-            // Build FormData for this file
-            const formData = new FormData();
-            formData.append("ticketId", newTicket.ticketId.toString());   // ✅ use DB PK
-            formData.append("fileKey", `${newTicket.ticketId}_${Date.now()}_${f.name}`);                          // or unique key
-            formData.append("imageFile", f.file);                         // raw File object
+                const formData = new FormData();
+                formData.append("ticketId", newTicket.ticketId.toString());
+                formData.append("fileKey", `${newTicket.ticketId}_${Date.now()}_${f.name}`);
+                formData.append("imageFile", f.file);
 
-            try {
-                const res = await fetch("http://localhost:3000/api/files/upload", {
-                method: "POST",
-                body: formData,
-                });
+                try {
+                    const res = await fetch("http://localhost:3000/api/files/upload", {
+                        method: "POST",
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}` 
+                        },
+                        body: formData,
+                    });
 
-                const contentType = res.headers.get("content-type");
-                let data;
-                if (contentType && contentType.includes("application/json")) {
-                    data = await res.json();
-                } 
-                else {
-                    const text = await res.text();
-                    throw new Error(`Unexpected response: ${text}`);
+                    // Handle response
+                    const contentType = res.headers.get("content-type");
+                    if (contentType && contentType.includes("application/json")) {
+                        await res.json();
+                    } else {
+                        const text = await res.text();
+                        if (!res.ok) throw new Error(text);
+                    }
+
+                    setFiles(prev =>
+                        prev.map(file =>
+                            file.name === f.name ? { ...file, uploaded: true } : file
+                        )
+                    );
+                } catch (err: any) {
+                    toast({ variant: "destructive", title: "Upload Failed", description: `File ${f.name}: ${err.message}` });
                 }
-
-                
-
-                setFiles(prev =>
-                prev.map(file =>
-                    file.name === f.name ? { ...file, uploaded: true } : file
-                )
-                );
-            } catch (err: any) {
-                toast({ variant: "destructive", title: "Upload Failed", description: err.message });
-            }
             }
             
-            // Log Ticket Creation
+            // 3. Log Audit
             await logAudit(userId, "Create", parseInt(newTicket.ticketId, 10), parseInt(workOrderSearch, 10));
-
 
             handleDelete(); // Clear form
             setCreatedTicketId(newTicket.qualityTicketId);

@@ -15,20 +15,27 @@ const Quality: React.FC = () => {
     const location = useLocation(); 
     const { userRole } = useAuth();
     
-    // --- TABS CONTROL ---
-    // Default to 'tickets', but check location.state for overrides (e.g. from Back button)
+    // Admin Check
+    const isAdmin = String(userRole || "").toLowerCase() === "admin";
+
+    // Default to 'tickets', but check location.state for overrides
     const [activeTab, setActiveTab] = useState("tickets");
 
     useEffect(() => {
       if (location.state && location.state.activeTab) {
-        setActiveTab(location.state.activeTab);
+        // If non-admin tries to go to archive or audit log, force them back to tickets
+        const restrictedTabs = ['archivedTickets', 'auditlog'];
+        if (restrictedTabs.includes(location.state.activeTab) && !isAdmin) {
+            setActiveTab("tickets");
+        } else {
+            setActiveTab(location.state.activeTab);
+        }
       }
-    }, [location]);
+    }, [location, isAdmin]);
 
     const [showForm, setShowForm] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
-    // Prevent background scrolling when the create ticket overlay is open
     useEffect(() => {
       document.body.style.overflow = showForm ? 'hidden' : '';
       return () => { document.body.style.overflow = ''; };
@@ -61,8 +68,16 @@ const Quality: React.FC = () => {
               <TabsList className="flex flex-col gap-4 mt-16 bg-gray-800">
                 <TabsTrigger value="tickets" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => { setActiveTab("tickets"); setDropdownOpen(false); }}>Tickets</TabsTrigger>
                 <TabsTrigger value="checklist" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => { setActiveTab("checklist"); setDropdownOpen(false); }}>Checklist</TabsTrigger>
-                <TabsTrigger value="auditlog" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => { setActiveTab("auditlog"); setDropdownOpen(false); }}>Audit Log</TabsTrigger>
-                <TabsTrigger value="archivedTickets" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => { setActiveTab("archivedTickets"); setDropdownOpen(false); }}>Archived Tickets</TabsTrigger>
+                
+                {/* Hide Audit Log for Non-Admins in Mobile Menu */}
+                {isAdmin && (
+                  <TabsTrigger value="auditlog" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => { setActiveTab("auditlog"); setDropdownOpen(false); }}>Audit Log</TabsTrigger>
+                )}
+                
+                {/* Hide Archive Tab for Non-Admins in Mobile Menu */}
+                {isAdmin && (
+                    <TabsTrigger value="archivedTickets" className="w-full justify-start text-lg text-black border border-black rounded-md px-4 py-2 hover:brightness-105 hover:shadow-md hover:scale-[1.02] transition-transform data-[state=inactive]:bg-white data-[state=active]:bg-gray-500" onClick={() => { setActiveTab("archivedTickets"); setDropdownOpen(false); }}>Archived Tickets</TabsTrigger>
+                )}
               </TabsList>
             </div>
           )}
@@ -79,21 +94,25 @@ const Quality: React.FC = () => {
           <TabsList className="flex flex-col mt-10 gap-2 bg-transparent">
             <TabsTrigger value="tickets" className="w-full justify-start data-[state=active]:bg-background mt-14">Tickets</TabsTrigger>
             <TabsTrigger value="checklist" className="w-full justify-start data-[state=active]:bg-background">Checklist</TabsTrigger>
-            <TabsTrigger value="auditlog" className="w-full justify-start data-[state=active]:bg-background">Audit Log</TabsTrigger>
-            <TabsTrigger value="archivedTickets" className="w-full justify-start data-[state=active]:bg-background">Archived Tickets</TabsTrigger>
+            
+            {/* Hide Audit Log for Non-Admins in Desktop Sidebar */}
+            {isAdmin && <TabsTrigger value="auditlog" className="w-full justify-start data-[state=active]:bg-background">Audit Log</TabsTrigger>}
+            
+            {/* Hide Archive Tab for Non-Admins in Desktop Sidebar */}
+            {isAdmin && (
+                <TabsTrigger value="archivedTickets" className="w-full justify-start data-[state=active]:bg-background">Archived Tickets</TabsTrigger>
+            )}
           </TabsList>
         </div>
       );
     }
 
   return (
-    // Updated to use Controlled Component props: value & onValueChange
     <Tabs value={activeTab} onValueChange={setActiveTab} className="min-h-screen bg-gray-100">
       <div className="flex flex-col xl:flex-row w-full max-w-[1300px] mx-auto min-h-screen">
         {sidebar}
         <div className="flex-1 p-4 md:p-6 overflow-y-auto">
           
-          {/* TICKETS TAB */}
           <TabsContent value="tickets" className="my-2">
             <Card>
                 <CardHeader className="flex flex-row justify-between item-center w-full">
@@ -108,7 +127,6 @@ const Quality: React.FC = () => {
             </Card>
           </TabsContent>
           
-          {/* Create Form Overlay */}
           {showForm && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 sm:px-0">
               <div className="bg-white p-4 sm:p-6 rounded shadow-lg w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
@@ -121,7 +139,6 @@ const Quality: React.FC = () => {
             </div>
           )}
 
-          {/* CHECKLIST TAB */}
           <TabsContent value="checklist" className="my-2">
             <Card>
               <CardHeader className="flex flex-row"><CardTitle>Checklist<p className="text-sm font-normal mt-1">Quality Digital Checklist - Alpha.</p></CardTitle></CardHeader>
@@ -129,22 +146,26 @@ const Quality: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* AUDIT LOG TAB */}
-          <TabsContent value="auditlog" className="my-2">
-            <Card>
-              <CardHeader className="flex flex-row"><CardTitle>Audit Log<p className="text-sm font-normal mt-1">Edited Tickets</p></CardTitle></CardHeader>
-              <AuditLog />
-            </Card>
-          </TabsContent>
+          {/* Only Show Audit Log for Admins */}
+          {isAdmin && (
+            <TabsContent value="auditlog" className="my-2">
+              <Card>
+                <CardHeader className="flex flex-row"><CardTitle>Audit Log<p className="text-sm font-normal mt-1">Edited Tickets</p></CardTitle></CardHeader>
+                <AuditLog />
+              </Card>
+            </TabsContent>
+          )}
 
-          {/* ARCHIVES TAB */}
-          <TabsContent value="archivedTickets" className="my-2">
-            <Card>
-              <CardContent>
-                <ArchiveList />
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {/* Only show Archive content for Admins*/}
+          {isAdmin && (
+              <TabsContent value="archivedTickets" className="my-2">
+                <Card>
+                  <CardContent>
+                    <ArchiveList />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+          )}
 
         </div>
       </div>

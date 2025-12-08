@@ -35,7 +35,9 @@ export default function UploadModal({ show, onClose, ticketId, workOrderSearch }
 
       toast({title: "Upload Successful", description: `${results.length} file(s) uploaded successfully.`, variant: "default",});
 
-      await logAudit (userId, "File Uploaded", ticketId, parseInt(workOrderSearch, 10));
+      if (userId) {
+        await logAudit (userId, "File Uploaded", ticketId, parseInt(workOrderSearch, 10));
+      }
 
       // Refresh page after upload
       window.location.reload();
