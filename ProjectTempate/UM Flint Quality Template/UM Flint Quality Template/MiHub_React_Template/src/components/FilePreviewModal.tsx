@@ -39,6 +39,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const docxRef = useRef<HTMLDivElement | null>(null);
+  const pdfRenderTaskRef = useRef<any>(null);
   const [excelHtml, setExcelHtml] = useState<string>("");
   const [zoom, setZoom] = useState<number>(1.0);
   const [pdfSize, setPdfSize] = useState<{ width: number; height: number }>({
@@ -49,6 +50,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
     typeof window !== "undefined" ? window.innerWidth : 1200
   );
   const hasUserAdjustedZoom = useRef(false);
+  const autoFitAppliedRef = useRef(false);
 
   const contentMaxWidth = useMemo(
     () => Math.max(320, viewportWidth - 48),
@@ -80,6 +82,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     hasUserAdjustedZoom.current = false;
+    autoFitAppliedRef.current = false;
   }, [isOpen, previewType]);
 
   const title = useMemo(
@@ -105,24 +108,63 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
     if (!isOpen || previewType !== "pdf" || !blob || !canvasRef.current) return;
 
     let pdfDoc: PDFDocumentProxy | null = null;
+    let cancelled = false;
 
     const renderPdf = async () => {
+      if (pdfRenderTaskRef.current) {
+        pdfRenderTaskRef.current.cancel();
+        try {
+          await pdfRenderTaskRef.current.promise;
+        } catch (err: any) {
+          if (err?.name !== "RenderingCancelledException") {
+            throw err;
+          }
+        } finally {
+          pdfRenderTaskRef.current = null;
+        }
+      }
+
       const data = await blob.arrayBuffer();
+      if (cancelled) return;
       pdfDoc = await getDocument({ data }).promise;
+      if (cancelled) return;
+
       const page = await pdfDoc.getPage(1);
+      if (cancelled) return;
       const viewport = page.getViewport({ scale: zoom });
       const canvas = canvasRef.current;
       const context = canvas?.getContext("2d");
       if (!canvas || !context) return;
+
       canvas.height = viewport.height;
       canvas.width = viewport.width;
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.clearRect(0, 0, canvas.width, canvas.height);
       setPdfSize({ width: viewport.width, height: viewport.height });
-      await page.render({ canvasContext: context, viewport }).promise;
+
+      const renderTask = page.render({ canvasContext: context, viewport });
+      pdfRenderTaskRef.current = renderTask;
+      try {
+        await renderTask.promise;
+      } catch (err: any) {
+        if (err?.name !== "RenderingCancelledException") {
+          throw err;
+        }
+      } finally {
+        if (pdfRenderTaskRef.current === renderTask) {
+          pdfRenderTaskRef.current = null;
+        }
+      }
     };
 
     renderPdf();
 
     return () => {
+      cancelled = true;
+      if (pdfRenderTaskRef.current) {
+        pdfRenderTaskRef.current.cancel();
+        pdfRenderTaskRef.current = null;
+      }
       if (pdfDoc) {
         pdfDoc.cleanup();
         pdfDoc.destroy();
@@ -163,6 +205,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
+    if (hasUserAdjustedZoom.current) return;
 
     const baseWidth =
       previewType === "pdf" && pdfSize.width
@@ -174,10 +217,11 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
     const fitZoom = Math.min(1, contentMaxWidth / baseWidth);
     const normalizedZoom = +fitZoom.toFixed(2);
 
-    if (!hasUserAdjustedZoom.current && normalizedZoom > 0 && zoom !== normalizedZoom) {
+    if (!autoFitAppliedRef.current && normalizedZoom > 0) {
+      autoFitAppliedRef.current = true;
       setZoom(normalizedZoom);
     }
-  }, [contentMaxWidth, isOpen, pdfSize.width, previewType, zoom]);
+  }, [contentMaxWidth, isOpen, pdfSize.width, previewType]);
 
   if (!isOpen) return null;
 
