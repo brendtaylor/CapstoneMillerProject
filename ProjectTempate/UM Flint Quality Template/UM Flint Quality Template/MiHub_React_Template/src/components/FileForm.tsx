@@ -6,6 +6,7 @@ import { logAudit } from './utils/auditLogger';
 import { getFileIcon } from "./utils/fileHelper";
 import { useFileHelper } from "../hooks/useFileHelper";
 import { api } from "../api";
+import { useIsMobile } from "../hooks/use-mobile";
 
 import {
     Division,
@@ -39,6 +40,7 @@ interface FileFormProps {
 
 const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
     // --- Form State ---
+    const isMobile = useIsMobile();
     const [divisionId, setDivisionId] = useState('');
     const [workOrderId, setWorkOrderId] = useState('');
     const [laborDeptId, setLaborDeptId] = useState('');
@@ -468,7 +470,9 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             >
                 <label htmlFor="FileUpload" className="cursor-pointer flex flex-col items-center">
                     <img src="/icons/upload-icon.png" alt="Upload Icon" className="w-65 h-56 mb-2"/>
-                    <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">Upload or Drag Files</span>
+                    <span className="text-blue-600 hover:text-blue-800 text-lg font-medium">
+                        {isMobile ? "Tap to attach files" : "Click or drag files into this area to attach them"}
+                    </span>
                 </label>
                 <input
                     id="FileUpload"
