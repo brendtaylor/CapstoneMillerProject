@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ScaleLoader } from "react-spinners";
-import { api } from "../api"; 
+import { api } from "../api";
 
 interface AuditLogEntry {
   logId: number;
@@ -46,13 +46,13 @@ const AuditLog: React.FC = () => {
       case 3:
         return "Admin";
       default:
-        return "—"; 
+        return "N/A";
     }
   }
 
   function formatTicketId(ticketId: number): string {
     // Make it Positive
-    const positiveValue = Math.abs(999-ticketId);
+    const positiveValue = Math.abs(999 - ticketId);
     // Pad to 3 digits
     return positiveValue.toString().padStart(3, "0");
   }
@@ -77,7 +77,7 @@ const AuditLog: React.FC = () => {
         ticketId: row.ticketId ?? null,
         woId: row.woId ?? null,
         action: row.action,
-        timestamp: row.timestamp
+        timestamp: row.timestamp,
       }));
 
       setLogs(mapped);
@@ -93,14 +93,14 @@ const AuditLog: React.FC = () => {
   return (
     <div className="p-4">
       {/* --- SEARCH BAR --- */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
         <input
           ref={inputRef}
           type="text"
           placeholder="Search by Action or Work Order..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-96 border border-gray-300 rounded-md p-2"
+          className="w-full md:w-96 border border-gray-300 rounded-md p-2"
         />
         {isSearching && <ScaleLoader color="#3b82f6" height={20} />}
       </div>
@@ -123,36 +123,40 @@ const AuditLog: React.FC = () => {
           </div>
         )
       ) : (
-        <table className="min-w-full border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-4 py-2">Log ID</th>
-              <th className="border px-4 py-2">User ID</th>
-              <th className="border px-4 py-2">User Role</th>
-              <th className="border px-4 py-2">Work Order ID</th>
-              <th className="border px-4 py-2">Ticket ID</th>
-              <th className="border px-4 py-2">Action</th>
-              <th className="border px-4 py-2">Timestamp</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => (
-              <tr key={log.logId}>
-                <td className="border px-4 py-2">{log.logId}</td>
-                <td className="border px-4 py-2">{log.userId ?? "—"}</td>
-                <td className="border px-4 py-2">{getRoleName(log.userRole)}</td>
-                <td className="border px-4 py-2">{log.woId ?? "—"}</td>
-                <td className="border px-4 py-2">{log.ticketId != null ? formatTicketId(log.ticketId) : "—"}</td>
-                <td className="border px-4 py-2">{log.action || "—"}</td>
-                <td className="border px-4 py-2">
-                  {log.timestamp && !isNaN(Date.parse(log.timestamp))
-                    ? new Date(log.timestamp).toLocaleString()
-                    : "Invalid Date"}
-                </td>
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-full border border-gray-300">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-4 py-2">Log ID</th>
+                <th className="border px-4 py-2">User ID</th>
+                <th className="border px-4 py-2">User Role</th>
+                <th className="border px-4 py-2">Work Order ID</th>
+                <th className="border px-4 py-2">Ticket ID</th>
+                <th className="border px-4 py-2">Action</th>
+                <th className="border px-4 py-2">Timestamp</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <tr key={log.logId}>
+                  <td className="border px-4 py-2 whitespace-nowrap">{log.logId}</td>
+                  <td className="border px-4 py-2 whitespace-nowrap">{log.userId ?? "N/A"}</td>
+                  <td className="border px-4 py-2 whitespace-nowrap">{getRoleName(log.userRole)}</td>
+                  <td className="border px-4 py-2 whitespace-nowrap">{log.woId ?? "N/A"}</td>
+                  <td className="border px-4 py-2 whitespace-nowrap">
+                    {log.ticketId != null ? formatTicketId(log.ticketId) : "N/A"}
+                  </td>
+                  <td className="border px-4 py-2">{log.action || "N/A"}</td>
+                  <td className="border px-4 py-2 whitespace-nowrap">
+                    {log.timestamp && !isNaN(Date.parse(log.timestamp))
+                      ? new Date(log.timestamp).toLocaleString()
+                      : "Invalid Date"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
