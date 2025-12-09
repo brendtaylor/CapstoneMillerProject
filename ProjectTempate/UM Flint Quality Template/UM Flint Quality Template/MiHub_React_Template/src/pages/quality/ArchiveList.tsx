@@ -80,18 +80,19 @@ const ArchiveList: React.FC = () => {
     return () => { document.body.style.overflow = ''; };
   }, [mobileDetailTicket]);
 
-  const renderTicketDetails = (ticket: Ticket) => (
+  const renderTicketDetails = (ticket: Ticket, showButton = false) => (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-3 mb-2">
-        <Button
-          variant="default"
-          onClick={() => navigate(`/tickets/archived/${ticket.ticketId}`)}
-          className="md:min-w-[120px]"
-        >
-          View Details
-        </Button>
-      </div>
-
+      {showButton && (
+        <div className="flex flex-wrap gap-3 mb-2">
+          <Button
+            variant="default"
+            onClick={() => navigate(`/tickets/archived/${ticket.ticketId}`)}
+            className="md:min-w-[120px]"
+          >
+            View Details
+          </Button>
+        </div>
+      )}
       <div className="lg:col-span-3 space-y-2">
         <h4 className="text-sm font-bold text-gray-900">Description</h4>
         <div className="p-3 bg-gray-50 rounded border border-gray-100 text-sm text-gray-700 whitespace-pre-wrap break-words">
@@ -268,7 +269,7 @@ const ArchiveList: React.FC = () => {
                             </Button>
                           </div>
 
-                          {renderTicketDetails(ticket)}
+                          {renderTicketDetails(ticket, !isMobile)}
                         </AccordionContent>
                       </AccordionItem>
                     ))}
@@ -298,7 +299,7 @@ const ArchiveList: React.FC = () => {
             </button>
             <div className="px-4 py-6 space-y-4">
               <h3 className="text-lg font-semibold">{mobileDetailTicket.qualityTicketId || mobileDetailTicket.ticketId}</h3>
-              {renderTicketDetails(mobileDetailTicket)}
+              {renderTicketDetails(mobileDetailTicket, true)}
             </div>
           </div>
         </div>
