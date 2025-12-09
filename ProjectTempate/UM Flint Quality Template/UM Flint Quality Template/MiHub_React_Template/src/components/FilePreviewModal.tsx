@@ -48,6 +48,39 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
   const [viewportWidth, setViewportWidth] = useState<number>(
     typeof window !== "undefined" ? window.innerWidth : 1200
   );
+  const hasUserAdjustedZoom = useRef(false);
+
+  const contentMaxWidth = useMemo(
+    () => Math.max(320, viewportWidth - 48),
+    [viewportWidth]
+  );
+
+  useEffect(() => {
+    if (typeof document === "undefined" || typeof window === "undefined")
+      return;
+    if (!isOpen) return;
+
+    const { style } = document.body;
+    const previousOverflow = style.overflow;
+    const previousPaddingRight = style.paddingRight;
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
+
+    style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    return () => {
+      style.overflow = previousOverflow;
+      style.paddingRight = previousPaddingRight;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    hasUserAdjustedZoom.current = false;
+  }, [isOpen, previewType]);
 
   const title = useMemo(
     () => `Preview: ${fileName || "File"}`,
@@ -128,32 +161,52 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
     });
   }, [blob, isOpen, previewType]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const baseWidth =
+      previewType === "pdf" && pdfSize.width
+        ? pdfSize.width
+        : previewType === "excel" || previewType === "word"
+        ? 900
+        : 720;
+
+    const fitZoom = Math.min(1, contentMaxWidth / baseWidth);
+    const normalizedZoom = +fitZoom.toFixed(2);
+
+    if (!hasUserAdjustedZoom.current && normalizedZoom > 0 && zoom !== normalizedZoom) {
+      setZoom(normalizedZoom);
+    }
+  }, [contentMaxWidth, isOpen, pdfSize.width, previewType, zoom]);
+
   if (!isOpen) return null;
 
-  const contentMaxWidth = Math.max(320, viewportWidth - 48); // padding guard for mobile
   const pdfDisplayWidth =
     pdfSize.width && pdfSize.width < contentMaxWidth
       ? pdfSize.width
       : contentMaxWidth;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="relative w-full max-w-5xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 overflow-y-auto">
+      <div className="relative w-full max-w-full sm:max-w-5xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center border-b px-4 py-3 gap-3 flex-wrap sm:flex-nowrap">
+          <div className="flex-1 min-w-0 hidden sm:block">
+            <h3 className="text-lg font-semibold text-gray-900 truncate" title={title}>
+              {title}
+            </h3>
+            <p className="text-xs text-gray-500 uppercase tracking-wide truncate">
               {previewType.toUpperCase()}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end flex-shrink-0 ml-auto">
             {canZoom && (
               <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1 text-sm">
                 <button
                   className="px-2 font-semibold hover:text-blue-600"
-                  onClick={() =>
-                    setZoom((z) => Math.max(0.5, +(z - 0.2).toFixed(2)))
-                  }
+                  onClick={() => {
+                    hasUserAdjustedZoom.current = true;
+                    setZoom((z) => Math.max(0.25, +(z - 0.2).toFixed(2)));
+                  }}
                   aria-label="Zoom out"
                 >
                   -
@@ -163,16 +216,20 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
                 </span>
                 <button
                   className="px-2 font-semibold hover:text-blue-600"
-                  onClick={() =>
-                    setZoom((z) => Math.min(3, +(z + 0.2).toFixed(2)))
-                  }
+                  onClick={() => {
+                    hasUserAdjustedZoom.current = true;
+                    setZoom((z) => Math.min(3, +(z + 0.2).toFixed(2)));
+                  }}
                   aria-label="Zoom in"
                 >
                   +
                 </button>
                 <button
                   className="px-2 text-xs text-gray-600 hover:text-blue-600"
-                  onClick={() => setZoom(1)}
+                  onClick={() => {
+                    hasUserAdjustedZoom.current = true;
+                    setZoom(1);
+                  }}
                   aria-label="Reset zoom"
                 >
                   Reset
@@ -189,7 +246,7 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
           </div>
         </div>
 
-        <div className="p-4 overflow-y-auto max-h-[75vh] bg-gray-50">
+        <div className="p-4 overflow-auto flex-1 min-h-0 bg-gray-50">
           {loading && (
             <p className="text-sm text-gray-700">Loading preview...</p>
           )}
@@ -268,6 +325,14 @@ const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
               )}
             </>
           )}
+        </div>
+        <div className="sm:hidden border-t px-4 py-3 bg-white sticky bottom-0">
+          <h3 className="text-base font-semibold text-gray-900 truncate" title={title}>
+            {title}
+          </h3>
+          <p className="text-xs text-gray-500 uppercase tracking-wide truncate">
+            {previewType.toUpperCase()}
+          </p>
         </div>
       </div>
     </div>
