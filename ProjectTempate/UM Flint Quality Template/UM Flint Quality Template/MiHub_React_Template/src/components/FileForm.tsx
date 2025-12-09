@@ -508,7 +508,7 @@ const FileForm: React.FC<FileFormProps> = ({ onClose }) => {
             {/* Save/Delete Actions */}
             <div className="flex justify-end space-x-4">
                 <button onClick={handleDelete} className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-                    Delete Draft
+                    Clear Draft
                 </button>
                 <button onClick={confirmAndSave} disabled={isSaving} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400">
                     {isSaving ? 'Saving...' : 'Save'}
