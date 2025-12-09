@@ -254,21 +254,6 @@ const ArchiveList: React.FC = () => {
                         </AccordionTrigger>
                         
                         <AccordionContent className="px-4 py-4 border-t border-gray-100">
-                          <div className="flex flex-wrap gap-3 mb-6 border-b border-gray-100 pb-4">
-                            <Button
-                              variant="default"
-                              onClick={() => {
-                                if (isMobile) {
-                                  setMobileDetailTicket(ticket);
-                                } else {
-                                  navigate(`/tickets/archived/${ticket.ticketId}`);
-                                }
-                              }}
-                            >
-                              View Details
-                            </Button>
-                          </div>
-
                           {renderTicketDetails(ticket, !isMobile)}
                         </AccordionContent>
                       </AccordionItem>
