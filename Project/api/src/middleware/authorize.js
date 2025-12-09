@@ -1,3 +1,18 @@
+/**
+ * @file authorize.js
+ * Middleware factory for Role-Based Access Control.
+ * Enforces permission checks based on the authenticated user's role.
+ */
+
+
+/**
+ * Creates a middleware function that restricts access to specific user roles.
+ *   - Relies on `req.user` being populated by `auth.middleware.js`.
+ *   - Maps database integer roles (1, 2, 3) to human-readable strings ('Viewer', 'Editor', 'Admin')
+ *      
+ * @param {string[]} allowedRoles - Array of allowed role names (`['Admin', 'Editor', 'Viewer']`).
+ * @returns {Function} Express middleware function.
+ */
 const authorize = (allowedRoles) => (req, res, next) => {
     const user = req.user; 
 

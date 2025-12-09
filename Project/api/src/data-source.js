@@ -1,3 +1,12 @@
+/**
+ * @file data-source.js
+ * Database configuration file using TypeORM.
+ * - Establishes the connection to the MSSQL Server.
+ * - Registers all Entity schemas for Object-Relational Mapping.
+ * - Configures connection pooling (max 120 concurrent connections).
+ * - Sets up file-based logging for SQL queries.
+ */
+
 const { DataSource } = require("typeorm");
 
 // Import all entity schemas
@@ -31,8 +40,8 @@ const AppDataSource = new DataSource({
     
     extra: {
         pool: {
-            max: 120,  // Allow up to 50 concurrent DB connections
-            min: 5,   // Keep 5 ready at all times
+            max: 120,  // Allow up to 120 concurrent DB connections
+            min: 5,   // Keep 5 ready at all times to reduce initial latency
             idleTimeoutMillis: 30000 
         }
     },

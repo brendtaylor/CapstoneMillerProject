@@ -6,6 +6,7 @@
     "multer": "^2.0.2"
   },
   "devDependencies": {
-    "@types/axios": "^0.9.36"
+    "@types/axios": "^0.9.36",
+    "jsdoc": "^4.0.5"
   }
 }

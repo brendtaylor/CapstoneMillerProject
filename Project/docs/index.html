@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/index.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">index.jsApplication Entry Point.Responsibilities:1. Initializes the Database Connection via TypeORM.2. Configures the Express Server (CORS, JSON parsing).3. Mounts API routes (Main API & Audit logs).4. Starts the HTTP server on the defined port.</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/logger.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">logger.jsApplication-wide logging configuration using Winston. - File Logging: - `error.log`: Captures all error-level events. - `combined.log`: Captures all events (info, warn, error). - Console Logging: Enabled only in non-production environments for developer visibility. - Formatting: Includes timestamps, stack traces for errors, and JSON formatting for structured logging.</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="logger.js.html">logger.js</a>, <a href="logger.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/src/controllers/file.controller.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">file.controller.jsController for handling HTTP requests related to file uploads, retrieval, and deletion.Delegates business logic to FileService.</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_controllers_file.controller.js.html">src/controllers/file.controller.js</a>, <a href="src_controllers_file.controller.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/src/controllers/generic.controller.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">generic.controller.jsThis module contains a "controller factory" that creates controller objects for simplereference tables. Only handles HTTP logic. -This avoids duplicating controller logic for every simple table.Called by routes/index.js</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_controllers_generic.controller.js.html">src/controllers/generic.controller.js</a>, <a href="src_controllers_generic.controller.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/src/controllers/ticket.controller.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">ticket.controller.jsController layer for handling HTTP requests related to Quality Tickets.This file delegates business logic to the TicketService and handles HTTP responses,status codes, and basic input validation.Called by routes/index.js</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_controllers_ticket.controller.js.html">src/controllers/ticket.controller.js</a>, <a href="src_controllers_ticket.controller.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/src/controllers/work-order.controller.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">work-order.controller.jsController for Work Order dashboard and filtering logic.Handles:- Main dashboard -  listing WOs with open ticket counts.- Retrieving specific lists of tickets for a selected Work Order.- Populating context-dependent dropdowns (ex. labor department ) based on the selected Work Order.</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_controllers_work-order.controller.js.html">src/controllers/work-order.controller.js</a>, <a href="src_controllers_work-order.controller.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/src/data-source.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">data-source.jsDatabase configuration file using TypeORM.- Establishes the connection to the MSSQL Server.- Registers all Entity schemas for Object-Relational Mapping.- Configures connection pooling (max 120 concurrent connections).- Sets up file-based logging for SQL queries.</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_data-source.js.html">src/data-source.js</a>, <a href="src_data-source.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/src/middleware/auth.middleware.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">auth.middleware.jsMiddleware for handling User Authentication via JWT.- Validates JWTs from "Authorization" headers or query parameters.- Implements in-memory caching to reduce database load (TTL: 60 seconds).- "Just-In-Time" Provisioning: Automatically creates users in the local database    if they possess a valid token but don't exist yet.</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_middleware_auth.middleware.js.html">src/middleware/auth.middleware.js</a>, <a href="src_middleware_auth.middleware.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/src/middleware/authorize.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">authorize.js
+Middleware factory for Role-Based Access Control.
+Enforces permission checks based on the authenticated user's role.</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_middleware_authorize.js.html">src/middleware/authorize.js</a>, <a href="src_middleware_authorize.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/src/services/file.service.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">file.service.jsService layer for handling File operations.Manages database interactions for storing, retrieving, and deleting binary file dataassociated with Quality Tickets.</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_services_file.service.js.html">src/services/file.service.js</a>, <a href="src_services_file.service.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/src/services/generic.service.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">gener.service.jsThis module covers all of the generic services that apply to a majority of the tables (ex: finding all objects in a table). Only handles Database Logic.Called by generic.controller.js</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_services_generic.service.js.html">src/services/generic.service.js</a>, <a href="src_services_generic.service.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/src/services/ticket.service.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">ticket.service.jsService layer for Ticket operations. Handles database interactions, custom ID generation via transactions,and real-time broadcasting via Server-Sent Events (SSE).Called by ticket.controller.js</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_services_ticket.service.js.html">src/services/ticket.service.js</a>, <a href="src_services_ticket.service.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>api/src/services/work-order.service.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">work-order.service.jsService handling Work Order logic - Aggregating ticket counts per Work Order for dashboards. - Retrieving subsets of data based on Work Order relationships.</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="src_services_work-order.service.js.html">src/services/work-order.service.js</a>, <a href="src_services_work-order.service.js.html#line1">line 1</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addTicketNote">addTicketNote</a></li><li><a href="global.html#assignTicketSelf">assignTicketSelf</a></li><li><a href="global.html#assignTicketUser">assignTicketUser</a></li><li><a href="global.html#authenticateToken">authenticateToken</a></li><li><a href="global.html#authorize">authorize</a></li><li><a href="global.html#connectSSE">connectSSE</a></li><li><a href="global.html#createGenericController">createGenericController</a></li><li><a href="global.html#createTicket">createTicket</a></li><li><a href="global.html#deleteTicket">deleteTicket</a></li><li><a href="global.html#getAll">getAll</a></li><li><a href="global.html#getAllArchivedTickets">getAllArchivedTickets</a></li><li><a href="global.html#getAllTickets">getAllTickets</a></li><li><a href="global.html#getArchivedTicketByID">getArchivedTicketByID</a></li><li><a href="global.html#getArchivedTicketsByWorkOrder">getArchivedTicketsByWorkOrder</a></li><li><a href="global.html#getLaborDepartmentsByWorkOrder">getLaborDepartmentsByWorkOrder</a></li><li><a href="global.html#getNonconformancesByWorkOrder">getNonconformancesByWorkOrder</a></li><li><a href="global.html#getSequencesByWorkOrder">getSequencesByWorkOrder</a></li><li><a href="global.html#getTicketById">getTicketById</a></li><li><a href="global.html#getTicketNotes">getTicketNotes</a></li><li><a href="global.html#getTicketsByWorkOrder">getTicketsByWorkOrder</a></li><li><a href="global.html#getUnitsByWorkOrder">getUnitsByWorkOrder</a></li><li><a href="global.html#getWorkOrderSummary">getWorkOrderSummary</a></li><li><a href="global.html#logger">logger</a></li><li><a href="global.html#mapRoleStringToId">mapRoleStringToId</a></li><li><a href="global.html#updateTicket">updateTicket</a></li><li><a href="global.html#updateTicketStatus">updateTicketStatus</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 15:37:10 GMT-0500 (Eastern Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: src/services/file.service.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: src/services/file.service.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @file file.service.js
+ * Service layer for handling File operations.
+ * 
+ * Manages database interactions for storing, retrieving, and deleting binary file data
+ * associated with Quality Tickets.
+ */
+
+const { AppDataSource } = require("../data-source");
+const File = require("../entities/file.entity"); 
+const { IsNull } = require("typeorm");
+
+const fileRepository = AppDataSource.getRepository(File); 
+
+class FileService {
+    /**
+     * Finds a single File entity by its unique FileKey.
+     * 
+     * @param {string} key - The unique file key to search for.
+     * @returns {Promise&lt;File|null>} The found File entity or null.
+     */
+    static async findOneByKey(key) {
+        return fileRepository.findOneBy({
+            fileKey: key
+        });
+    }
+
+    /**
+     * Saves a new file to the database and links it to a ticket.
+     * 
+     * @param {string} key - The unique file key.
+     * @param {Object} file - The file object (from Multer) containing buffer, mimetype, etc.
+     * @param {string|number} ticketId - The ID of the ticket to associate this file with.
+     * @returns {Promise&lt;File>} The newly created File entity.
+     */
+    static async createFile(key, file, ticketId) {
+        // Create a new file object
+        const newFile = fileRepository.create({
+            fileKey: key,
+            fileName: file.originalname,
+            fileData: file.buffer, 
+            mimeType: file.mimetype, 
+            id: undefined, // Let the database auto-generate the ID
+            ticket: { ticketId: parseInt(ticketId) }, // Link to the ticket
+        });
+
+        // Save it to the database
+        await fileRepository.save(newFile);
+        return newFile;
+    }
+
+    /**
+     * Retrieves all files in the database.
+     * 
+     * @returns {Promise&lt;File[]>} An array of all File entities.
+     */
+    static async findAll() {
+        return fileRepository.find();
+    }
+
+    /**
+     * Retrieves all files associated with a specific Ticket ID.
+     * Explicitly selects file metadata and binary data.
+     * 
+     * @param {string|number} ticketId - The ID of the ticket.
+     * @returns {Promise&lt;File[]>} An array of File entities linked to the ticket.
+     */
+    static async findByTicketId(ticketId) {
+        return fileRepository.find({
+            where: { ticket: { ticketId: Number(ticketId) } }, // use relation
+            select: ["fileKey", "fileName", "mimeType", "fileData"],
+            relations: ["ticket"],
+        });
+    }
+
+    /**
+     * Deletes a file by its unique FileKey.
+     * 
+     * @param {string} key - The FileKey of the file to delete.
+     * @returns {Promise&lt;DeleteResult>} - The result of the delete operation.
+     */
+    static async deleteFile(key) {
+        // Delete the file entity where the fileKey matches
+        return await fileRepository.delete({ fileKey: key });
+    }
+}
+
+module.exports = { FileService };</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addTicketNote">addTicketNote</a></li><li><a href="global.html#assignTicketSelf">assignTicketSelf</a></li><li><a href="global.html#assignTicketUser">assignTicketUser</a></li><li><a href="global.html#authenticateToken">authenticateToken</a></li><li><a href="global.html#authorize">authorize</a></li><li><a href="global.html#connectSSE">connectSSE</a></li><li><a href="global.html#createGenericController">createGenericController</a></li><li><a href="global.html#createTicket">createTicket</a></li><li><a href="global.html#deleteTicket">deleteTicket</a></li><li><a href="global.html#getAll">getAll</a></li><li><a href="global.html#getAllArchivedTickets">getAllArchivedTickets</a></li><li><a href="global.html#getAllTickets">getAllTickets</a></li><li><a href="global.html#getArchivedTicketByID">getArchivedTicketByID</a></li><li><a href="global.html#getArchivedTicketsByWorkOrder">getArchivedTicketsByWorkOrder</a></li><li><a href="global.html#getLaborDepartmentsByWorkOrder">getLaborDepartmentsByWorkOrder</a></li><li><a href="global.html#getNonconformancesByWorkOrder">getNonconformancesByWorkOrder</a></li><li><a href="global.html#getSequencesByWorkOrder">getSequencesByWorkOrder</a></li><li><a href="global.html#getTicketById">getTicketById</a></li><li><a href="global.html#getTicketNotes">getTicketNotes</a></li><li><a href="global.html#getTicketsByWorkOrder">getTicketsByWorkOrder</a></li><li><a href="global.html#getUnitsByWorkOrder">getUnitsByWorkOrder</a></li><li><a href="global.html#getWorkOrderSummary">getWorkOrderSummary</a></li><li><a href="global.html#logger">logger</a></li><li><a href="global.html#mapRoleStringToId">mapRoleStringToId</a></li><li><a href="global.html#updateTicket">updateTicket</a></li><li><a href="global.html#updateTicketStatus">updateTicketStatus</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 15:37:10 GMT-0500 (Eastern Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
