@@ -514,25 +514,25 @@ const TicketList: React.FC = () => {
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-6">
         <Input
           type="text"
           placeholder="Search by Work Order..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm bg-white"
+          className="w-full sm:w-auto sm:max-w-sm bg-white"
         />
         <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-white border border-gray-300 rounded-md p-2"
+            className="w-full sm:w-auto bg-white border border-gray-300 rounded-md p-2"
         >
             <option value="0,1">Open & In-Progress</option>
             <option value="2">Closed</option>
             <option value="0">Open</option>
             <option value="1">In-Progress</option>
         </select>
-        {isSearching && <ScaleLoader color="#3b82f6" height={20} />}
+        {isSearching && <ScaleLoader color="#3b82f6" height={20} className="self-start sm:self-center" />}
       </div>
       <div className="space-y-4">
         {(sortedWOs.length === 0 && !loadingSummaries) ? (
@@ -639,8 +639,14 @@ const TicketList: React.FC = () => {
       </div>
 
       {isMobile && mobileDetailTicket && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 p-4" onClick={closeMobileTicketDetail}>
-          <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl max-h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 overflow-y-auto min-h-screen"
+          onClick={closeMobileTicketDetail}
+        >
+          <div
+            className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl max-h-[90vh] overflow-y-auto my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button onClick={closeMobileTicketDetail} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200">X</button>
             <div className="px-4 py-6 space-y-4">
               <h3 className="text-lg font-semibold">{mobileDetailTicket.qualityTicketId || mobileDetailTicket.ticketId}</h3>
