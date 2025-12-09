@@ -1,6 +1,21 @@
+/**
+ * Controller layer for handling HTTP requests related to Quality Tickets.
+ * This file delegates business logic to the TicketService and handles HTTP responses,
+ * status codes, and basic input validation.
+ */
+
 const ticketService = require("../services/ticket.service.js");
 
-// Controller to handle getting all tickets
+
+/**
+ * Retrieves a list of all tickets in the database
+ * 
+ * NOTE: This endpoint retrieves *all* tickets without pagination. 
+ * this is not used by the frontend (which filters by Work Order),
+ * but was left as a potential tool for debugging or reviews.
+ * 
+ * @route GET /api/tickets
+ */
 async function getAllTickets(req, res) {
     try {
         const tickets = await ticketService.getAllTickets();
@@ -11,7 +26,16 @@ async function getAllTickets(req, res) {
     }
 }
 
-// Controller to handle creating a new ticket
+/**
+ * Creates a new ticket based on the provided request body.
+ * @route POST /api/tickets
+ * 
+ * @param {Object} req - Express request object.
+ * @param {Object} req.body - Ticket data (division, wo, description, etc.).
+ * @param {Object} res - Express response object.
+ * @returns {Object} 201 - The created ticket object.
+ * @returns {Object} 400 - If validation fails (ex: missing required fields).
+ */
 async function createTicket(req, res) {
     try {
         const newTicket = await ticketService.createTicket(req.body);
@@ -28,7 +52,13 @@ async function createTicket(req, res) {
     }
 }
 
-//Controller for finding a specific ticket
+/**
+ * Retrieves a specific ticket by its ticketId.
+ * @route GET /api/tickets/:id
+ * 
+ * @param {Object} req - Express request object.
+ * @param {string} req.params.id - The primary key ID of the ticket.
+ */
 async function getTicketById(req, res) { 
     try {
         const ticket = await ticketService.getTicketById(req.params.id);
@@ -43,7 +73,14 @@ async function getTicketById(req, res) {
     }
 }
 
-//Controller for updating a specific ticket
+/**
+ * Updates general fields of a ticket (descriptions, nonconformance, sequence, etc. )
+ * Does not handle status changes or assignment
+ * @route PUT /api/tickets/:id
+ * 
+ * @param {Object} req - Express request object.
+ * @param {Object} req.body - Fields to update
+ */
 async function updateTicket(req, res) {
     try {
         const updatedTicket = await ticketService.updateTicket(req.params.id, req.body);
@@ -68,9 +105,16 @@ async function updateTicket(req, res) {
     }
 }
 
+/**
+ * Updates the status of a ticket (Open -> In Progress -> Closed)
+ *      -If closing (status=2), requires the closing fields (correctiveAction, materialsUsed, estimatedLabor).
+ *      -Status is extracted from the body and the other fields are passed as 'extraData'
+ * @route PATCH /api/tickets/:id/status
+ * 
+ * @param {number} req.body.status - The new status ID (0, 1, or 2)
+ */
 async function updateTicketStatus(req, res) {
     try {
-        // Extract status and the rest of the body (closing fields)
         const { status, ...extraData } = req.body;
         
         if (status === undefined) {
@@ -90,6 +134,11 @@ async function updateTicketStatus(req, res) {
     }
 }
 
+/**
+ * Assigns the ticket to the currently authenticated user.
+ * 
+ * @route PATCH /api/tickets/:id/assign/self
+ */
 async function assignTicketSelf(req, res) {
     try {
         const userId = req.user.id; 
@@ -108,9 +157,15 @@ async function assignTicketSelf(req, res) {
 }
 
 
+/**
+ * Assigns the ticket to a specific user provided in the route parameters.
+ * @route PATCH /api/tickets/:id/assign/:userId
+ * 
+ * @param {string} req.params.userId - The ID of the user to assign.
+ */
 async function assignTicketUser(req, res) {
     try {
-        const { userId } = req.params; // Get the ID from the URL parameter
+        const { userId } = req.params; 
         
         const updatedTicket = await ticketService.assignTicketUser(req.params.id, userId, req.user);
         
@@ -125,7 +180,11 @@ async function assignTicketUser(req, res) {
     }
 }
 
-//Controller for deleting (archiving) a ticket
+/**
+ * Archives a ticket.
+ * 
+ * @route DELETE /api/tickets/:id.
+ */
 async function deleteTicket(req, res) { 
     try {
         const result = await ticketService.deleteTicket(req.params.id);
@@ -137,7 +196,12 @@ async function deleteTicket(req, res) {
 }
 
 
-// Controller for handling Server-Sent Events (SSE)
+/**
+ * Establishes a Server-Sent Events (SSE) connection with the client.
+ * Used for real-time updates on ticket changes.
+ *
+ * @route GET /api/tickets/events
+ */
 async function connectSSE(req, res) {
     try {
         await ticketService.connectSSE(req, res);
@@ -147,7 +211,11 @@ async function connectSSE(req, res) {
     }
 }
 
-//Controller to handle getting all archived tickets
+/**
+ * Retrieves all archived tickets.
+ * 
+ * @route GET /api/tickets/archived
+ */
 async function getAllArchivedTickets(req, res) {
     try {
         const tickets = await ticketService.getAllArchivedTickets();
@@ -158,7 +226,11 @@ async function getAllArchivedTickets(req, res) {
     }
 }
 
-//Controller to handle getting a single archived ticket by ID
+/**
+ * Retrieves a single archived ticket by its ID.
+ *
+ * @route GET /api/tickets/archived/:id
+ */
 async function getArchivedTicketByID(req, res) {
    try {
         const ticket = await ticketService.getArchivedTicketById(req.params.id);
@@ -173,6 +245,11 @@ async function getArchivedTicketByID(req, res) {
     }
 }
 
+/**
+ * Retrieves all notes associated with a specific ticket.
+ * 
+ * @route GET /api/tickets/:id/notes
+ */
 async function getTicketNotes(req, res) {
     try {
         const notes = await ticketService.getNotesByTicketId(req.params.id);
@@ -183,6 +260,13 @@ async function getTicketNotes(req, res) {
     }
 }
 
+/**
+ * Adds a new note to a ticket.
+ *  @route POST /api/tickets/:id/notes
+ * 
+ * @param {string} req.body.note - The text content of the note.
+ * @param {number} req.body.authorId - The ID of the user creating the note.
+ */
 async function addTicketNote(req, res) {
     try {
         const { note, authorId } = req.body; 

@@ -1,7 +1,28 @@
+/**
+ * Controller for Work Order dashboard and filtering logic.
+ * 
+ * Handles:
+ * - Main dashboard -  listing WOs with open ticket counts.
+ * - Retrieving specific lists of tickets for a selected Work Order.
+ * - Populating context-dependent dropdowns (ex. labor department ) based on the selected Work Order.
+ */
+
 const workOrderService = require("../services/work-order.service");
 const logger = require("../../logger");
 
-// Controller for the WO Dashboard Summary
+/**
+ * Retrieves a summary of Work Orders to populate the main dashboard.
+ * 
+ * LOGIC:
+ * - Does NOT return all Work Orders. Only returns WOs that actually contain tickets matching the status filter.
+ * 
+ * @route GET /api/work-orders-summary
+ * 
+ * @param {Object} req - Express request object.
+ * @param {string} [req.query.search] - Optional search term to filter by Work Order Number (ex. "123").
+ * @param {string} [req.query.status] - Optional comma-separated string of status IDs ("0,1" for Open/In-Progress, "2" for Closed).
+ * @returns {Object[]} JSON array of summary objects: [{ wo_id, wo_number, open_ticket_count }, ...]
+ */
 const getWorkOrderSummary = async (req, res) => {
     try {
         // Capture the optional 'search' query param
@@ -32,7 +53,16 @@ const getArchivedWorkOrderSummary = async (req, res) => {
     }
 };
 
-// Controller to get all tickets for one WO
+/**
+ * Retrieves the actual ticket(s) details for a specific Work Order.
+ * Called when a user expands a Work Order on the dashboard.
+ * 
+ * @route GET /api/work-orders/:wo_id/tickets
+ * 
+ * @param {string} req.params.wo_id - The ID of the Work Order.
+ * @param {string} [req.query.status] - Optional status filter (defaults to "0,1" in service if omitted).
+ * @returns {Object[]} Array of full Ticket objects.
+ */
 const getTicketsByWorkOrder = async (req, res) => {
     try {
         const woId = req.params.wo_id;
@@ -48,7 +78,13 @@ const getTicketsByWorkOrder = async (req, res) => {
     }
 };
 
-// Controller to get ARCHIVED tickets for one WO
+/**
+ * Retrieves ARCHIVED ticket details for a specific Work Order.
+ * 
+ * @route GET /api/work-orders/:wo_id/archived-tickets
+ * 
+ * @param {string} req.params.wo_id - The ID of the Work Order.
+ */
 const getArchivedTicketsByWorkOrder = async (req, res) => {
     try {
         const woId = req.params.wo_id;
@@ -60,8 +96,13 @@ const getArchivedTicketsByWorkOrder = async (req, res) => {
     }
 };
 
-// --- Controllers for Filtered Dropdowns ---
+// ----------------------- Controllers for Filtered Dropdowns -------------------------------------------------
+// These endpoints ensure that when a user selects "WO #12345" in the Create Ticket form,
+// they only see Units/Sequences/Departments/Nonconformance that are actually associated with that specific WO.
 
+/**
+ * @route GET /api/work-orders/:wo_id/units
+ */
 const getUnitsByWorkOrder = async (req, res) => {
     try {
         const woId = req.params.wo_id;
@@ -73,6 +114,9 @@ const getUnitsByWorkOrder = async (req, res) => {
     }
 };
 
+/**
+ * @route GET /api/work-orders/:wo_id/sequences
+ */
 const getSequencesByWorkOrder = async (req, res) => {
     try {
         const woId = req.params.wo_id;
@@ -84,6 +128,9 @@ const getSequencesByWorkOrder = async (req, res) => {
     }
 };
 
+/**
+ * @route GET /api/work-orders/:wo_id/labor-departments
+ */
 const getLaborDepartmentsByWorkOrder = async (req, res) => {
     try {
         const woId = req.params.wo_id;
@@ -95,6 +142,9 @@ const getLaborDepartmentsByWorkOrder = async (req, res) => {
     }
 };
 
+/**
+ * @route GET /api/work-orders/:wo_id/nonconformances
+ */
 const getNonconformancesByWorkOrder = async (req, res) => {
     try {
         const woId = req.params.wo_id;

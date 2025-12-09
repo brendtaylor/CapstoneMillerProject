@@ -1,3 +1,10 @@
+/**
+ * @file work-order.service.js
+ * Service handling Work Order logic
+ *  - Aggregating ticket counts per Work Order for dashboards.
+ *  - Retrieving subsets of data based on Work Order relationships.
+ */
+
 const { AppDataSource } = require("../data-source");
 const { In } = require("typeorm"); 
 const logger = require("../../logger");
@@ -14,8 +21,15 @@ const archivedTicketRepository = AppDataSource.getRepository("ArchivedTicket");
 class WorkOrderService {
 
     /**
-     * Gets the list of Work Orders, filtering by Search Term and Status.
-     * statusString: "0,1" (Active) or "2" (Closed). Defaults to Active (0,1).
+     * Generates the dashboard summary for Active Tickets.
+     *  LOGIC:
+     *      - Uses a QueryBuilder to perform an SQL INNER JOIN between WorkOrders and Tickets.
+     *      - Filters Tickets based on the `statusString` (defaulting to Open & In-Progress).
+     *      - Groups by Work Order and counts the number of tickets matching specified status.
+     * 
+     * @param {string|null} searchTerm - Search string for WO Number.
+     * @param {string|null} statusString - "0,1" (Active) or "2" (Closed). Defaults to "0,1".
+     * @returns {Object[]} [{ wo_id, wo_number, open_ticket_count }, ...]
      */
     async getWorkOrderSummary(searchTerm = null, statusString = null) {
         // Default to [0, 1] (Open & In-Progress) if no status is provided
@@ -53,7 +67,11 @@ class WorkOrderService {
     }
 
     /**
-     * Gets the summary of Work Orders that contain ARCHIVED tickets.
+     * Generates the dashboard summary for ARCHIVED Tickets.
+     * Similar logic to `getWorkOrderSummary` but joins with `ArchivedTicket` table.
+     * 
+     *  @param {string|null} searchTerm - Search string for WO Number.
+     * @returns {Object[]} [{ wo_id, wo_number, open_ticket_count }, ...]
      */
     async getArchivedWorkOrderSummary(searchTerm = null) {
         logger.info(`Fetching archived work order summary. Search: ${searchTerm || 'None'}`);
@@ -86,7 +104,12 @@ class WorkOrderService {
     }
 
     /**
-     * Gets tickets for a specific Work Order, filtered by status.
+     * Fetches all tickets belonging to a specific Work Order.
+     * Used to populate the inner accordion view on the dashboard.
+     * 
+     * Includes all necessary relations (Unit, Sequence, AssignedUser, etc.).
+     * @param {string} woId - The Work Order ID.
+     * @param {string|null} statusString - Status filter.
      */
     async getTicketsByWorkOrder(woId, statusString = null) {
         // Default to [0, 1] (Open & In-Progress) if no status is provided
@@ -123,6 +146,7 @@ class WorkOrderService {
 
     /**
      * Gets the filtered list of Units valid for a specific WO.
+     * Used for dropdowns in Create/Edit Ticket forms.
      */
     async getUnitsByWorkOrder(woId) {
         logger.info(`Fetching valid units for WO ID: ${woId}`);
@@ -134,7 +158,12 @@ class WorkOrderService {
     }
 
     /**
-     * Gets ARCHIVED tickets for a specific Work Order.
+     * Fetches all ARCHIVED tickets belonging to a specific Work Order.
+     * Used to populate the inner accordion view on the dashboard.
+     * 
+     * Includes all necessary relations (Unit, Sequence, AssignedUser, etc.).
+     * @param {string} woId - The Work Order ID.
+     * @param {string|null} statusString - Status filter.
      */
     async getArchivedTicketsByWorkOrder(woId) {
         logger.info(`Fetching archived tickets for WO ID: ${woId}`);
@@ -162,6 +191,7 @@ class WorkOrderService {
 
     /**
      * Gets the filtered list of Sequences valid for a specific WO.
+     * Used for dropdowns in Create/Edit Ticket forms.
      */
     async getSequencesByWorkOrder(woId) {
         logger.info(`Fetching valid sequences for WO ID: ${woId}`);
@@ -174,6 +204,7 @@ class WorkOrderService {
 
     /**
      * Gets the filtered list of Labor Departments valid for a specific WO.
+     * Used for dropdowns in Create/Edit Ticket forms.
      */
     async getLaborDepartmentsByWorkOrder(woId) {
         logger.info(`Fetching valid departments for WO ID: ${woId}`);
@@ -186,6 +217,7 @@ class WorkOrderService {
 
     /**
      * Gets the filtered list of Nonconformances valid for a specific WO.
+     * Used for dropdowns in Create/Edit Ticket forms.
      */
     async getNonconformancesByWorkOrder(woId) {
         logger.info(`Fetching valid nonconformances for WO ID: ${woId}`);
