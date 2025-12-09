@@ -182,7 +182,7 @@ const TicketDetails: React.FC = () => {
       await api.patch(`/tickets/${id}/status`, { status: statusToUpdate, ...extraFields });
 
       toast({ title: "Success", description: "Status updated." });
-      fetchTicket();
+      await fetchTicket();
 
       // Audit Log
       if (userId && ticket) {
@@ -196,6 +196,8 @@ const TicketDetails: React.FC = () => {
         title: "Error",
         description: "Failed to update status.",
       });
+      await fetchTicket();
+      setStatus(ticket?.status?.statusId?.toString() || "0");
     } finally {
       setPendingStatusUpdate(null);
     }
@@ -562,7 +564,7 @@ const TicketDetails: React.FC = () => {
         </div>
     </div>
     )}
-
+      <div className="min-h-screen bg-gray-100"> {/* Add min-h-screen to ensure full viewport height */}
       <div className="max-w-3xl mx-auto mt-6 space-y-6">
 
         {/* Archived Banner */}
@@ -631,42 +633,46 @@ const TicketDetails: React.FC = () => {
         )}
         
         {/* Files - Always Visible (assuming download is read-only) */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Uploaded Files</CardTitle>
+        
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Uploaded Files</CardTitle>
+               {!isArchived && (
+                <div className="flex gap-2">
+                
+                  <button
+                    onClick={() => setDeleteMode(prev => !prev)}
+                    className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                  >
+                    {deleteMode ? "Exit Delete Mode" : "Delete File"}
+                  </button>
+                  <button
+                    onClick={() => setShowUploadModal(true)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Upload File
+                  </button>
+                  
+                </div>
+               )}
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => setDeleteMode(prev => !prev)}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                {deleteMode ? "Exit Delete Mode" : "Delete File"}
-              </button>
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Upload File
-              </button>
-            </div>
+              <UploadModal
+                show={showUploadModal}
+                onClose={() => setShowUploadModal(false)}
+                ticketId={ticket.ticketId}
+                workOrderSearch={ticket?.wo?.wo}
+              />
+            </CardHeader>
 
-            <UploadModal
-              show={showUploadModal}
-              onClose={() => setShowUploadModal(false)}
-              ticketId={ticket.ticketId}
-              workOrderSearch={ticket?.wo?.wo}
-            />
-          </CardHeader>
-
-          <CardContent>
-            <FileDownload
-              ticketId={ticket.ticketId}
-              deleteMode={deleteMode}
-              setDeleteMode={setDeleteMode}
-            />
-          </CardContent>
-        </Card>
-
+            <CardContent>
+              <FileDownload
+                ticketId={ticket.ticketId}
+                deleteMode={deleteMode}
+                setDeleteMode={setDeleteMode}
+              />
+            </CardContent>
+          </Card>
+          
         {/* Status Update - Hide if Archived OR if user is Viewer role */}
         {/* --- ROLE CHECK: Only Editor/Admin can change status --- */}
         {!isArchived && (userRole?.toLowerCase() === 'editor' || userRole?.toLowerCase() === 'admin') && (
@@ -730,7 +736,7 @@ const TicketDetails: React.FC = () => {
             )}
           </CardContent>
         </Card>
-
+        </div>
       </div>
     </>
   );
