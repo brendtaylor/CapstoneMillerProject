@@ -206,6 +206,11 @@ class TicketService {
      * NOTE: Extracts sensitive fields (status, assignedTo) to prevent accidental overwrites. 
      * Use specific methods for status updates and ticket assigning.
      * 
+     * NOTE: If the Work Order ('wo') is updated, this method handles the regeneration 
+     * of the qualityTicketId and maintenance of the sequence counters. A sequence gap 
+     * will occur in the Work Order the ticket is moved from if it is not the most recent
+     * ticket for that Work Order.
+     * 
      * @param {string} id - The ID of the ticket to update.
      * @param {Object} ticketData - The raw request body containing fields to update.
      * @returns {Object} The updated ticket entity with all relations.
@@ -213,7 +218,88 @@ class TicketService {
     async updateTicket(id, ticketData) {
         const { status, assignedTo, ...allowedUpdates } = ticketData;
 
-        await this.ticketRepository.update(id, allowedUpdates);
+        // Check if Work Order is changing
+        const currentTicket = await this.ticketRepository.findOne({ 
+            where: { ticketId: id },
+            relations: ["wo"]
+        });
+
+        if (!currentTicket) throw new Error("Ticket not found");
+
+        const isWoChanging = allowedUpdates.wo && (String(allowedUpdates.wo) !== String(currentTicket.wo?.woId));
+
+        if (isWoChanging) {
+            const queryRunner = AppDataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+                // 1. Get New Work Order Details
+                const newWorkOrder = await queryRunner.manager.findOne("WorkOrder", {
+                    where: { woId: allowedUpdates.wo }
+                });
+                if (!newWorkOrder) throw new Error(`New Work Order ID ${allowedUpdates.wo} not found.`);
+
+                // 2. Generate New ID (Increment Counter for NEW WO)
+                await queryRunner.query(`
+                    IF NOT EXISTS (SELECT 1 FROM Ticket_Counters WHERE WO_ID = @0)
+                    INSERT INTO Ticket_Counters (WO_ID, LAST_TICKET_NUM) VALUES (@0, 0)
+                `, [allowedUpdates.wo]);
+
+                const counterResult = await queryRunner.query(`
+                    UPDATE Ticket_Counters
+                    SET LAST_TICKET_NUM = LAST_TICKET_NUM + 1
+                    OUTPUT INSERTED.LAST_TICKET_NUM
+                    WHERE WO_ID = @0
+                `, [allowedUpdates.wo]);
+
+                const nextSeqNum = counterResult[0].LAST_TICKET_NUM;
+                const newQualityTicketId = `${newWorkOrder.wo}-${nextSeqNum.toString().padStart(3, '0')}`;
+
+                // 3. Attempt to "Free" Old ID (Decrement Counter for OLD WO if it was the last one)
+                if (currentTicket.wo && currentTicket.qualityTicketId) {
+                    const oldWoId = currentTicket.wo.woId;
+                    // Extract sequence number from "WO-123-005" -> "005" -> 5
+                    const parts = currentTicket.qualityTicketId.split('-');
+                    const oldSeqNum = parseInt(parts[parts.length - 1], 10);
+
+                    if (!isNaN(oldSeqNum)) {
+                        // Check current counter for old WO
+                        const currentCounter = await queryRunner.query(`
+                            SELECT LAST_TICKET_NUM FROM Ticket_Counters WHERE WO_ID = @0
+                        `, [oldWoId]);
+
+                        if (currentCounter.length > 0 && currentCounter[0].LAST_TICKET_NUM === oldSeqNum) {
+                            // If we are deleting/moving the *latest* ticket, we can safely decrement the counter
+                            await queryRunner.query(`
+                                UPDATE Ticket_Counters 
+                                SET LAST_TICKET_NUM = LAST_TICKET_NUM - 1 
+                                WHERE WO_ID = @0
+                            `, [oldWoId]);
+                            logger.info(`Decremented Ticket Counter for WO ${oldWoId} (Freed #${oldSeqNum})`);
+                        }
+                    }
+                }
+
+                // 4. Perform Update with new ID
+                await queryRunner.manager.update("Ticket", id, {
+                    ...allowedUpdates,
+                    qualityTicketId: newQualityTicketId
+                });
+
+                await queryRunner.commitTransaction();
+
+            } catch (err) {
+                if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
+                throw err;
+            } finally {
+                await queryRunner.release();
+            }
+
+        } else {
+            // Standard update (no transaction needed)
+            await this.ticketRepository.update(id, allowedUpdates);
+        }
         
         const updatedTicket = await this.getTicketById(id);
     
@@ -268,7 +354,11 @@ class TicketService {
         }
 
         await this.ticketRepository.update(id, updatePayload);
-        await this.logAudit(user, id, currentTicket.wo?.woId, `Updated Status to ${newStatus}`);
+        const statusMap = { 0: "Open", 1: "In Progress", 2: "Closed" };
+        const oldStatusStr = statusMap[currentStatusId] || currentStatusId;
+        const newStatusStr = statusMap[newStatus] || newStatus;
+        
+        await this.logAudit(user, id, currentTicket.wo?.woId, `Status Change: ${oldStatusStr} -> ${newStatusStr}`);
 
         const updatedTicket = await this.getTicketById(id);
         
