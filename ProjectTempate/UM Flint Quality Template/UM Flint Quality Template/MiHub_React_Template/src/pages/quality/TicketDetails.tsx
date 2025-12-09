@@ -183,13 +183,7 @@ const TicketDetails: React.FC = () => {
 
       toast({ title: "Success", description: "Status updated." });
       fetchTicket();
-
-      // Audit Log
-      if (userId && ticket) {
-        const getStatusDesc = (s: number) => s === 0 ? "Open" : s === 1 ? "In-Progress" : "Closed";
-        const newStatusDesc = getStatusDesc(statusToUpdate);
-        logAudit(userId, `Status: ${ticket.status?.statusDescription} → ${newStatusDesc}`, ticket.ticketId, parseInt(ticket.wo?.wo));
-      }
+      
     } catch {
       toast({
         variant: "destructive",
