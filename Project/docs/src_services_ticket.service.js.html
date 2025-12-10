@@ -47,6 +47,7 @@ class TicketService {
         this.closureRepository = AppDataSource.getRepository("TicketClosure"); 
         this.noteRepository = AppDataSource.getRepository("Note");
         this.auditRepository = AppDataSource.getRepository("AuditLog");
+        this.fileRepository = AppDataSource.getRepository("File");
         
         /**
          * @property {Set} clients
@@ -68,11 +69,13 @@ class TicketService {
             "closures", "closures.closedBy"
         ];
 
-        // Archive relations 
+        //Archive Relations
         this.archiveRelations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
-            "sequence", "unit", "wo", "assignedTo"
+            "sequence", "unit", "wo", "assignedTo",
+            "notes", 
+            "files"
         ];
     }
 
@@ -137,9 +140,7 @@ class TicketService {
         });
     }
 
-    // -------------------- SERVICE METHODS  ----------------------
-
-    async getAllTickets() {
+     async getAllTickets() {
         return await this.ticketRepository.find({
             relations: this.relations
         });
@@ -168,18 +169,34 @@ class TicketService {
      * @param {Object} ticketData - The raw body from the controller.
      * @returns {Object} The fully created ticket with relations.
      */
-    async createTicket(ticketData) {
+    async createTicket(ticketData, user) {
+        const missingFields = [];
+        
+        // Check for required fields
+        if (!ticketData.laborDepartment) missingFields.push("Labor Department");
+        if (!ticketData.division) missingFields.push("Division");
+        if (!ticketData.manNonCon) missingFields.push("Nonconformance");
+        if (!ticketData.description) missingFields.push("Description");
+
+        if (missingFields.length > 0) {
+            throw new Error(`Validation Error: The following fields are required: ${missingFields.join(", ")}`);
+        }
+        
+        let woNumber;
+        let nextSeqNum;
+
+        // --- STEP 1: FAST TRANSACTION (Generate ID only) ---
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
         try {
-            // 1. Validate Work Order exists
+            // 1. Validate Work Order exists and get its Number string
             const workOrder = await queryRunner.manager.findOne("WorkOrder", {
                 where: { woId: ticketData.wo }
             });
             if (!workOrder) throw new Error(`Work Order ID ${ticketData.wo} not found.`);
-            const woNumber = workOrder.wo;
+            woNumber = workOrder.wo;
 
             // 2. Initialize counter for the WO if one doesn't exist 
             await queryRunner.query(`
@@ -187,7 +204,7 @@ class TicketService {
                 INSERT INTO Ticket_Counters (WO_ID, LAST_TICKET_NUM) VALUES (@0, 0)
             `, [ticketData.wo]);
             
-            // 3. Atomically increment the counter 
+            // 3. Atomically increment the counter and grab the value
             const counterResult = await queryRunner.query(`
                 UPDATE Ticket_Counters
                 SET LAST_TICKET_NUM = LAST_TICKET_NUM + 1
@@ -195,36 +212,58 @@ class TicketService {
                 WHERE WO_ID = @0
             `, [ticketData.wo]);
 
-            const nextSeqNum = counterResult[0].LAST_TICKET_NUM;
-            //Format: 25412-001
+            nextSeqNum = counterResult[0].LAST_TICKET_NUM;
+
+            // CRITICAL: Commit immediately to release the lock on Ticket_Counters
+            await queryRunner.commitTransaction();
+
+        } catch (error) {
+            if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
+            logger.error(`Error generating Ticket ID: ${error.message}`);
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
+
+        // --- STEP 2: SAVE TICKET (No Locks held) ---
+        try {
+            // Format: 25412-001
             const qualityTicketId = `${woNumber}-${nextSeqNum.toString().padStart(3, '0')}`;
             
-            // 4. Create Ticket Entity
-            const newTicket = queryRunner.manager.create("Ticket", {
+            // Create Ticket Entity using the standard repository (no transaction needed)
+            const newTicket = this.ticketRepository.create({
                 ...ticketData,
                 qualityTicketId: qualityTicketId,
                 openDate: new Date(),
                 status: 0, 
             });
             
-            const savedTicket = await queryRunner.manager.save("Ticket", newTicket);
-            await queryRunner.commitTransaction();
+            const savedTicket = await this.ticketRepository.save(newTicket);
 
             // Fetch complete ticket object for front-end
             const completeTicket = await this.getTicketById(savedTicket.ticketId);
-            
+
+            // Log the creation in the Audit table
+            if (user) {
+                await this.logAudit(
+                    user, 
+                    completeTicket.ticketId, 
+                    completeTicket.wo.woId, 
+                    "Ticket Created"
+                );
+            }
             // Notify Make.com webhook and broadcast updates
+            // Use setImmediate or don't await this to prevent blocking the response
             this.broadcast('new-ticket', completeTicket); 
             this.triggerWebhook('ticket.create', completeTicket);
             
             return completeTicket;
 
         } catch (error) {
-            if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
-            logger.error(`Error in createTicket: ${error.message}`);
-            throw error;
-        } finally {
-            await queryRunner.release();
+            // NOTE: If saving fails here, we will have a "gap" in sequence numbers (e.g. 001, 003).
+            // This is acceptable behavior for high-performance systems to avoid locking.
+            logger.error(`Error saving ticket entity: ${error.message}`);
+            throw new Error("Failed to save ticket details after generating ID.");
         }
     }
 
@@ -234,6 +273,11 @@ class TicketService {
      * NOTE: Extracts sensitive fields (status, assignedTo) to prevent accidental overwrites. 
      * Use specific methods for status updates and ticket assigning.
      * 
+     * NOTE: If the Work Order ('wo') is updated, this method handles the regeneration 
+     * of the qualityTicketId and maintenance of the sequence counters. A sequence gap 
+     * will occur in the Work Order the ticket is moved from if it is not the most recent
+     * ticket for that Work Order.
+     * 
      * @param {string} id - The ID of the ticket to update.
      * @param {Object} ticketData - The raw request body containing fields to update.
      * @returns {Object} The updated ticket entity with all relations.
@@ -241,7 +285,88 @@ class TicketService {
     async updateTicket(id, ticketData) {
         const { status, assignedTo, ...allowedUpdates } = ticketData;
 
-        await this.ticketRepository.update(id, allowedUpdates);
+        // Check if Work Order is changing
+        const currentTicket = await this.ticketRepository.findOne({ 
+            where: { ticketId: id },
+            relations: ["wo"]
+        });
+
+        if (!currentTicket) throw new Error("Ticket not found");
+
+        const isWoChanging = allowedUpdates.wo &amp;&amp; (String(allowedUpdates.wo) !== String(currentTicket.wo?.woId));
+
+        if (isWoChanging) {
+            const queryRunner = AppDataSource.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try {
+                // 1. Get New Work Order Details
+                const newWorkOrder = await queryRunner.manager.findOne("WorkOrder", {
+                    where: { woId: allowedUpdates.wo }
+                });
+                if (!newWorkOrder) throw new Error(`New Work Order ID ${allowedUpdates.wo} not found.`);
+
+                // 2. Generate New ID (Increment Counter for NEW WO)
+                await queryRunner.query(`
+                    IF NOT EXISTS (SELECT 1 FROM Ticket_Counters WHERE WO_ID = @0)
+                    INSERT INTO Ticket_Counters (WO_ID, LAST_TICKET_NUM) VALUES (@0, 0)
+                `, [allowedUpdates.wo]);
+
+                const counterResult = await queryRunner.query(`
+                    UPDATE Ticket_Counters
+                    SET LAST_TICKET_NUM = LAST_TICKET_NUM + 1
+                    OUTPUT INSERTED.LAST_TICKET_NUM
+                    WHERE WO_ID = @0
+                `, [allowedUpdates.wo]);
+
+                const nextSeqNum = counterResult[0].LAST_TICKET_NUM;
+                const newQualityTicketId = `${newWorkOrder.wo}-${nextSeqNum.toString().padStart(3, '0')}`;
+
+                // 3. Attempt to "Free" Old ID (Decrement Counter for OLD WO if it was the last one)
+                if (currentTicket.wo &amp;&amp; currentTicket.qualityTicketId) {
+                    const oldWoId = currentTicket.wo.woId;
+                    // Extract sequence number from "WO-123-005" -> "005" -> 5
+                    const parts = currentTicket.qualityTicketId.split('-');
+                    const oldSeqNum = parseInt(parts[parts.length - 1], 10);
+
+                    if (!isNaN(oldSeqNum)) {
+                        // Check current counter for old WO
+                        const currentCounter = await queryRunner.query(`
+                            SELECT LAST_TICKET_NUM FROM Ticket_Counters WHERE WO_ID = @0
+                        `, [oldWoId]);
+
+                        if (currentCounter.length > 0 &amp;&amp; currentCounter[0].LAST_TICKET_NUM === oldSeqNum) {
+                            // If we are deleting/moving the *latest* ticket, we can safely decrement the counter
+                            await queryRunner.query(`
+                                UPDATE Ticket_Counters 
+                                SET LAST_TICKET_NUM = LAST_TICKET_NUM - 1 
+                                WHERE WO_ID = @0
+                            `, [oldWoId]);
+                            logger.info(`Decremented Ticket Counter for WO ${oldWoId} (Freed #${oldSeqNum})`);
+                        }
+                    }
+                }
+
+                // 4. Perform Update with new ID
+                await queryRunner.manager.update("Ticket", id, {
+                    ...allowedUpdates,
+                    qualityTicketId: newQualityTicketId
+                });
+
+                await queryRunner.commitTransaction();
+
+            } catch (err) {
+                if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
+                throw err;
+            } finally {
+                await queryRunner.release();
+            }
+
+        } else {
+            // Standard update (no transaction needed)
+            await this.ticketRepository.update(id, allowedUpdates);
+        }
         
         const updatedTicket = await this.getTicketById(id);
     
@@ -296,7 +421,11 @@ class TicketService {
         }
 
         await this.ticketRepository.update(id, updatePayload);
-        await this.logAudit(user, id, currentTicket.wo?.woId, `Updated Status to ${newStatus}`);
+        const statusMap = { 0: "Open", 1: "In Progress", 2: "Closed" };
+        const oldStatusStr = statusMap[currentStatusId] || currentStatusId;
+        const newStatusStr = statusMap[newStatus] || newStatus;
+        
+        await this.logAudit(user, id, currentTicket.wo?.woId, `Status Change: ${oldStatusStr} -> ${newStatusStr}`);
 
         const updatedTicket = await this.getTicketById(id);
         
@@ -332,25 +461,83 @@ class TicketService {
 
     /**
      * Archives a ticket.
-     *  -Fetches the ticket to ensure it exists.
-     *  - Copies the ticket data to the `ArchivedTicket` table.
-     *  - Deletes the ticket from the main `Ticket` table.
-     *  - Broadcasts a 'delete-ticket' event so all connected clients remove it from their dashboards immediately.
-     * 
+     *  -Fetches the ticket with all relations to ensure it exists.
+     *  - Flattens the latest `TicketClosure` data into the `ArchivedTicket` record for easier reporting.
+     *  - Creates the `ArchivedTicket` record.
+     *  - Moves related `Notes` and `Files` to the new archive record by udating foreign keys.
+     *  - Deletes the original ticket from the `Ticket` table.
+     *  - Broadcasts a 'delete-ticket' event to update active clients.
      * @param {string} id - The ID of the ticket to delete.
      * @returns {Object} A confirmation object: { id: string, message: string }
-     * @throws {Error} If the ticket does not exist.
+     * @throws {Error} If the ticket does not exist or transaction fails.
      */
     async deleteTicket(id) {
-        const ticketToArchive = await this.getTicketById(id);
-        if (!ticketToArchive) throw new Error("Ticket not found");
+        const queryRunner = AppDataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-        const archivedTicket = this.archivedRepository.create(ticketToArchive);
-        await this.archivedRepository.save(archivedTicket);
-        await this.ticketRepository.delete(id);
-        
-        this.broadcast('delete-ticket', { id: parseInt(id, 10) }); 
-        return { id: id, message: "Ticket archived successfully" };
+        try {
+            // Load all relations (status, division, etc.) PLUS notes/files
+            const relationsToLoad = [...this.relations, "notes", "files"];
+
+            const ticketToArchive = await queryRunner.manager.findOne("Ticket", {
+                where: { ticketId: id },
+                relations: relationsToLoad
+            });
+
+            if (!ticketToArchive) throw new Error("Ticket not found");
+
+            //  Prepare Archive Data
+            const { closures, notes, files, ...flatTicketData } = ticketToArchive;
+            const archiveData = { ...flatTicketData };
+            
+            // Flatten Closure Data
+            if (closures &amp;&amp; closures.length > 0) {
+                const latestClosure = closures.sort((a, b) => b.cycleCloseDate - a.cycleCloseDate)[0];
+                archiveData.correctiveAction = latestClosure.correctiveAction;
+                archiveData.materialsUsed = latestClosure.materialsUsed;
+                archiveData.estimatedLaborHours = latestClosure.estimatedLaborHours;
+                if(latestClosure.cycleCloseDate) archiveData.closeDate = latestClosure.cycleCloseDate;
+            }
+
+            // Save to Archive Table
+            await queryRunner.manager.save("ArchivedTicket", archiveData); 
+
+            const archiveId = parseInt(id);
+
+            // 3. Move Notes 
+            if (notes?.length > 0) {
+                await queryRunner.manager.createQueryBuilder()
+                    .update("Note")
+                    .set({ ticket: null, archivedTicket: { ticketId: archiveId } })
+                    .where("ticket.ticketId = :id", { id: archiveId })
+                    .execute();
+            }
+
+            // 4. Move Files 
+            if (files?.length > 0) {
+                await queryRunner.manager.createQueryBuilder()
+                    .update("File")
+                    .set({ ticket: null, archivedTicket: { ticketId: archiveId } })
+                    .where("ticket.ticketId = :id", { id: archiveId })
+                    .execute();
+            }
+
+            // 5. Delete Original Ticket
+            await queryRunner.manager.delete("Ticket", id);
+
+            await queryRunner.commitTransaction();
+            
+            this.broadcast('delete-ticket', { id: archiveId }); 
+            return { id: id, message: "Ticket archived successfully" };
+
+        } catch (err) {
+            if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
+            logger.error(`Error archiving ticket: ${err.message}`);
+            throw err;
+        } finally {
+            await queryRunner.release();
+        }
     }
 
     /**
@@ -399,7 +586,10 @@ class TicketService {
 
     async getNotesByTicketId(ticketId) {
         return await this.noteRepository.find({
-            where: { ticket: { ticketId: parseInt(ticketId) } },
+            where: [
+                { ticket: { ticketId: parseInt(ticketId) } },
+                { archivedTicket: { ticketId: parseInt(ticketId) } }
+            ],
             relations: ["author"],
             order: { createdAt: "DESC" }
         });
@@ -417,8 +607,7 @@ class TicketService {
     }
 }
 
-module.exports = new TicketService();
-</code></pre>
+module.exports = new TicketService();</code></pre>
         </article>
     </section>
 
@@ -434,7 +623,7 @@ module.exports = new TicketService();
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 15:37:10 GMT-0500 (Eastern Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Dec 10 2025 02:15:53 GMT-0500 (Eastern Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

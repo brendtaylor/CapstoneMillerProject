@@ -68,7 +68,7 @@ const AppDataSource = new DataSource({
     ],
     
     synchronize: false, 
-    logging: true,
+    logging: false,
     logger: "file" ,
     options: {
         encrypt: false, 

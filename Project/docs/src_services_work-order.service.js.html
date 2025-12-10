@@ -65,7 +65,8 @@ class WorkOrderService {
             ? statusString.split(',').map(Number) 
             : [0, 1];
 
-        logger.info(`Fetching work order summary. Search: ${searchTerm || 'None'}, Statuses: ${statuses}`);
+        //For debugging
+        //logger.info(`Fetching work order summary. Search: ${searchTerm || 'None'}, Statuses: ${statuses}`);
 
         try {
             const query = workOrderRepository.createQueryBuilder("wo")
@@ -102,10 +103,10 @@ class WorkOrderService {
      * @returns {Object[]} [{ wo_id, wo_number, open_ticket_count }, ...]
      */
     async getArchivedWorkOrderSummary(searchTerm = null) {
-        logger.info(`Fetching archived work order summary. Search: ${searchTerm || 'None'}`);
+        //For debugging
+        //logger.info(`Fetching archived work order summary. Search: ${searchTerm || 'None'}`);
 
         try {
-            // query 'WorkOrder' aliased as 'wo'
             const query = workOrderRepository.createQueryBuilder("wo")
                 // Inner join with ArchivedTicket ('at') to only get WOs with archives
                 .innerJoin("ArchivedTicket", "at", "at.wo = wo.woId");
@@ -118,7 +119,6 @@ class WorkOrderService {
             const summary = await query
                 .select("wo.woId", "wo_id") 
                 .addSelect("wo.wo", "wo_number") 
-                // Count the archived tickets
                 .addSelect("COUNT(at.ticketId)", "open_ticket_count") 
                 .groupBy("wo.woId, wo.wo")
                 .orderBy("wo.wo", "ASC")
@@ -137,7 +137,8 @@ class WorkOrderService {
      * 
      * Includes all necessary relations (Unit, Sequence, AssignedUser, etc.).
      * @param {string} woId - The Work Order ID.
-     * @param {string|null} statusString - Status filter.
+     * @param {string|null} statusString - Status filter (ex. "0,1"). Defaults to Open/In-Progress.
+     * @returns {Promise&lt;Array>} List of tickets.
      */
     async getTicketsByWorkOrder(woId, statusString = null) {
         // Default to [0, 1] (Open &amp; In-Progress) if no status is provided
@@ -145,7 +146,8 @@ class WorkOrderService {
             ? statusString.split(',').map(Number) 
             : [0, 1];
 
-        logger.info(`Fetching tickets for WO ID: ${woId}, Statuses: ${statuses}`);
+        //For debugging
+        //logger.info(`Fetching tickets for WO ID: ${woId}, Statuses: ${statuses}`);
 
         return await ticketRepository.find({
             where: { 
@@ -161,14 +163,11 @@ class WorkOrderService {
                 "sequence", 
                 "unit", 
                 "wo", 
-                "assignedTo", 
-                "files",
-                "closures",           
-                "closures.closedBy"   
+                "assignedTo"
             ],
             order: {
                 openDate: "DESC" 
-            }
+            },
         });
     }
 
@@ -177,7 +176,7 @@ class WorkOrderService {
      * Used for dropdowns in Create/Edit Ticket forms.
      */
     async getUnitsByWorkOrder(woId) {
-        logger.info(`Fetching valid units for WO ID: ${woId}`);
+        //logger.info(`Fetching valid units for WO ID: ${woId}`);
         const results = await unitLinkRepository.find({
             where: { woId: woId },
             relations: ["unit"]
@@ -194,7 +193,7 @@ class WorkOrderService {
      * @param {string|null} statusString - Status filter.
      */
     async getArchivedTicketsByWorkOrder(woId) {
-        logger.info(`Fetching archived tickets for WO ID: ${woId}`);
+        //logger.info(`Fetching archived tickets for WO ID: ${woId}`);
 
         return await archivedTicketRepository.find({
             where: { 
@@ -222,7 +221,7 @@ class WorkOrderService {
      * Used for dropdowns in Create/Edit Ticket forms.
      */
     async getSequencesByWorkOrder(woId) {
-        logger.info(`Fetching valid sequences for WO ID: ${woId}`);
+        //logger.info(`Fetching valid sequences for WO ID: ${woId}`);
         const results = await sequenceLinkRepository.find({
             where: { woId: woId },
             relations: ["sequence"]
@@ -235,7 +234,7 @@ class WorkOrderService {
      * Used for dropdowns in Create/Edit Ticket forms.
      */
     async getLaborDepartmentsByWorkOrder(woId) {
-        logger.info(`Fetching valid departments for WO ID: ${woId}`);
+        //logger.info(`Fetching valid departments for WO ID: ${woId}`);
         const results = await departmentLinkRepository.find({
             where: { woId: woId },
             relations: ["laborDepartment"]
@@ -248,7 +247,7 @@ class WorkOrderService {
      * Used for dropdowns in Create/Edit Ticket forms.
      */
     async getNonconformancesByWorkOrder(woId) {
-        logger.info(`Fetching valid nonconformances for WO ID: ${woId}`);
+        //logger.info(`Fetching valid nonconformances for WO ID: ${woId}`);
         const results = await nonconformanceLinkRepository.find({
             where: { woId: woId },
             relations: ["nonconformance"]
@@ -274,7 +273,7 @@ module.exports = new WorkOrderService();
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Dec 09 2025 15:37:10 GMT-0500 (Eastern Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Dec 10 2025 02:15:53 GMT-0500 (Eastern Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

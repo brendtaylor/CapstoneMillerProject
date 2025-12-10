@@ -6,6 +6,9 @@
 USE TICKET_SYSTEM;
 GO
 
+-- Optimizes: WHERE WO = @wo ORDER BY OPEN_DATE DESC
+CREATE INDEX IX_Tickets_WO_OpenDate ON dbo.MiHubWeb_Quality_Tickets(WO, OPEN_DATE DESC);
+GO
 -- ######################################################################
 -- # MASTER LOOKUP TABLES
 -- ######################################################################
@@ -378,6 +381,7 @@ CREATE INDEX IX_Tickets_Division ON dbo.MiHubWeb_Quality_Tickets(DIVISION);
 CREATE INDEX IX_Tickets_Sequence ON dbo.MiHubWeb_Quality_Tickets(SEQUENCE);
 CREATE INDEX IX_Tickets_Initiator ON dbo.MiHubWeb_Quality_Tickets(INITIATOR);
 CREATE INDEX IX_Tickets_AssignedTo ON dbo.MiHubWeb_Quality_Tickets(ASSIGNED_TO);
+CREATE INDEX IX_Ticket_Status_WO ON dbo.MiHubWeb_Quality_Tickets(STATUS, WO) INCLUDE (TICKETID);
 
 -- Foreign Key Indexes for Work Order Linking Tables
 CREATE INDEX IX_WO_Labor_Dept ON dbo.WorkOrder_LaborDepartments(DEPARTMENT_ID);

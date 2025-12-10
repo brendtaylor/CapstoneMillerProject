@@ -1,4 +1,32 @@
-/**
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Project/api/src/services/ticket.service.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: Project/api/src/services/ticket.service.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
  * @file ticket.service.js
  * Service layer for Ticket operations. Handles database interactions, custom ID generation via transactions,
  * and real-time broadcasting via Server-Sent Events (SSE).
@@ -127,19 +155,21 @@ class TicketService {
 
     /**
      * Creates a new ticket.
-     *
-     * LOGIC: Custom ID Generation
-     * Uses a database transaction to ensure unique ticket numbers (e.g., WO-002) 
-     * using the `Ticket_Counters` table, designed for high concurrency.
+     * 
+     *  CRITICAL LOGIC: Custom ID Generation
+     * uses a database transaction to ensure ticket numbers (e.g. 002) 
+     * are unique per Work Order. It relies on the helper table `Ticket_Counters`.
      * 1. Start Transaction.
-     * 2. Lock & Increment the counter for the specific Work Order (WO).
-     * 3. Commit Transaction immediately (releases DB lock to prevent bottlenecks).
-     * 4. Save Ticket entity using the generated ID (no lock held).
+     * 2. Lock/Read the counter for the specific Work Order (WO).
+     * 3. Increment the counter.
+     * 4. Generate ID (WO_NUMBER + Sequence).
+     * 5. Save Ticket.
+     * 6. Commit Transaction.
      * 
      * @param {Object} ticketData - The raw body from the controller.
      * @returns {Object} The fully created ticket with relations.
      */
-    async createTicket(ticketData) {
+    async createTicket(ticketData, user) {
         const missingFields = [];
         
         // Check for required fields
@@ -161,14 +191,14 @@ class TicketService {
         await queryRunner.startTransaction();
 
         try {
-            // Validate Work Order exists and get its Number string
+            // 1. Validate Work Order exists and get its Number string
             const workOrder = await queryRunner.manager.findOne("WorkOrder", {
                 where: { woId: ticketData.wo }
             });
             if (!workOrder) throw new Error(`Work Order ID ${ticketData.wo} not found.`);
             woNumber = workOrder.wo;
 
-            // Initialize counter for the WO if one doesn't exist 
+            // 2. Initialize counter for the WO if one doesn't exist 
             await queryRunner.query(`
                 IF NOT EXISTS (SELECT 1 FROM Ticket_Counters WHERE WO_ID = @0)
                 INSERT INTO Ticket_Counters (WO_ID, LAST_TICKET_NUM) VALUES (@0, 0)
@@ -184,7 +214,7 @@ class TicketService {
 
             nextSeqNum = counterResult[0].LAST_TICKET_NUM;
 
-            // Commit immediately to release the lock on Ticket_Counters
+            // CRITICAL: Commit immediately to release the lock on Ticket_Counters
             await queryRunner.commitTransaction();
 
         } catch (error) {
@@ -200,6 +230,7 @@ class TicketService {
             // Format: 25412-001
             const qualityTicketId = `${woNumber}-${nextSeqNum.toString().padStart(3, '0')}`;
             
+            // Create Ticket Entity using the standard repository (no transaction needed)
             const newTicket = this.ticketRepository.create({
                 ...ticketData,
                 qualityTicketId: qualityTicketId,
@@ -211,8 +242,18 @@ class TicketService {
 
             // Fetch complete ticket object for front-end
             const completeTicket = await this.getTicketById(savedTicket.ticketId);
-            
+
+            // Log the creation in the Audit table
+            if (user) {
+                await this.logAudit(
+                    user, 
+                    completeTicket.ticketId, 
+                    completeTicket.wo.woId, 
+                    "Ticket Created"
+                );
+            }
             // Notify Make.com webhook and broadcast updates
+            // Use setImmediate or don't await this to prevent blocking the response
             this.broadcast('new-ticket', completeTicket); 
             this.triggerWebhook('ticket.create', completeTicket);
             
@@ -220,6 +261,7 @@ class TicketService {
 
         } catch (error) {
             // NOTE: If saving fails here, we will have a "gap" in sequence numbers (e.g. 001, 003).
+            // This is acceptable behavior for high-performance systems to avoid locking.
             logger.error(`Error saving ticket entity: ${error.message}`);
             throw new Error("Failed to save ticket details after generating ID.");
         }
@@ -251,7 +293,7 @@ class TicketService {
 
         if (!currentTicket) throw new Error("Ticket not found");
 
-        const isWoChanging = allowedUpdates.wo && (String(allowedUpdates.wo) !== String(currentTicket.wo?.woId));
+        const isWoChanging = allowedUpdates.wo &amp;&amp; (String(allowedUpdates.wo) !== String(currentTicket.wo?.woId));
 
         if (isWoChanging) {
             const queryRunner = AppDataSource.createQueryRunner();
@@ -282,7 +324,7 @@ class TicketService {
                 const newQualityTicketId = `${newWorkOrder.wo}-${nextSeqNum.toString().padStart(3, '0')}`;
 
                 // 3. Attempt to "Free" Old ID (Decrement Counter for OLD WO if it was the last one)
-                if (currentTicket.wo && currentTicket.qualityTicketId) {
+                if (currentTicket.wo &amp;&amp; currentTicket.qualityTicketId) {
                     const oldWoId = currentTicket.wo.woId;
                     // Extract sequence number from "WO-123-005" -> "005" -> 5
                     const parts = currentTicket.qualityTicketId.split('-');
@@ -294,7 +336,7 @@ class TicketService {
                             SELECT LAST_TICKET_NUM FROM Ticket_Counters WHERE WO_ID = @0
                         `, [oldWoId]);
 
-                        if (currentCounter.length > 0 && currentCounter[0].LAST_TICKET_NUM === oldSeqNum) {
+                        if (currentCounter.length > 0 &amp;&amp; currentCounter[0].LAST_TICKET_NUM === oldSeqNum) {
                             // If we are deleting/moving the *latest* ticket, we can safely decrement the counter
                             await queryRunner.query(`
                                 UPDATE Ticket_Counters 
@@ -354,7 +396,7 @@ class TicketService {
         const currentStatusId = currentTicket.status?.statusId;
 
         // Closing Logic
-        if (newStatus === 2 && currentStatusId !== 2) {
+        if (newStatus === 2 &amp;&amp; currentStatusId !== 2) {
              const cycleStart = currentTicket.lastReopenDate || currentTicket.openDate;
              
              const closureRecord = this.closureRepository.create({
@@ -371,7 +413,7 @@ class TicketService {
 
         // Re-opening Logic: Track dates for calculating cycle times later
         let updatePayload = { status: newStatus };
-        if (newStatus !== 2 && currentStatusId === 2) {
+        if (newStatus !== 2 &amp;&amp; currentStatusId === 2) {
             updatePayload.lastReopenDate = new Date();
         }
         if (newStatus === 2) {
@@ -450,7 +492,7 @@ class TicketService {
             const archiveData = { ...flatTicketData };
             
             // Flatten Closure Data
-            if (closures && closures.length > 0) {
+            if (closures &amp;&amp; closures.length > 0) {
                 const latestClosure = closures.sort((a, b) => b.cycleCloseDate - a.cycleCloseDate)[0];
                 archiveData.correctiveAction = latestClosure.correctiveAction;
                 archiveData.materialsUsed = latestClosure.materialsUsed;
@@ -565,4 +607,26 @@ class TicketService {
     }
 }
 
-module.exports = new TicketService();
+module.exports = new TicketService();</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addTicketNote">addTicketNote</a></li><li><a href="global.html#assignTicketSelf">assignTicketSelf</a></li><li><a href="global.html#assignTicketUser">assignTicketUser</a></li><li><a href="global.html#authenticateToken">authenticateToken</a></li><li><a href="global.html#authorize">authorize</a></li><li><a href="global.html#connectSSE">connectSSE</a></li><li><a href="global.html#createGenericController">createGenericController</a></li><li><a href="global.html#createTicket">createTicket</a></li><li><a href="global.html#deleteTicket">deleteTicket</a></li><li><a href="global.html#getAll">getAll</a></li><li><a href="global.html#getAllArchivedTickets">getAllArchivedTickets</a></li><li><a href="global.html#getAllTickets">getAllTickets</a></li><li><a href="global.html#getArchivedTicketByID">getArchivedTicketByID</a></li><li><a href="global.html#getArchivedTicketsByWorkOrder">getArchivedTicketsByWorkOrder</a></li><li><a href="global.html#getLaborDepartmentsByWorkOrder">getLaborDepartmentsByWorkOrder</a></li><li><a href="global.html#getNonconformancesByWorkOrder">getNonconformancesByWorkOrder</a></li><li><a href="global.html#getSequencesByWorkOrder">getSequencesByWorkOrder</a></li><li><a href="global.html#getTicketById">getTicketById</a></li><li><a href="global.html#getTicketNotes">getTicketNotes</a></li><li><a href="global.html#getTicketsByWorkOrder">getTicketsByWorkOrder</a></li><li><a href="global.html#getUnitsByWorkOrder">getUnitsByWorkOrder</a></li><li><a href="global.html#getWorkOrderSummary">getWorkOrderSummary</a></li><li><a href="global.html#logger">logger</a></li><li><a href="global.html#mapRoleStringToId">mapRoleStringToId</a></li><li><a href="global.html#updateTicket">updateTicket</a></li><li><a href="global.html#updateTicketStatus">updateTicketStatus</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Dec 10 2025 02:11:50 GMT-0500 (Eastern Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
