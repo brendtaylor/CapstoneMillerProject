@@ -19,6 +19,7 @@ class TicketService {
         this.closureRepository = AppDataSource.getRepository("TicketClosure"); 
         this.noteRepository = AppDataSource.getRepository("Note");
         this.auditRepository = AppDataSource.getRepository("AuditLog");
+        this.fileRepository = AppDataSource.getRepository("File");
         
         /**
          * @property {Set} clients
@@ -40,11 +41,13 @@ class TicketService {
             "closures", "closures.closedBy"
         ];
 
-        // Archive relations 
+        //Archive Relations
         this.archiveRelations = [
             "status", "initiator", "division", 
             "manNonCon", "laborDepartment", 
-            "sequence", "unit", "wo", "assignedTo"
+            "sequence", "unit", "wo", "assignedTo",
+            "notes", 
+            "files"
         ];
     }
 
@@ -109,9 +112,7 @@ class TicketService {
         });
     }
 
-    // -------------------- SERVICE METHODS  ----------------------
-
-    async getAllTickets() {
+     async getAllTickets() {
         return await this.ticketRepository.find({
             relations: this.relations
         });
@@ -394,25 +395,83 @@ class TicketService {
 
     /**
      * Archives a ticket.
-     *  -Fetches the ticket to ensure it exists.
-     *  - Copies the ticket data to the `ArchivedTicket` table.
-     *  - Deletes the ticket from the main `Ticket` table.
-     *  - Broadcasts a 'delete-ticket' event so all connected clients remove it from their dashboards immediately.
-     * 
+     *  -Fetches the ticket with all relations to ensure it exists.
+     *  - Flattens the latest `TicketClosure` data into the `ArchivedTicket` record for easier reporting.
+     *  - Creates the `ArchivedTicket` record.
+     *  - Moves related `Notes` and `Files` to the new archive record by udating foreign keys.
+     *  - Deletes the original ticket from the `Ticket` table.
+     *  - Broadcasts a 'delete-ticket' event to update active clients.
      * @param {string} id - The ID of the ticket to delete.
      * @returns {Object} A confirmation object: { id: string, message: string }
-     * @throws {Error} If the ticket does not exist.
+     * @throws {Error} If the ticket does not exist or transaction fails.
      */
     async deleteTicket(id) {
-        const ticketToArchive = await this.getTicketById(id);
-        if (!ticketToArchive) throw new Error("Ticket not found");
+        const queryRunner = AppDataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-        const archivedTicket = this.archivedRepository.create(ticketToArchive);
-        await this.archivedRepository.save(archivedTicket);
-        await this.ticketRepository.delete(id);
-        
-        this.broadcast('delete-ticket', { id: parseInt(id, 10) }); 
-        return { id: id, message: "Ticket archived successfully" };
+        try {
+            // Load all relations (status, division, etc.) PLUS notes/files
+            const relationsToLoad = [...this.relations, "notes", "files"];
+
+            const ticketToArchive = await queryRunner.manager.findOne("Ticket", {
+                where: { ticketId: id },
+                relations: relationsToLoad
+            });
+
+            if (!ticketToArchive) throw new Error("Ticket not found");
+
+            //  Prepare Archive Data
+            const { closures, notes, files, ...flatTicketData } = ticketToArchive;
+            const archiveData = { ...flatTicketData };
+            
+            // Flatten Closure Data
+            if (closures && closures.length > 0) {
+                const latestClosure = closures.sort((a, b) => b.cycleCloseDate - a.cycleCloseDate)[0];
+                archiveData.correctiveAction = latestClosure.correctiveAction;
+                archiveData.materialsUsed = latestClosure.materialsUsed;
+                archiveData.estimatedLaborHours = latestClosure.estimatedLaborHours;
+                if(latestClosure.cycleCloseDate) archiveData.closeDate = latestClosure.cycleCloseDate;
+            }
+
+            // Save to Archive Table
+            await queryRunner.manager.save("ArchivedTicket", archiveData); 
+
+            const archiveId = parseInt(id);
+
+            // 3. Move Notes 
+            if (notes?.length > 0) {
+                await queryRunner.manager.createQueryBuilder()
+                    .update("Note")
+                    .set({ ticket: null, archivedTicket: { ticketId: archiveId } })
+                    .where("ticket.ticketId = :id", { id: archiveId })
+                    .execute();
+            }
+
+            // 4. Move Files 
+            if (files?.length > 0) {
+                await queryRunner.manager.createQueryBuilder()
+                    .update("File")
+                    .set({ ticket: null, archivedTicket: { ticketId: archiveId } })
+                    .where("ticket.ticketId = :id", { id: archiveId })
+                    .execute();
+            }
+
+            // 5. Delete Original Ticket
+            await queryRunner.manager.delete("Ticket", id);
+
+            await queryRunner.commitTransaction();
+            
+            this.broadcast('delete-ticket', { id: archiveId }); 
+            return { id: id, message: "Ticket archived successfully" };
+
+        } catch (err) {
+            if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
+            logger.error(`Error archiving ticket: ${err.message}`);
+            throw err;
+        } finally {
+            await queryRunner.release();
+        }
     }
 
     /**
@@ -461,7 +520,10 @@ class TicketService {
 
     async getNotesByTicketId(ticketId) {
         return await this.noteRepository.find({
-            where: { ticket: { ticketId: parseInt(ticketId) } },
+            where: [
+                { ticket: { ticketId: parseInt(ticketId) } },
+                { archivedTicket: { ticketId: parseInt(ticketId) } }
+            ],
             relations: ["author"],
             order: { createdAt: "DESC" }
         });

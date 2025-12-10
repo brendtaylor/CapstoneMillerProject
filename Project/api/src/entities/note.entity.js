@@ -18,7 +18,7 @@ module.exports = new EntitySchema({
         createdAt: {
             type: "datetime",
             name: "CREATED_AT",
-            default: () => "GETDATE()", // Let SQL Server handle the default
+            default: () => "GETDATE()", 
         },
     },
     relations: {
@@ -27,6 +27,15 @@ module.exports = new EntitySchema({
             type: "many-to-one",
             joinColumn: { name: "TICKET_ID" },
             onDelete: "CASCADE",
+            nullable: true, // Allow null if moved to archive
+        },
+        // NEW RELATION
+        archivedTicket: {
+            target: "ArchivedTicket",
+            type: "many-to-one",
+            joinColumn: { name: "ARCHIVED_TICKET_ID" },
+            onDelete: "CASCADE",
+            nullable: true,
         },
         author: {
             target: "User",

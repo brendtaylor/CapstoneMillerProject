@@ -67,9 +67,12 @@ class FileService {
      */
     static async findByTicketId(ticketId) {
         return fileRepository.find({
-            where: { ticket: { ticketId: Number(ticketId) } }, // use relation
+            where: [
+                { ticket: { ticketId: Number(ticketId) } },       // Check active tickets
+                { archivedTicket: { ticketId: Number(ticketId) } } // Check archived tickets
+            ],
             select: ["fileKey", "fileName", "mimeType", "fileData"],
-            relations: ["ticket"],
+            relations: ["ticket", "archivedTicket"], 
         });
     }
 

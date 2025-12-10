@@ -7,14 +7,14 @@ module.exports = new EntitySchema({
         id: {
             primary: true,
             type: "int",
-            generated: "increment", // Assumes ID is an auto-incrementing key
+            generated: "increment", 
             name: "ID",
         },
         fileKey: {
             type: "nvarchar",
             name: "FileKey",
             length: "255",
-            unique: true, // This is very important for searching
+            unique: true, 
             nullable: false,
         },
         fileName:{
@@ -39,12 +39,23 @@ module.exports = new EntitySchema({
     relations: {
         ticket: {
             target: "Ticket", 
-            type: "many-to-one", // An image belongs to one ticket
-            inverseSide: "files", // The property on the Ticket entity that refers to these files
+            type: "many-to-one", 
+            inverseSide: "files", 
             joinColumn: {
-                name: "TICKETID", // The column in this table
-                referencedColumnName: "ticketId", // The column in the "Ticket" table
+                name: "TICKETID", 
+                referencedColumnName: "ticketId", 
             },
+            nullable: true, // Allow null if moved to archive
+        },
+        // NEW RELATION
+        archivedTicket: {
+            target: "ArchivedTicket",
+            type: "many-to-one",
+            inverseSide: "files",
+            joinColumn: {
+                name: "ARCHIVED_TICKET_ID",
+            },
+            nullable: true,
         },
     },
 });

@@ -8,7 +8,7 @@ module.exports = new EntitySchema({
             primary: true,
             type: "int",
             name: "TICKETID",
-            generated: false, // Keep as false for archive
+            generated: false, 
         },
         qualityTicketId: {
             type: "nvarchar",
@@ -31,7 +31,6 @@ module.exports = new EntitySchema({
             name: "DESCRIPTION",
             nullable: true,
         },
-        
         drawingNum: {
             type: "nvarchar",
             length: 55,
@@ -103,6 +102,17 @@ module.exports = new EntitySchema({
             target: "User",
             type: "many-to-one",
             joinColumn: { name: "ASSIGNED_TO" },
+        },
+        // NEW RELATIONS
+        notes: {
+            target: "Note",
+            type: "one-to-many",
+            inverseSide: "archivedTicket",
+        },
+        files: {
+            target: "File",
+            type: "one-to-many",
+            inverseSide: "archivedTicket",
         }
     },
 });

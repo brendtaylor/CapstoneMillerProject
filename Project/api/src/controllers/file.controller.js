@@ -95,7 +95,7 @@ class FileController {
             return res.status(200).json(
             files.map(f => ({
                 fileKey: f.fileKey,
-                name: f.originalName,
+                name: f.fileName,
                 mimeType: f.mimeType,
                 size: f.fileData.length
             }))

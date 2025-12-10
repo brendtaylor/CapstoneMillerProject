@@ -202,7 +202,8 @@ GO
 
 CREATE TABLE [dbo].[MiHubWeb_Quality_Ticket_Notes](
     [NOTE_ID] [int] IDENTITY(1,1) NOT NULL,
-    [TICKET_ID] [int] NOT NULL,
+    [TICKET_ID] [int] NULL, 
+    [ARCHIVED_TICKET_ID] [int] NULL, 
     [AUTHOR_ID] [smallint] NOT NULL,
     [NOTE_TEXT] [nvarchar](max) NOT NULL,
     [CREATED_AT] [datetime] DEFAULT GETDATE(),
@@ -212,7 +213,8 @@ GO
 
 CREATE TABLE [dbo].[MiHub_Quality_Attachments](
     [ID] [INT] IDENTITY(10000,1) PRIMARY KEY,
-    [TICKETID] [INT] NOT NULL,
+    [TICKETID] [INT] NULL, -- Allow NULL so file can move to archive
+    [ARCHIVED_TICKET_ID] [int] NULL, -- New Column
     [FileKey] [NVARCHAR](255) NOT NULL UNIQUE,
     [FileName] [NVARCHAR](255) NOT NULL,
     [FileData] [VARBINARY](MAX) NOT NULL,
@@ -350,6 +352,20 @@ ALTER TABLE [dbo].[MiHubWeb_Quality_Tickets] WITH CHECK ADD FOREIGN KEY([WO])
 REFERENCES [dbo].[MiHub_WO] ([WO_ID])
 GO
 
+-- ######################################################################
+-- # FOREIGN KEY CONSTRAINTS - Archived Relations
+-- ######################################################################
+ALTER TABLE [dbo].[MiHubWeb_Quality_Ticket_Notes] WITH CHECK 
+ADD CONSTRAINT [FK_Notes_ArchivedTicket] FOREIGN KEY([ARCHIVED_TICKET_ID])
+REFERENCES [dbo].[MiHubWeb_Quality_Tickets_Archive] ([TICKETID])
+ON DELETE CASCADE
+GO
+
+ALTER TABLE [dbo].[MiHub_Quality_Attachments] WITH CHECK 
+ADD CONSTRAINT [FK_Attachments_ArchivedTicket] FOREIGN KEY([ARCHIVED_TICKET_ID])
+REFERENCES [dbo].[MiHubWeb_Quality_Tickets_Archive] ([TICKETID])
+ON DELETE CASCADE
+GO
 -- ######################################################################
 -- # PERFORMANCE INDEXES
 -- ######################################################################
