@@ -142,6 +142,20 @@ class TicketService {
      * @returns {Object} The fully created ticket with relations.
      */
     async createTicket(ticketData) {
+
+        const missingFields = [];
+        
+        // Check for required fields
+        if (!ticketData.laborDepartment) missingFields.push("Labor Department");
+        if (!ticketData.division) missingFields.push("Division");
+        if (!ticketData.manNonCon) missingFields.push("Nonconformance");
+        if (!ticketData.description) missingFields.push("Description");
+
+        // If anything is missing, STOP and throw the "friendly" error
+        if (missingFields.length > 0) {
+            throw new Error(`Validation Error: The following fields are required: ${missingFields.join(", ")}`);
+        }
+        
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
