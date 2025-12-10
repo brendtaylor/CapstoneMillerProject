@@ -135,7 +135,9 @@ class WorkOrderService {
                 "sequence", 
                 "unit", 
                 "wo", 
-                "assignedTo"
+                "assignedTo",
+                "closures",           
+                "closures.closedBy"
             ],
             order: {
                 openDate: "DESC" 
@@ -180,7 +182,9 @@ class WorkOrderService {
                 "sequence", 
                 "unit", 
                 "wo", 
-                "assignedTo"
+                "assignedTo",
+                "files", 
+                "notes"
             ],
             order: {
                 openDate: "DESC" 
