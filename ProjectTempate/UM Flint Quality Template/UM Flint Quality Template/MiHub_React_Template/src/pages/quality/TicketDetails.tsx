@@ -570,7 +570,7 @@ const TicketDetails: React.FC = () => {
     </div>
     )}
       <div className="min-h-screen bg-gray-100"> {/* Add min-h-screen to ensure full viewport height */}
-      <div className="max-w-3xl mx-auto mt-6 space-y-6">
+      <div className="max-w-3xl mx-auto py-6 space-y-6">
 
         {/* Archived Banner */}
         {isArchived && (
