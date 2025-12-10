@@ -15,39 +15,29 @@ To run this you'll need to do the 'npm install' command to install all dependenc
 
 Running:
 -----------------------------------------------------------------
-To start the server do the 'npm start' command.
+To start the server do the 'npm start' command in the MiHub_React_Template Folder.
 
-To stop the server do the CTRL + C
+To stop the server hold CTRL + C
 
 
 Running Docker:
-In the project foler run:
+-----------------------------------------------------------------
+In the project folder run:
 
 1. docker-compose up -d --build
 
-2. docker exec -it sql-server-db /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'TestPassword!2025' -C
-
-3.  You should see a “1>”, enter the following:
-    1> CREATE DATABASE TICKET_SYSTEM;
-    2>GO
-    1>exit
-
-4. docker-compose restart api
-
-5. docker cp Database/createDatabaseAndTables sql-server-db:/tmp/createDb.sql
-
-6. docker exec -it sql-server-db /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'TestPassword!2025' -C -i /tmp/createDb.sql
-
-7. docker cp "Database\seedData.txt" sql-server-db:/tmp/seed.sql
-
-8. docker exec -it sql-server-db /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'TestPassword!2025' -d TICKET_SYSTEM -C -i /tmp/seed.sql 
 
 
-Or
 
-In Project Folder:
+If having issues with docker try:
+-----------------------------------------------------------------
+
+1. docker-compose down -v
+
+2. docker-compose up -d --build
+
+
+
 
 (If you have scripts diables on the system)
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-
-.\setup.ps1

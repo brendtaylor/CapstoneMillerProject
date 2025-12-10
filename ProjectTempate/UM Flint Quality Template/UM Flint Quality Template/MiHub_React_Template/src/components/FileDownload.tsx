@@ -6,7 +6,8 @@ import {
 import FilePreviewModal, { PreviewType } from "./FilePreviewModal";
 import { useToast } from "../hooks/use-toast";
 import { logAudit } from "./utils/auditLogger";
-
+import { useAuth } from "../components/AuthContext";
+ 
 
 interface FileMeta {
   fileKey: string;
@@ -19,10 +20,11 @@ interface FileDownloadProps {
   ticketId: number;
   deleteMode?: boolean;
   setDeleteMode?: React.Dispatch<React.SetStateAction<boolean>>;
+  workOrderSearch: string;
 }
 
 
-const FileDownload: React.FC<FileDownloadProps> = ({ ticketId, deleteMode, setDeleteMode }) => {
+const FileDownload: React.FC<FileDownloadProps> = ({ ticketId, deleteMode, setDeleteMode, workOrderSearch }) => {
   const [files, setFiles] = useState<FileMeta[]>([]);
   const [loading, setLoading] = useState(false);
   const [previewingFile, setPreviewingFile] = useState<FileMeta | null>(null);
@@ -34,6 +36,7 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId, deleteMode, setDe
   const [deletingFileKey, setDeletingFileKey] = useState<string | null>(null);
 
   const { toast } = useToast();
+  const { userId } = useAuth();
 
 
   useEffect(() => {
@@ -81,9 +84,13 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId, deleteMode, setDe
 
       toast({
         title: "File Deleted",
-        description: `${fileName} was removed successfully.`,
+        description: `${fileName} was deleted successfully.`,
         variant: "default",
       });
+
+      if (userId) {
+        await logAudit (userId, "File Deleted", ticketId, parseInt(workOrderSearch, 10));
+      }
 
       if (setDeleteMode) setDeleteMode(false);
 
@@ -165,7 +172,7 @@ const FileDownload: React.FC<FileDownloadProps> = ({ ticketId, deleteMode, setDe
     <div className="mt-4">
       {deleteMode && (
         <div className="mb-2 px-4 py-2 bg-red-50 border border-red-200 text-red-600 text-sm rounded">
-          Delete Mode Active: Click on a file to remove it.
+          Delete Mode Active: Click on a file to delete it.
         </div>
       )}
 

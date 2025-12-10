@@ -43,6 +43,11 @@ const TicketDetails: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
 
+  // Checks for use role, to not display buttons
+  const isAdmin = String(userRole || "").toLowerCase() === "admin";
+  const isEditor = String(userRole || "").toLowerCase() === "editor";
+
+    const AuditLog = false;
 
   // Detect Archive Mode based on URL path
   const isArchived = location.pathname.includes("/archived/");
@@ -669,6 +674,7 @@ const TicketDetails: React.FC = () => {
                 ticketId={ticket.ticketId}
                 deleteMode={deleteMode}
                 setDeleteMode={setDeleteMode}
+                workOrderSearch={ticket?.wo?.wo}
               />
             </CardContent>
           </Card>
